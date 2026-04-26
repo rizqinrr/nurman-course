@@ -24,3 +24,42 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ensure touch events work properly on mobile */
+button,
+[role="button"] {
+  touch-action: auto;
+  cursor: pointer;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee {
+  overflow: hidden;
+  width: 100%;
+}
+
+.marquee-content {
+  display: inline-flex;
+  width: max-content;
+  gap: 0.75rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  animation: marquee 20s linear infinite;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-content {
+    animation: none;
+    transform: translateX(0);
+  }
+}
