@@ -1,10 +1,47 @@
 # 🧭 Project Overview
 
-- Aplikasi frontend untuk alur pendaftaran les Nurman Course.
-- Tujuan: mengarahkan user dari pilih program → konfigurasi → WhatsApp dengan cepat.
-- Tech stack: Next.js (App Router), React, Tailwind CSS.
+- Aplikasi frontend untuk alur pendaftaran les **Nurman Course** (funnel live).
+- Tujuan saat ini: user pilih program → konfigurasi → WhatsApp dengan cepat.
+- Arah masa depan: **LMS sederhana** (katalog + roadmap belajar + jadwal + materi teks + tagihan) — lihat docs, **jangan coding LMS tanpa task aktif**.
+- Tech stack (sekarang): Next.js (App Router), React, Tailwind CSS.
 - UI style: glassmorphism ringan, modern, mobile-first.
-- Tidak menggunakan backend (semua data statis, output ke WhatsApp).
+- Backend saat ini: **tidak ada** (data statis, output ke WhatsApp).
+
+---
+
+# 📚 Document source of truth (WAJIB DIBACA AGENT)
+
+Setiap sesi kerja **berpatokan dokumen ini**, bukan mengarang scope.
+
+| Dokumen | Path | Fungsi |
+|---------|------|--------|
+| **Agent rules (file ini)** | `AGENTS.md` | Aturan funnel + cara kerja + larangan |
+| **System map** | `SYSTEM_MAP.md` | Peta routing/file (bisa lag vs kode — cek kode jika bentrok) |
+| **Roadmap LMS** | `docs/ROADMAP-LMS.md` | Visi LMS, MVP in/out, fase 0–5, opsi A/B |
+| **Progress log** | `docs/PROGRESS.md` | Log sesi + keputusan + status fase |
+| **Task list** | `tasks/todo.md` | Checklist eksekusi (centang di sini) |
+| **Vault (manusia)** | `D:\04_Writing\My Vault\My Projects\nurman-course\` | Mirror planning; repo menang untuk task/progress |
+
+### Urutan baca sebelum eksekusi non-trivial
+
+1. `tasks/todo.md` — task mana yang `in_progress` / dipilih  
+2. `docs/ROADMAP-LMS.md` — jika task LMS / fase  
+3. `docs/PROGRESS.md` — keputusan terakhir & jangan ulangi kerja  
+4. File ini + kode terkait  
+
+### Setelah setiap sesi yang mengubah repo
+
+1. Update **`docs/PROGRESS.md`** (entri baru di atas, template ada di file).  
+2. Update **`tasks/todo.md`** (centang `[x]` + tanggal, atau pindah in_progress).  
+3. Jika keputusan arsitektur → tabel **Keputusan** di `PROGRESS.md`.  
+4. Jangan anggap selesai hanya karena kode jalan — **docs progress/task wajib sync**.
+
+### Larangan scope
+
+- ❌ Jangan implement fitur LMS (auth, DB, `/app`, invoice, dsb.) tanpa task Fase 1+ di `tasks/todo.md`.  
+- ❌ Jangan rombak besar funnel `/course/*` kecuali task Funnel polish (P*) atau Fase 5.  
+- ❌ Jangan lock stack/payment/Opsi A|B diam-diam — catat di `PROGRESS.md`.  
+- ✅ Boleh kerjakan **Funnel polish (P1–P10)** kapan saja; tetap catat progress.
 
 ---
 
@@ -16,7 +53,7 @@
 - /course/jenjang → List jenjang
 - /course/calistung → Program calistung
 - /course/materi/[id] → Detail materi + level
-- /course/config → Konfigurasi akhir + pricing
+- /course/config → Konfigurasi akhir + pricing (`CourseConfigClient.tsx`)
 
 ---
 
@@ -77,11 +114,13 @@
 # 📁 Folder Structure (Clean)
 
 /app → routing & halaman  
-/components/ui → reusable UI (Button, Chip, GlassCard)  
-/components/course → (kosong / legacy, tidak dipakai aktif)  
-/data → data statis (materials)  
+/components/ui → reusable UI (Button, Chip, GlassCard, …)  
+/components/course → section domain funnel (landing: SocialProof, FeaturedPrograms, Testimonials, Reveal, CountUp)  
+/data → data statis (materials, landing)  
 /utils → helper functions  
-/lib → konstanta global
+/lib → konstanta global  
+/docs → roadmap LMS, progress log  
+/tasks → checklist eksekusi (`todo.md`)
 
 ---
 
@@ -90,7 +129,7 @@
 app/
 
 - Semua routing berbasis App Router
-- Entry point semua flow user
+- Entry point semua flow user (funnel)
 
 components/ui/
 
@@ -99,12 +138,13 @@ components/ui/
 
 components/course/
 
-- Legacy (tidak digunakan aktif)
-- Jangan dipakai kecuali direfaktor ulang
+- Section/domain funnel (landing social proof, program favorit, testimoni, motion helpers)
+- Boleh pakai data/landing.ts + framer-motion
 
 data/
 
-- Single source of truth untuk materi/jenjang/calistung
+- Single source of truth untuk materi/jenjang/calistung (funnel)
+- Landing copy/stats: `data/landing.ts`
 
 utils/
 
@@ -113,6 +153,14 @@ utils/
 lib/
 
 - Konstanta global (contoh: WHATSAPP_NUMBER)
+
+docs/
+
+- Roadmap & progress — **bukan** runtime app
+
+tasks/
+
+- Todo eksekusi untuk manusia & agent
 
 ---
 
@@ -154,11 +202,13 @@ app/course/calistung/page.tsx
 
 app/course/config/page.tsx
 
-- Role: Konfigurasi + pricing + CTA
-- Uses:
-  - getMaterialById
-  - UI components
-  - WHATSAPP_NUMBER
+- Role: Wrapper Suspense untuk halaman config
+- Renders: CourseConfigClient
+
+app/course/config/CourseConfigClient.tsx
+
+- Role: Konfigurasi + **pricing** + CTA WhatsApp
+- Uses: getMaterialById, Chip/Button/GlassCard, WHATSAPP_NUMBER
 - Output: WhatsApp URL
 
 data/materials.ts
@@ -168,6 +218,14 @@ data/materials.ts
   - getMaterialById
   - getMaterialsByCategory
 
+data/landing.ts
+
+- Role: Social stats, featured programs, testimonials (landing `/course`)
+
+components/course/*
+
+- Role: Section landing + Reveal/CountUp (framer-motion)
+
 utils/format.ts
 
 - Role: Format harga (rb/jt)
@@ -175,6 +233,10 @@ utils/format.ts
 lib/constants.ts
 
 - Role: Konstanta global (WA number)
+
+docs/ROADMAP-LMS.md · docs/PROGRESS.md · tasks/todo.md
+
+- Role: Arah LMS + tracking eksekusi
 
 ---
 
@@ -185,7 +247,7 @@ materials.ts
 → user memilih item + level  
 → dikirim via query params  
 → diterima di /course/config  
-→ dihitung harga  
+→ dihitung estimasi harga di **CourseConfigClient**  
 → diringkas  
 → dikirim ke WhatsApp
 
@@ -193,17 +255,16 @@ materials.ts
 
 # 💰 Pricing Responsibility
 
-- Base price: data/materials.ts
-- Calculation: HANYA di /course/config
+- Base price: `data/materials.ts` — `Material.basePrice` (list “mulai dari”)
+- Override per level (opsional): `MaterialLevel.basePrice`
+- Unit price helper: `getLevelBasePrice(material, level)`
+- Calculation: HANYA di `app/course/config/CourseConfigClient.tsx`
 
-Multipliers:
+Multipliers (lihat kode untuk angka terkini):
 
-- duration (60 / 90)
+- duration: 60 → ×1, 90 → ×1.3
 - frequency (1 / 2 / 3)
-- participants (1 / 2 / 3)
-
-Formula:
-finalPrice = basePrice × duration × frequency × participantsMultiplier
+- participants: 1 → ×1, 2 → ×0.8 (−20%), 3 → ×0.65 (−35%) + location fee
 
 ❌ Dilarang menghitung harga di halaman lain  
 ❌ Dilarang duplikasi logic pricing
@@ -216,9 +277,8 @@ Calistung:
 
 - Tidak ada pemilihan materi/level kompleks
 - Langsung ke config
-- Di config:
-  - gunakan label "Program"
-  - bukan "Materi"
+- Di config UI: label "Program" (bukan "Materi")
+- Pesan WA: usahakan konsisten dengan label Program (lihat task P3)
 
 Jenjang:
 
@@ -232,8 +292,9 @@ Jenjang:
 - Jangan hardcode data di page
 - Selalu gunakan data/materials.ts
 - Jangan duplikasi logic pricing
-- Jangan ubah routing tanpa alasan kuat
+- Jangan ubah routing tanpa alasan kuat / task
 - Gunakan komponen UI yang sudah ada
+- **Patokan progress/task/roadmap** seperti di bagian Document source of truth
 
 ---
 
@@ -245,40 +306,37 @@ Jenjang:
 - Semua data statis
 - State tidak persistent
 - Tidak ada validasi server-side
+- LMS: baru di dokumen (belum di kode)
 
 ---
 
 # 🧠 Notes for Future Development
 
-Tambah materi:
+## Funnel (sekarang)
+
+Tambah materi:  
 → edit data/materials.ts
 
-Ubah pricing:
-→ edit app/course/config/page.tsx
+Ubah pricing:  
+→ edit app/course/config/CourseConfigClient.tsx
 
-Ubah UI:
+Ubah UI:  
 → edit components/ui/
 
-Tambah program baru:
-→ update:
+Tambah program funnel:  
+→ program page + materials.ts + routing
 
-- program page
-- materials.ts
-- routing terkait
+## LMS (nanti)
 
-Jika ingin scaling:
+→ ikuti `docs/ROADMAP-LMS.md` fase 0→5  
+→ kerjakan hanya task di `tasks/todo.md`  
+→ setiap progres: `docs/PROGRESS.md`
 
-- bisa tambah backend
-- bisa tambah database
-- bisa tambah booking system
+Opsi integrasi funnel (belum final): **A** dual surface vs **B** funnel = onboarding — lihat roadmap.
 
 ---
 
 # 🎯 Goal
 
-Menjaga flow tetap:
-
-- cepat
-- sederhana
-- mudah dipahami user
-- mudah dipahami AI
+**Sekarang:** flow funnel tetap cepat, sederhana, mudah dipahami user & AI.  
+**Nanti:** LMS sederhana sesuai roadmap, tanpa merusak lead WA sebelum Fase 5 diputuskan.

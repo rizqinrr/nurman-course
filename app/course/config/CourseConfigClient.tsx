@@ -8,6 +8,7 @@ import {
   Home,
   MapPin,
   MessageCircle,
+  User,
   Users,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -15,7 +16,7 @@ import Button from "@/components/ui/Button";
 import Chip from "@/components/ui/Chip";
 import GlassCard from "@/components/ui/GlassCard";
 import PageHeader from "@/components/ui/PageHeader";
-import { getMaterialById } from "@/data/materials";
+import { getLevelBasePrice, getMaterialById } from "@/data/materials";
 import { WHATSAPP_NUMBER } from "@/lib/constants";
 
 const DAYS = [
@@ -28,8 +29,29 @@ const DAYS = [
   "Minggu",
 ] as const;
 
-const FULL_DAYS = new Set(["Rabu", "Sabtu"]);
-const TIME_OPTIONS = ["16:00", "18:00", "19:30"] as const;
+const TIME_OPTIONS = [
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+] as const;
+const FULL_TIMES = new Set(["16:00"]);
+
+const DURATION_OPTIONS = [
+  { value: 60 as const, label: "60 menit", comingSoon: false },
+  { value: 90 as const, label: "90 menit", comingSoon: false },
+  { value: 120 as const, label: "2 jam", comingSoon: true },
+];
+
+const FREQUENCY_OPTIONS = [1, 2, 3, 4] as const;
+
+const DEFAULT_DURATION = 90;
+const DEFAULT_FREQUENCY = 3;
+const DEFAULT_PARTICIPANTS = 1;
+
 const LOCATION_FEE = {
   tentor: 0,
   siswa: 10000,
@@ -38,12 +60,13 @@ const LOCATION_FEE = {
 export default function CourseConfigClient() {
   const searchParams = useSearchParams();
 
-  const [duration, setDuration] = useState<60 | 90>(60);
-  const [frequency, setFrequency] = useState<1 | 2 | 3>(2);
+  const [duration, setDuration] = useState<60 | 90>(90);
+  const [frequency, setFrequency] = useState<1 | 2 | 3 | 4>(3);
   const [participants, setParticipants] = useState<1 | 2 | 3>(1);
-  const [location, setLocation] = useState<"tentor" | "siswa">("tentor");
+  const [location, setLocation] = useState<"tentor" | "siswa">("siswa");
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [names, setNames] = useState<string[]>([""]);
 
   const materialId = searchParams.get("materi") || "";
   const programParam = searchParams.get("program") || "materi";
@@ -54,22 +77,19 @@ export default function CourseConfigClient() {
   const selectedLevelData = material?.levels.find(
     (item) => item.level === levelNumber,
   );
-  const configSubjectLabel =
-    programParam === "calistung" ? "Program" : "Materi";
-  const configSubjectValue =
-    programParam === "calistung" ? "Calistung & Ngaji" : material?.name || "-";
+  const isCalistungProgram = programParam === "calistung";
+  const configSubjectLabel = isCalistungProgram ? "Program" : "Materi";
+  const configSubjectValue = material?.name || "-";
 
-  const durationMultiplier = duration === 90 ? 1.5 : 1;
+  const durationMultiplier = duration === 90 ? 1.3 : 1;
   const participantMultiplier =
-    participants === 1 ? 1 : participants === 2 ? 0.8 : 0.7;
+    participants === 1 ? 1 : participants === 2 ? 0.8 : 0.65;
 
   const estimatedPrice = useMemo(() => {
-    if (!material) return 0;
+    if (!material || !selectedLevelData) return 0;
+    const unitPrice = getLevelBasePrice(material, selectedLevelData.level);
     return Math.round(
-      material.basePrice *
-        durationMultiplier *
-        frequency *
-        participantMultiplier +
+      unitPrice * durationMultiplier * frequency * participantMultiplier +
         LOCATION_FEE[location],
     );
   }, [
@@ -78,26 +98,52 @@ export default function CourseConfigClient() {
     location,
     material,
     participantMultiplier,
+    selectedLevelData,
   ]);
 
   const estimatedPriceLabel = useMemo(() => {
     return `Rp ${new Intl.NumberFormat("id-ID").format(estimatedPrice)} / minggu`;
   }, [estimatedPrice]);
 
+  const isAllNamesFilled =
+    names.length === participants &&
+    names.every((name) => name.trim().length > 0);
+
   const isReadyToContinue =
     Boolean(material) &&
     Boolean(selectedLevelData) &&
     selectedDays.length > 0 &&
-    Boolean(selectedTime);
+    Boolean(selectedTime) &&
+    location === "siswa" &&
+    isAllNamesFilled;
 
-  const handleFrequencyChange = (nextFrequency: 1 | 2 | 3) => {
+  const handleFrequencyChange = (nextFrequency: 1 | 2 | 3 | 4) => {
     setFrequency(nextFrequency);
     setSelectedDays((prev) => prev.slice(0, nextFrequency));
   };
 
-  const handleToggleDay = (day: string) => {
-    if (FULL_DAYS.has(day)) return;
+  const handleParticipantsChange = (nextParticipants: 1 | 2 | 3) => {
+    setParticipants(nextParticipants);
+    setNames((prev) => {
+      if (nextParticipants > prev.length) {
+        return [
+          ...prev,
+          ...Array(nextParticipants - prev.length).fill(""),
+        ];
+      }
+      return prev.slice(0, nextParticipants);
+    });
+  };
 
+  const handleNameChange = (index: number, value: string) => {
+    setNames((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleToggleDay = (day: string) => {
     setSelectedDays((prev) => {
       if (prev.includes(day)) {
         return prev.filter((item) => item !== day);
@@ -113,18 +159,44 @@ export default function CourseConfigClient() {
 
   const handleContinueToWhatsApp = () => {
     if (!material || !selectedLevelData || !selectedTime) return;
+    if (location !== "siswa") return;
+    if (!isAllNamesFilled) return;
+
+    const nameLines = names.map((name, index) => {
+      const label = participants === 1 ? "Nama" : `Nama ${index + 1}`;
+      return `• *${label}:* ${name.trim()}`;
+    });
+
+    const packageLines = [
+      `• *${configSubjectLabel}:* ${configSubjectValue}`,
+      ...(isCalistungProgram
+        ? []
+        : [
+            `• *Level:* ${selectedLevelData.level} - ${selectedLevelData.title}`,
+          ]),
+      `• *Durasi:* ${duration} menit`,
+      `• *Frekuensi:* ${frequency}x/minggu`,
+      `• *Peserta:* ${participants} orang`,
+      "• *Tempat:* Rumah Siswa",
+    ];
 
     const message = [
-      "Halo Nurman Course, saya ingin lanjut pendaftaran les dengan konfigurasi berikut:",
-      `Materi: ${material.name}`,
-      `Level: ${selectedLevelData.level} - ${selectedLevelData.title}`,
-      `Durasi: ${duration} menit`,
-      `Frekuensi: ${frequency}x/minggu`,
-      `Peserta: ${participants} orang`,
-      `Tempat: ${location === "tentor" ? "Tempat Tentor" : "Rumah Siswa"}`,
-      `Hari: ${selectedDays.join(", ")}`,
-      `Jam: ${selectedTime}`,
-      `Estimasi harga: ${estimatedPriceLabel}`,
+      "Halo *Nurman Course* 👋",
+      "Saya ingin lanjut pendaftaran les.",
+      "",
+      "*Data Pendaftar*",
+      ...nameLines,
+      "",
+      "*Paket Belajar*",
+      ...packageLines,
+      "",
+      "*Jadwal*",
+      `• *Hari:* ${selectedDays.join(", ")}`,
+      `• *Jam:* ${selectedTime}`,
+      "",
+      `*Estimasi:* ${estimatedPriceLabel}`,
+      "",
+      "Mohon info ketersediaan & langkah selanjutnya. Terima kasih 🙏",
     ].join("\n");
 
     const encodedMessage = encodeURIComponent(message);
@@ -154,7 +226,7 @@ export default function CourseConfigClient() {
   }
 
   return (
-    <div className="space-y-5 pb-40 pt-4 sm:space-y-6 sm:pt-8">
+    <div className="space-y-5 pb-44 pt-4 sm:space-y-6 sm:pt-8">
       <PageHeader
         title="Atur Jadwal"
         subtitle="Sesuaikan waktu dan kebutuhan belajar"
@@ -164,9 +236,11 @@ export default function CourseConfigClient() {
         <p className="text-sm font-semibold text-gray-900 sm:text-base">
           {configSubjectLabel}: {configSubjectValue}
         </p>
-        <p className="mt-1 text-sm text-gray-600">
-          Level {selectedLevelData.level} - {selectedLevelData.title}
-        </p>
+        {!isCalistungProgram && (
+          <p className="mt-1 text-sm text-gray-600">
+            Level {selectedLevelData.level} - {selectedLevelData.title}
+          </p>
+        )}
       </GlassCard>
 
       <GlassCard className="p-5 sm:p-6">
@@ -174,14 +248,37 @@ export default function CourseConfigClient() {
           Durasi
         </h2>
         <div className="flex flex-wrap gap-2">
-          {[60, 90].map((item) => (
-            <Chip
-              key={item}
-              label={`${item} menit`}
-              active={duration === item}
-              onClick={() => setDuration(item as 60 | 90)}
-            />
-          ))}
+          {DURATION_OPTIONS.map((item) => {
+            if (item.comingSoon) {
+              return (
+                <Chip
+                  key={item.value}
+                  onClick={() => undefined}
+                  disabled
+                  className="opacity-60"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    {item.label}
+                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                      Coming Soon
+                    </span>
+                  </span>
+                </Chip>
+              );
+            }
+
+            return (
+              <Chip
+                key={item.value}
+                label={item.label}
+                active={duration === item.value}
+                activeTone={
+                  item.value === DEFAULT_DURATION ? "green" : "blue"
+                }
+                onClick={() => setDuration(item.value as 60 | 90)}
+              />
+            );
+          })}
         </div>
       </GlassCard>
 
@@ -190,31 +287,49 @@ export default function CourseConfigClient() {
           Frekuensi
         </h2>
         <div className="flex flex-wrap gap-2">
-          {[1, 2, 3].map((item) => (
+          {FREQUENCY_OPTIONS.map((item) => (
             <Chip
               key={item}
               label={`${item}x / minggu`}
               active={frequency === item}
-              onClick={() => handleFrequencyChange(item as 1 | 2 | 3)}
+              activeTone={item === DEFAULT_FREQUENCY ? "green" : "blue"}
+              onClick={() => handleFrequencyChange(item)}
             />
           ))}
         </div>
       </GlassCard>
 
       <GlassCard className="p-5 sm:p-6">
-        <h2 className="mb-3 text-base font-bold text-gray-900 sm:text-lg">
-          <span className="inline-flex items-center gap-2">
-            <Users size={18} strokeWidth={2.25} aria-hidden="true" />
-            Jumlah Peserta
+        <div className="mb-1 flex items-start justify-between gap-2">
+          <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+            <span className="inline-flex items-center gap-2">
+              <Users size={18} strokeWidth={2.25} aria-hidden="true" />
+              Jumlah Peserta
+            </span>
+          </h2>
+          <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#4a70a9] sm:text-xs">
+            {participants === 1
+              ? "Harga penuh"
+              : participants === 2
+                ? "Diskon 20% / anak"
+                : "Diskon 35% / anak"}
           </span>
-        </h2>
+        </div>
+        <p className="mb-1 text-sm text-gray-500">
+          Berapa orang dalam 1 kelas.
+        </p>
+        <p className="mb-3 text-sm text-gray-500">
+          Estimasi harga dihitung{" "}
+          <span className="font-medium text-gray-700">per anak .</span>
+        </p>
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3].map((item) => (
             <Chip
               key={item}
               label={`${item} orang`}
               active={participants === item}
-              onClick={() => setParticipants(item as 1 | 2 | 3)}
+              activeTone={item === DEFAULT_PARTICIPANTS ? "green" : "blue"}
+              onClick={() => handleParticipantsChange(item as 1 | 2 | 3)}
             />
           ))}
         </div>
@@ -228,36 +343,26 @@ export default function CourseConfigClient() {
           </p>
 
           <div className="flex flex-wrap gap-2">
-            <Chip
-              selected={location === "tentor"}
-              onClick={() => setLocation("tentor")}
-              className={`transition-all active:scale-95 flex items-center gap-1 whitespace-normal border ${
-                location === "tentor"
-                  ? "bg-green-600 text-white border-green-600"
-                  : "bg-white/80 text-gray-700 border-gray-200"
-              }`}
-            >
+            <Chip onClick={() => undefined} disabled className="opacity-60">
               <span className="inline-flex items-center gap-1.5">
                 <MapPin size={16} strokeWidth={2.25} aria-hidden="true" />
                 Tempat Tentor
+                <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                  Coming Soon
+                </span>
               </span>
-              <span className="text-xs opacity-80">Lebih hemat</span>
             </Chip>
 
             <Chip
-              selected={location === "siswa"}
+              active={location === "siswa"}
+              activeTone="green"
               onClick={() => setLocation("siswa")}
-              className={`transition-all active:scale-95 flex items-center gap-1 whitespace-normal border ${
-                location === "siswa"
-                  ? "bg-[#4a70a9] text-white border-[#4a70a9]"
-                  : "bg-white/80 text-gray-700 border-gray-200"
-              }`}
             >
               <span className="inline-flex items-center gap-1.5">
                 <Home size={16} strokeWidth={2.25} aria-hidden="true" />
                 Rumah Siswa
               </span>
-              <span className="text-xs opacity-80">+10rb (nyaman)</span>
+              <span className="ml-1 text-xs opacity-90">+10rb</span>
             </Chip>
           </div>
         </div>
@@ -271,21 +376,45 @@ export default function CourseConfigClient() {
           </span>
         </h2>
         <p className="mb-3 text-sm text-gray-500">
-          Hari bertanda penuh tidak bisa dipilih.
-        </p>
-        <p className="mb-3 text-sm text-gray-500">
           Maksimal pilih {frequency} hari sesuai frekuensi.
         </p>
         <div className="flex flex-wrap gap-2">
-          {DAYS.map((day) => {
-            const isFull = FULL_DAYS.has(day);
+          {DAYS.map((day) => (
+            <Chip
+              key={day}
+              label={day}
+              active={selectedDays.includes(day)}
+              activeTone="blue"
+              onClick={() => handleToggleDay(day)}
+            />
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard className="p-5 sm:p-6">
+        <h2 className="mb-1 text-base font-bold text-gray-900 sm:text-lg">
+          <span className="inline-flex items-center gap-2">
+            <Clock size={18} strokeWidth={2.25} aria-hidden="true" />
+            Pilih Jam
+          </span>
+        </h2>
+        <p className="mb-3 text-sm text-gray-500">
+          Slot bertanda Full tidak bisa dipilih.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {TIME_OPTIONS.map((time) => {
+            const isFull = FULL_TIMES.has(time);
 
             return (
               <Chip
-                key={day}
-                label={isFull ? `${day} (Full)` : day}
-                active={selectedDays.includes(day)}
-                onClick={() => handleToggleDay(day)}
+                key={time}
+                label={isFull ? `${time} (Full)` : time}
+                active={!isFull && selectedTime === time}
+                activeTone="blue"
+                onClick={() => {
+                  if (isFull) return;
+                  setSelectedTime(time);
+                }}
                 disabled={isFull}
               />
             );
@@ -294,21 +423,45 @@ export default function CourseConfigClient() {
       </GlassCard>
 
       <GlassCard className="p-5 sm:p-6">
-        <h2 className="mb-3 text-base font-bold text-gray-900 sm:text-lg">
+        <h2 className="mb-1 text-base font-bold text-gray-900 sm:text-lg">
           <span className="inline-flex items-center gap-2">
-            <Clock size={18} strokeWidth={2.25} aria-hidden="true" />
-            Pilih Jam
+            <User size={18} strokeWidth={2.25} aria-hidden="true" />
+            {participants === 1 ? "Nama Lengkap" : "Nama Peserta"}
           </span>
         </h2>
-        <div className="flex flex-wrap gap-2">
-          {TIME_OPTIONS.map((time) => (
-            <Chip
-              key={time}
-              label={time}
-              active={selectedTime === time}
-              onClick={() => setSelectedTime(time)}
-            />
-          ))}
+        <p className="mb-3 text-sm text-gray-500">
+          Wajib diisi semua sebelum lanjut ke WhatsApp.
+        </p>
+        <div className="space-y-3">
+          {names.map((name, index) => {
+            const label =
+              participants === 1 ? "Nama Lengkap" : `Nama ${index + 1}`;
+            const placeholder =
+              index === 0
+                ? "Contoh: Budi Santoso"
+                : `Nama peserta ke-${index + 1}`;
+
+            return (
+              <div key={index} className="space-y-1">
+                {participants > 1 && (
+                  <label className="text-xs font-semibold text-gray-700 sm:text-sm">
+                    {label}
+                  </label>
+                )}
+                <input
+                  type="text"
+                  name={`participant-name-${index + 1}`}
+                  autoComplete="name"
+                  value={name}
+                  onChange={(event) =>
+                    handleNameChange(index, event.target.value)
+                  }
+                  placeholder={placeholder}
+                  className="w-full rounded-xl border border-white/70 bg-white/80 px-4 py-3 text-sm text-gray-900 shadow-sm outline-none placeholder:text-gray-400 focus:border-[#4a70a9] focus:ring-2 focus:ring-[#4a70a9]/25 sm:text-base"
+                />
+              </div>
+            );
+          })}
         </div>
       </GlassCard>
 
@@ -323,7 +476,9 @@ export default function CourseConfigClient() {
                 aria-hidden="true"
               />
               <p className="truncate">
-                {material.name} - Level {selectedLevelData.level}
+                {isCalistungProgram
+                  ? material.name
+                  : `${material.name} - Level ${selectedLevelData.level}`}
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-gray-600 sm:text-sm">
@@ -344,9 +499,7 @@ export default function CourseConfigClient() {
                 className="shrink-0 text-[#4a70a9]"
                 aria-hidden="true"
               />
-              <p className="truncate">
-                {location === "tentor" ? "Tempat Tentor" : "Rumah Siswa"}
-              </p>
+              <p className="truncate">Rumah Siswa</p>
             </div>
             <p className="mt-1 text-base font-bold text-[#4a70a9] sm:text-lg">
               Estimasi: {estimatedPriceLabel}

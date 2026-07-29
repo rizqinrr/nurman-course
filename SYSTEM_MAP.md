@@ -3,6 +3,7 @@
 - Aplikasi frontend untuk alur pendaftaran les Nurman Course.
 - Tech stack: Next.js App Router, React, Tailwind CSS.
 - Gaya UI: glassmorphism ringan, mobile-first, flow cepat ke WhatsApp.
+- Arah LMS: `docs/ROADMAP-LMS.md` · progress: `docs/PROGRESS.md` · tasks: `tasks/todo.md` · agent: `AGENTS.md`.
 
 ---
 
@@ -48,10 +49,12 @@ lib/
 
 - app/ → routing dan halaman (entry point flow user).
 - components/ui/ → komponen reusable UI (Button, Chip, GlassCard).
-- components/course/ → saat ini kosong (komponen domain lama sudah dibersihkan).
-- data/ → sumber data statis materi dan kategori (single source data konten).
+- components/course/ → section landing funnel (social proof, program favorit, testimoni, Reveal, CountUp).
+- data/ → sumber data statis materi, kategori, dan landing copy/stats.
 - utils/ → helper utilitas (format harga).
 - lib/ → konstanta global (contoh nomor WhatsApp).
+- docs/ → roadmap LMS + progress log.
+- tasks/ → checklist eksekusi.
 
 ---
 
@@ -93,7 +96,12 @@ app/course/materi/[id]/page.tsx
 
 app/course/config/page.tsx
 
-- Role: Halaman konfigurasi akhir + pricing + CTA WhatsApp.
+- Role: Wrapper Suspense untuk config.
+- Renders: CourseConfigClient.
+
+app/course/config/CourseConfigClient.tsx
+
+- Role: Konfigurasi akhir + pricing + CTA WhatsApp.
 - Uses: getMaterialById, Chip/Button/GlassCard, WHATSAPP_NUMBER.
 - Sends data to: URL WhatsApp (wa.me).
 
@@ -125,7 +133,7 @@ materials.ts
 # ⚠️ Important Rules
 
 - Jangan hardcode daftar materi di page, selalu ambil dari data/materials.ts.
-- Logika pricing utama tetap terpusat di app/course/config/page.tsx.
+- Logika pricing utama tetap terpusat di app/course/config/CourseConfigClient.tsx.
 - Routing flow harus konsisten: /course → /program → pilihan program → /config.
 - Nomor WhatsApp gunakan lib/constants.ts, jangan duplikasi angka di file lain.
 
@@ -134,7 +142,8 @@ materials.ts
 # 🧠 Notes for Future Development
 
 - Tambah/ubah materi: edit data/materials.ts.
-- Ubah perhitungan harga: edit app/course/config/page.tsx.
+- Ubah perhitungan harga: edit app/course/config/CourseConfigClient.tsx.
+- Arah LMS / progress: docs/ROADMAP-LMS.md, docs/PROGRESS.md, tasks/todo.md.
 - Ubah tampilan tombol/chip/card global: edit components/ui/.
 - Jika menambah program baru, update:
   - app/course/program/page.tsx (entry pilihan)

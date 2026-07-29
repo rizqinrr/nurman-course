@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import GlassCard from "@/components/ui/GlassCard";
 import PageHeader from "@/components/ui/PageHeader";
-import { getMaterialById } from "@/data/materials";
+import { getLevelBasePrice, getMaterialById } from "@/data/materials";
 import { formatPrice } from "@/utils/format";
 
 export default function MateriDetailPage() {
@@ -24,6 +24,8 @@ export default function MateriDetailPage() {
 
   const handleContinue = () => {
     if (!material || selectedLevel === null) return;
+    const levelData = material.levels.find((l) => l.level === selectedLevel);
+    if (!levelData || levelData.comingSoon) return;
     router.push(`/course/config?materi=${material.id}&level=${selectedLevel}`);
   };
 
@@ -62,6 +64,15 @@ export default function MateriDetailPage() {
         <p className="text-lg font-bold text-[#4a70a9] sm:text-xl">
           {formatPrice(material.basePrice)} per sesi
         </p>
+        {material.id === "vibe-coding" && (
+          <div className="mt-4 rounded-2xl border border-[#4a70a9]/20 bg-blue-50/60 px-4 py-3 text-sm text-gray-700 sm:text-base">
+            <p className="font-semibold text-gray-900">Syarat ikut kelas</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5">
+              <li>Punya laptop/komputer sendiri</li>
+              <li>Internet yang lancar (tool AI online)</li>
+            </ul>
+          </div>
+        )}
       </section>
 
       <section>
@@ -70,35 +81,68 @@ export default function MateriDetailPage() {
         </h3>
         <div className="space-y-4 sm:space-y-5">
           {material.levels.map((item) => {
-            const isSelected = selectedLevel === item.level;
+            const isComingSoon = Boolean(item.comingSoon);
+            const isSelected = !isComingSoon && selectedLevel === item.level;
+            const enhancedSelect =
+              material.id === "komputer-dasar" || material.id === "vibe-coding";
 
             return (
               <GlassCard
                 key={item.level}
-                onClick={() => setSelectedLevel(item.level)}
-                className={`p-5 sm:p-6 ${
-                  isSelected
-                    ? "border-[#4a70a9] bg-blue-50/80 ring-2 ring-[#4a70a9]/30"
-                    : "border-white/70"
+                onClick={
+                  isComingSoon
+                    ? undefined
+                    : () => setSelectedLevel(item.level)
+                }
+                className={`p-5 sm:p-6 transition-all duration-200 ${
+                  isComingSoon
+                    ? "cursor-not-allowed border-white/50 opacity-70"
+                    : isSelected && enhancedSelect
+                      ? "border-2 border-[#4a70a9] bg-blue-50/90 ring-2 ring-[#4a70a9]/35 scale-[1.01] shadow-md"
+                      : isSelected
+                        ? "border-[#4a70a9] bg-blue-50/80 ring-2 ring-[#4a70a9]/30"
+                        : enhancedSelect
+                          ? "border-white/70 hover:border-gray-300 hover:bg-white/80"
+                          : "border-white/70"
                 }`}
               >
                 <div className="mb-3">
-                  <p className="text-sm font-semibold text-[#4a70a9]">
-                    Level {item.level}
-                  </p>
-                  <h4 className="text-xl font-bold text-gray-900">
-                    {item.title}
-                  </h4>
-                  <p className="text-sm text-gray-600 sm:text-base">
-                    {item.subtitle}
-                  </p>
-                </div>
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-[#4a70a9]">
+                      Level {item.level}
+                    </p>
+                    {isSelected && enhancedSelect && (
+                      <span className="rounded-full bg-[#4a70a9] px-2.5 py-0.5 text-xs font-semibold text-white shadow">
+                        Terpilih
+                      </span>
+                    )}
+                    {isComingSoon && (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
+                    <h4 className="text-xl font-bold text-gray-900">
+                      {item.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 sm:text-base">
+                      {item.subtitle}
+                    </p>
+                    {!isComingSoon && (
+                      <p className="mt-2 text-sm font-semibold text-[#4a70a9] sm:text-base">
+                        {formatPrice(getLevelBasePrice(material, item.level))} /
+                        sesi (60 menit)
+                      </p>
+                    )}
+                  </div>
 
-                <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700 sm:text-base">
-                  {item.features.map((feature) => (
-                    <li key={feature}>{feature}</li>
-                  ))}
-                </ul>
+                {item.features.length > 0 && (
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700 sm:text-base">
+                    {item.features.map((feature) => (
+                      <li key={feature}>{feature}</li>
+                    ))}
+                  </ul>
+                )}
               </GlassCard>
             );
           })}

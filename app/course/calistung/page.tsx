@@ -18,7 +18,7 @@ export default function CalistungPage() {
     <div className="pb-20 pt-4 sm:pt-8">
       <PageHeader
         title="Calistung & Ngaji"
-        subtitle="Program dasar membaca, menulis, berhitung & ngaji"
+        subtitle="Pilih paket: Ngaji saja (mulai 15rb) atau Calistung & Ngaji (30rb)"
       />
 
       <section className="space-y-4 sm:space-y-6">

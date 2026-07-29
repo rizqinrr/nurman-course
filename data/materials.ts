@@ -5,6 +5,8 @@ export interface MaterialLevel {
   title: string;
   subtitle: string;
   features: string[];
+  comingSoon?: boolean;
+  basePrice?: number;
 }
 
 export interface Material {
@@ -16,6 +18,14 @@ export interface Material {
   levels: MaterialLevel[];
 }
 
+export const getLevelBasePrice = (
+  material: Material,
+  levelNumber: number,
+): number => {
+  const level = material.levels.find((item) => item.level === levelNumber);
+  return level?.basePrice ?? material.basePrice;
+};
+
 export const materials: Material[] = [
   {
     id: "komputer-dasar",
@@ -23,28 +33,40 @@ export const materials: Material[] = [
     description:
       "Menguasai penggunaan komputer dari dasar hingga aplikasi profesional",
     category: "materi",
-    basePrice: 45000,
+    basePrice: 35000,
     levels: [
       {
         level: 1,
         title: "Pemula",
         subtitle: "Dari Nol",
+        basePrice: 35000,
         features: [
-          "Pengenalan hardware & software",
-          "Penggunaan keyboard & mouse",
-          "Operating system basics",
-          "File management",
+          "Mengenal perangkat keras dan perangkat lunak",
+          "Cara menyalakan komputer, login, dan pengaturan dasar Windows",
+          "Mengenal file, folder, copy-paste, dan penyimpanan",
+          "Pengenalan Microsoft Word (dokumen teks)",
+          "Format dokumen (font, paragraf, margin, heading)",
+          "Simpan dan cetak dokumen, konversi ke PDF",
+          "Pengenalan internet & email (buka, kirim lampiran, unduh file)",
+          "Proyek akhir: Membuat surat pribadi + kirim via email",
         ],
       },
       {
         level: 2,
         title: "Menengah",
         subtitle: "Produktivitas Kantoran",
+        basePrice: 40000,
         features: [
-          "Microsoft Word advanced",
-          "Excel formulas & charts",
-          "PowerPoint presentations",
-          "Email & collaboration tools",
+          "Review Word (dokumen resmi & tabel)",
+          "Pengenalan Microsoft Excel",
+          "Rumus dasar (SUM, AVERAGE, MIN, MAX)",
+          "Format data & tabel",
+          "Grafik dan analisis sederhana",
+          "Pengenalan PowerPoint",
+          "Desain slide, animasi, dan presentasi menarik",
+          "Internet untuk kerja (Google Drive, dokumen online)",
+          "Email profesional & kolaborasi online",
+          "Proyek akhir: Buat laporan + presentasi",
         ],
       },
       {
@@ -52,94 +74,62 @@ export const materials: Material[] = [
         title: "Terapan",
         subtitle: "Praktis & Kreatif",
         features: [
-          "Photo editing basics",
-          "Video editing fundamentals",
-          "Design principles",
-          "Project portfolio creation",
+          "Jalur Canva & dokumen online",
+          "Jalur bisnis & UMKM digital",
+          "Jalur administrasi profesional",
         ],
+        comingSoon: true,
       },
     ],
   },
   {
-    id: "coding-dasar",
-    name: "Coding Dasar",
-    description: "Pengenalan programming dan AI untuk pemula",
+    id: "vibe-coding",
+    name: "Kelas Vibe Coding",
+    description:
+      "Mulai dari nol. Ngoding dengan bantuan AI — proyek nyata di localhost dulu, lanjut web app & production di level atas. Syarat: laptop/komputer sendiri dan internet lancar.",
     category: "materi",
-    basePrice: 45000,
+    basePrice: 40000,
     levels: [
       {
         level: 1,
-        title: "Fundamentals",
-        subtitle: "Konsep Dasar Programming",
+        title: "Dasar",
+        subtitle: "Localhost dulu — 12 sesi",
+        basePrice: 40000,
         features: [
-          "Variables & data types",
-          "Control flow (if, loops)",
-          "Functions & logic",
-          "Basic debugging",
+          "Setup VSCode + Laragon (full localhost)",
+          "HTML / CSS / JS basic",
+          "Pakai AI universal + prompting lanjutan",
+          "Proyek: landing page + app sederhana (local)",
+          "Debugging & showcase di local",
+          "Intro database — jembatan ke Level 2",
         ],
       },
       {
         level: 2,
-        title: "Intermediate",
-        subtitle: "Struktur & Libraries",
+        title: "Web App",
+        subtitle: "Laravel + Git + Vercel — 12 sesi",
+        basePrice: 45000,
         features: [
-          "Arrays & objects",
-          "Built-in methods",
-          "Code organization",
-          "Mini projects",
+          "Backend, framework/library & MVC",
+          "Laravel + Blade/Tailwind dengan AI",
+          "Database, migration & CRUD (localhost)",
+          "Auth (login/register)",
+          "Git + GitHub",
+          "Deploy landing/portofolio ke Vercel + proyek CRUD local",
         ],
       },
       {
         level: 3,
-        title: "AI Introduction",
-        subtitle: "Pengenalan AI & Automation",
+        title: "Pro",
+        subtitle: "Production · modul fleksibel",
+        basePrice: 50000,
         features: [
-          "AI concepts overview",
-          "API integration basics",
-          "Automation scripts",
-          "Real-world AI use cases",
-        ],
-      },
-    ],
-  },
-  {
-    id: "coding-lanjutan",
-    name: "Coding Lanjutan",
-    description: "Pembuatan website dan advanced AI applications",
-    category: "materi",
-    basePrice: 55000,
-    levels: [
-      {
-        level: 1,
-        title: "Web Basics",
-        subtitle: "HTML, CSS, & JavaScript",
-        features: [
-          "Semantic HTML5",
-          "CSS layouts & responsive design",
-          "JavaScript DOM manipulation",
-          "Forms & validation",
-        ],
-      },
-      {
-        level: 2,
-        title: "Web Framework",
-        subtitle: "React & Next.js",
-        features: [
-          "React components & hooks",
-          "State management basics",
-          "Next.js fundamentals",
-          "Database integration intro",
-        ],
-      },
-      {
-        level: 3,
-        title: "AI Integration",
-        subtitle: "Advanced AI & Deployment",
-        features: [
-          "LLM API integration",
-          "Advanced automation",
-          "Performance optimization",
-          "Production deployment",
+          "Setup AI pro (Cursor/rules) + arsitektur & ERD",
+          "Laravel + Filament admin panel",
+          "CRUD lanjutan, upload, fitur production",
+          "Security, testing, payment/email (sesuai proyek)",
+          "Deploy dinamis Railway/Render + CI/CD basic",
+          "Proyek akhir portofolio (modul fleksibel)",
         ],
       },
     ],
@@ -205,11 +195,33 @@ export const materials: Material[] = [
     ],
   },
   {
+    id: "ngaji",
+    name: "Ngaji",
+    description:
+      "Belajar mengaji sesuai usia: Iqro/Al-Qur'an, tajwid dasar, dan hafalan ringan",
+    category: "calistung",
+    basePrice: 15000,
+    levels: [
+      {
+        level: 1,
+        title: "Dasar",
+        subtitle: "Fondasi ngaji anak",
+        features: [
+          "Mengenal huruf hijaiyah dan makhraj dasar",
+          "Iqro atau Al-Qur'an sesuai kemampuan",
+          "Tajwid sederhana & kelancaran baca",
+          "Hafalan doa/surah pendek (opsional)",
+        ],
+      },
+    ],
+  },
+  {
     id: "calistung-ngaji",
     name: "Calistung & Ngaji",
-    description: "Program dasar membaca, menulis, berhitung, dan ngaji",
+    description:
+      "Program dasar membaca, menulis, berhitung, dan ngaji dalam satu paket",
     category: "calistung",
-    basePrice: 35000,
+    basePrice: 30000,
     levels: [
       {
         level: 1,

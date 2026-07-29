@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CalendarClock,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   CircleCheck,
   Sparkles,
   X,
@@ -15,45 +13,48 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
+import SocialProof from "@/components/course/SocialProof";
+import FeaturedPrograms from "@/components/course/FeaturedPrograms";
+import Testimonials from "@/components/course/Testimonials";
+import Reveal from "@/components/course/Reveal";
+import TutorCarousel from "@/components/course/TutorCarousel";
+
+const tutors = [
+  {
+    nickname: "Kak Aisyah",
+    university: "Universitas Negeri Yogyakarta",
+    major: "S1 Pendidikan Matematika",
+    focus: "Matematika SD-SMP, logika dasar, dan persiapan ujian",
+    photo: "/tutors/kak-aisyah.svg",
+  },
+  {
+    nickname: "Kak Kiki",
+    university: "Politeknik Negeri Cilacap",
+    major: "D3 Informatika",
+    focus: "Komputer dasar, coding pemula, dan produktivitas digital",
+    photo: "/tutors/kak-fikri.svg",
+  },
+  {
+    nickname: "Kak Nadine",
+    university: "Universitas Pendidikan Indonesia",
+    major: "S1 Pendidikan Bahasa Inggris",
+    focus: "English conversation, grammar practical, dan speaking confidence",
+    photo: "/tutors/kak-nadine.svg",
+  },
+];
 
 export default function CoursePage() {
   const router = useRouter();
   const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-  const [activeTutorIndex, setActiveTutorIndex] = useState(0);
   const [showFloatingLogo, setShowFloatingLogo] = useState(false);
-  const tutorTrackRef = useRef<HTMLDivElement | null>(null);
-  const tutorCardRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const benefits = [
     "Guru berpengalaman",
     "Free konsultasi & trial session",
     "Jadwal fleksibel",
     "Bisa online & offline (di rumah tentor / siswa)",
-  ];
-
-  const tutors = [
-    {
-      nickname: "Kak Aisyah",
-      university: "Universitas Negeri Yogyakarta",
-      major: "S1 Pendidikan Matematika",
-      focus: "Matematika SD-SMP, logika dasar, dan persiapan ujian",
-      photo: "/tutors/kak-aisyah.svg",
-    },
-    {
-      nickname: "Kak Fikri",
-      university: "Telkom University",
-      major: "S1 Teknik Informatika",
-      focus: "Komputer dasar, coding pemula, dan produktivitas digital",
-      photo: "/tutors/kak-fikri.svg",
-    },
-    {
-      nickname: "Kak Nadine",
-      university: "Universitas Pendidikan Indonesia",
-      major: "S1 Pendidikan Bahasa Inggris",
-      focus: "English conversation, grammar practical, dan speaking confidence",
-      photo: "/tutors/kak-nadine.svg",
-    },
+    "Laporan progres belajar anak",
   ];
 
   const faqItems = [
@@ -99,73 +100,8 @@ export default function CoursePage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
-    const track = tutorTrackRef.current;
-    if (!track) return;
-
-    let ticking = false;
-
-    const syncActiveTutor = () => {
-      const trackRect = track.getBoundingClientRect();
-      const centerX = trackRect.left + trackRect.width / 2;
-
-      let nearest = 0;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-
-      tutorCardRefs.current.forEach((card, index) => {
-        if (!card) return;
-        const cardRect = card.getBoundingClientRect();
-        const cardCenterX = cardRect.left + cardRect.width / 2;
-        const distance = Math.abs(cardCenterX - centerX);
-
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearest = index;
-        }
-      });
-
-      setActiveTutorIndex(nearest);
-    };
-
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        syncActiveTutor();
-        ticking = false;
-      });
-    };
-
-    syncActiveTutor();
-    track.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", syncActiveTutor);
-
-    return () => {
-      track.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", syncActiveTutor);
-    };
-  }, []);
-
   const handleStartCourse = () => {
     router.push("/course/program");
-  };
-
-  const scrollToTutor = (index: number) => {
-    const clampedIndex = Math.max(0, Math.min(index, tutors.length - 1));
-    setActiveTutorIndex(clampedIndex);
-    tutorCardRefs.current[clampedIndex]?.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
-    });
-  };
-
-  const handlePrevTutor = () => {
-    scrollToTutor(activeTutorIndex - 1);
-  };
-
-  const handleNextTutor = () => {
-    scrollToTutor(activeTutorIndex + 1);
   };
 
   const handleToggleFaq = (index: number) => {
@@ -253,6 +189,8 @@ export default function CoursePage() {
             </div>
           </section>
 
+          <SocialProof />
+
           <section className="mx-auto mt-7 max-w-lg text-center">
             <button
               type="button"
@@ -267,132 +205,15 @@ export default function CoursePage() {
             </p>
           </section>
 
-          <section
-            className="mt-12 sm:mt-14"
-            aria-label="Tutor unggulan Nurman Course"
-          >
-            <div className="mb-4 flex items-end justify-between px-1">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4a70a9]/80">
-                  Tutor Unggulan
-                </p>
-                <h2 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
-                  Belajar bareng mentor favoritmu
-                </h2>
-              </div>
+          <FeaturedPrograms />
 
-              <div className="hidden gap-2 sm:flex">
-                <button
-                  type="button"
-                  onClick={handlePrevTutor}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/70 text-[#4a70a9] shadow-md backdrop-blur-md transition hover:bg-white"
-                  aria-label="Tutor sebelumnya"
-                >
-                  <ChevronLeft size={18} strokeWidth={2.25} />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextTutor}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/70 text-[#4a70a9] shadow-md backdrop-blur-md transition hover:bg-white"
-                  aria-label="Tutor berikutnya"
-                >
-                  <ChevronRight size={18} strokeWidth={2.25} />
-                </button>
-              </div>
-            </div>
+          <Reveal>
+            <TutorCarousel tutors={tutors} />
+          </Reveal>
 
-            <div
-              ref={tutorTrackRef}
-              className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 pt-2 sm:px-2"
-            >
-              {tutors.map((tutor, index) => {
-                const isActive = index === activeTutorIndex;
-                const offset = index - activeTutorIndex;
+          <Testimonials />
 
-                return (
-                  <div
-                    key={tutor.nickname}
-                    ref={(element) => {
-                      tutorCardRefs.current[index] = element;
-                    }}
-                    className={`snap-center shrink-0 basis-[82%] transition-all duration-500 sm:basis-[68%] ${
-                      isActive
-                        ? "scale-100 opacity-100"
-                        : "scale-[0.94] opacity-75"
-                    }`}
-                    style={{
-                      transform: `perspective(1200px) rotateY(${offset === 0 ? 0 : offset < 0 ? 8 : -8}deg)`,
-                    }}
-                  >
-                    <GlassCard
-                      className={`h-full overflow-hidden p-4 sm:p-5 ${
-                        isActive
-                          ? "border-white/85 bg-white/78 shadow-[0_16px_34px_rgba(74,112,169,0.22)]"
-                          : "border-white/70 bg-white/62"
-                      }`}
-                    >
-                      <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-white/70">
-                        <Image
-                          src={tutor.photo}
-                          alt={tutor.nickname}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-
-                      <div className="mt-4 space-y-2">
-                        <p className="text-xl font-bold text-gray-900">
-                          {tutor.nickname}
-                        </p>
-                        <p className="text-sm font-semibold text-[#4a70a9]">
-                          {tutor.major}
-                        </p>
-                        <p className="text-sm text-gray-700">
-                          Lulusan {tutor.university}
-                        </p>
-                        <p className="text-sm text-gray-600">{tutor.focus}</p>
-                      </div>
-                    </GlassCard>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-1 flex items-center justify-center gap-2 sm:hidden">
-              <button
-                type="button"
-                onClick={handlePrevTutor}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/70 text-[#4a70a9] shadow-md"
-                aria-label="Tutor sebelumnya"
-              >
-                <ChevronLeft size={16} strokeWidth={2.25} />
-              </button>
-
-              {tutors.map((_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => scrollToTutor(index)}
-                  className={`h-2.5 rounded-full transition-all ${
-                    index === activeTutorIndex
-                      ? "w-6 bg-[#4a70a9]"
-                      : "w-2.5 bg-[#4a70a9]/35"
-                  }`}
-                  aria-label={`Lihat tutor ${index + 1}`}
-                />
-              ))}
-
-              <button
-                type="button"
-                onClick={handleNextTutor}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/70 text-[#4a70a9] shadow-md"
-                aria-label="Tutor berikutnya"
-              >
-                <ChevronRight size={16} strokeWidth={2.25} />
-              </button>
-            </div>
-          </section>
-
+          <Reveal>
           <section
             className="mt-12 sm:mt-14"
             aria-label="Pertanyaan umum Nurman Course"
@@ -447,6 +268,7 @@ export default function CoursePage() {
               })}
             </div>
           </section>
+          </Reveal>
 
           <footer className="pb-8 pt-12 text-center text-sm font-medium text-gray-500">
             @2026 Nurman Digital
