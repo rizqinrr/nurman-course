@@ -66,11 +66,11 @@ Prioritas rendah:
 
 ## Fase 0 — Spec & model data (docs only)
 
-- [ ] F0.1 Finalisasi daftar entity + field (User, Program, RoadmapStep, Session, MaterialItem, Enrollment, Invoice)
-- [ ] F0.2 ERD kasar (vault Diagram/ atau `docs/erd-lms.md`)
+- [x] 2026-07-31 F0.1 Finalisasi daftar entity + field (User, Program, RoadmapStep, Session, MaterialItem, Enrollment, Invoice, DailyReport, ProgressReport)
+- [x] 2026-08-01 F0.2 ERD kasar (docs/erd-lms.md)
 - [ ] F0.3 Mapping kasar `materials.ts` → Program/RoadmapStep (untuk migrasi nanti)
-- [ ] F0.4 Shortlist stack (DB + Auth) + kriteria; **belum wajib lock**
-- [ ] F0.5 Catat keputusan open: Opsi A vs B, payment manual vs gateway — di `PROGRESS.md`
+- [x] 2026-08-01 F0.4 Shortlist stack (Postgres + Supabase Auth)
+- [x] 2026-08-01 F0.5 Catat keputusan open: Opsi A, akun wali dibuat admin, wali lihat harian+perkembangan — di `PROGRESS.md`
 
 **Exit Fase 0:** entity jelas, ERD ada, stack kandidat tertulis, open questions tersisa ≤ 3.
 
@@ -79,45 +79,48 @@ Prioritas rendah:
 ## Fase 1 — Fondasi
 
 - [x] 2026-08-01 F1.1 Pilih & setup DB + env (tanpa commit secret)
-- [x] 2026-08-01 F1.2 Auth admin + peserta (minimal)
+- [x] 2026-08-01 F1.2 Auth admin + pengajar + wali (minimal)
 - [ ] F1.3 Shell app terautentikasi (`/app` atau setara) + layout
 - [x] 2026-08-01 F1.4 Seed 1 program dummy + 1 admin
-- [x] 2026-08-01 F1.5 Proteksi route (admin vs peserta)
+- [x] 2026-08-01 F1.5 Proteksi route (admin vs pengajar vs wali)
 
 **Exit Fase 1:** login jalan; admin masuk shell; 1 program di DB.
 
 ---
 
-## Fase 2 — Katalog + roadmap + materi teks
+## Fase 2 — Katalog, Murid & Pengajar
 
-- [ ] F2.1 Admin CRUD Program
-- [ ] F2.2 Admin CRUD RoadmapStep (urutan alur belajar)
-- [ ] F2.3 Admin CRUD MaterialItem (teks) terkait step
-- [ ] F2.4 Peserta: list katalog + detail + roadmap read-only
-- [ ] F2.5 Peserta: baca materi teks per step
+- [ ] F2.1 Admin CRUD Program (termasuk `sessionsPerBlock`)
+- [ ] F2.2 Admin CRUD User Pengajar & Wali Murid
+- [ ] F2.3 Admin CRUD Murid & Enrollment (menghubungkan murid ke wali & program)
+- [ ] F2.4 Admin CRUD RoadmapStep & MaterialItem
+- [ ] F2.5 Wali: lihat katalog & roadmap belajar anak
+- [ ] F2.6 Wali: baca materi belajar anak
 
-**Exit Fase 2:** satu program end-to-end bisa diisi admin & dibaca peserta.
+**Exit Fase 2:** data master lengkap terkelola, wali bisa lihat materi & roadmap anaknya.
 
 ---
 
-## Fase 3 — Jadwal sesi
+## Fase 3 — Jadwal & Laporan Sesi
 
-- [ ] F3.1 Model + admin CRUD Session
-- [ ] F3.2 Tampilan list/kalender sederhana untuk peserta
-- [ ] F3.3 Hubungan Session ↔ Program (dan opsional Enrollment)
+- [ ] F3.1 Admin CRUD Session (assign program, pengajar, murid, tanggal, jam)
+- [ ] F3.2 Pengajar: lihat jadwal sesi mengajar
+- [ ] F3.3 Pengajar: input Laporan Harian (DailyReport)
+- [ ] F3.4 Pengajar: input Laporan Perkembangan (ProgressReport) setelah N sesi selesai
+- [ ] F3.5 Wali: lihat Jadwal, Laporan Harian, & Laporan Perkembangan anak
 
-**Exit Fase 3:** peserta lihat jadwal program yang relevan.
+**Exit Fase 3:** pengajar bisa input laporan per sesi & per blok, wali murid bisa pantau secara real-time.
 
 ---
 
 ## Fase 4 — Tagihan / pembayaran
 
-- [ ] F4.1 Model Invoice + status unpaid/waiting/paid
-- [ ] F4.2 Admin buat/ubah status tagihan
-- [ ] F4.3 Peserta lihat tagihan + instruksi bayar (teks)
-- [ ] F4.4 (Opsional) notifikasi WA salin/tautan — bukan gateway dulu
+- [ ] F4.1 Model Invoice (unpaid/waiting/paid) terhubung ke Enrollment murid
+- [ ] F4.2 Admin terbitkan invoice & kelola status
+- [ ] F4.3 Wali: lihat tagihan & petunjuk transfer
+- [ ] F4.4 Wali: upload bukti transfer & kirim konfirmasi WhatsApp
 
-**Exit Fase 4:** status bayar terlihat admin & peserta.
+**Exit Fase 4:** status bayar terlihat admin & wali, konfirmasi manual berjalan lancar.
 
 ---
 

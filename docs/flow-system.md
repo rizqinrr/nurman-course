@@ -1,77 +1,67 @@
-# Flow Sistem — Nurman Course (Post-Funnel)
+# Flow Sistem — Nurman Course (LMS Area)
 
-## 1. Alur Login & Pendaftaran
+Dokumen ini menjelaskan alur navigasi dan interaksi pengguna berdasarkan 3 peran utama: **Wali Murid**, **Pengajar (Tentor)**, dan **Admin**.
 
-```
-User daftar dari funnel (WA) → data nama, umur, jenis kelamin, nama orang tua, nomor hape
-Admin/orang tua login (Supabase Auth)
-→ Dashboard orang tua → "Kelas Saya"
-```
+---
 
-**Detail fields:**
-- Nama lengkap (siswa)
-- Umur
-- Jenis kelamin
-- Nama orang tua (wali)
-- Nomor hape (untuk notifikasi)
+## 1. Alur Pembuatan Akun & Pendaftaran
 
-## 2. Dashboard Orang Tua
+1. **Pendaftaran Awal**: Calon wali murid melakukan pendaftaran les melalui funnel marketing `/course` (WhatsApp).
+2. **Pembuatan Akun (Admin)**: Admin memproses data pendaftar dan membuatkan akun secara manual melalui panel admin:
+   - Membuat akun **User** dengan role `wali`.
+   - Membuat entitas **Murid** (anak) yang dihubungkan ke akun `wali` tersebut.
+   - Menghubungkan murid ke program belajar (`Enrollment`).
+   - Membuatkan akun pengajar jika pengajar tersebut baru (`User` dengan role `pengajar`).
+3. **Login Pertama**: Wali murid menerima kredensial akun dari admin, lalu melakukan login di `/login`.
 
-- **Progress Anak** (per kelas aktif)
-- **Materi yang sedang dipelajari** (outline garis besar)
-- **Jadwal** (jam mulai/selesai)
-- **Status tagihan** (kalau sudah masuk Fase 4)
+---
 
-## 3. Halaman Materi Detail
+## 2. Alur Pengguna: Wali Murid (Orang Tua)
 
-**Kelas yang didukung sekarang:**
-- **Calistung**
-- **Ngaji**
+Setelah login, wali murid dialihkan ke `/app/dashboard` (dashboard wali):
 
-**Materi per kelas contoh:**
+1. **Pilih Murid (Multi-Anak)**: Jika wali memiliki lebih dari 1 anak yang terdaftar, wali memilih anak mana yang ingin dipantau.
+2. **Dashboard Anak**:
+   - **Progress Peta Jalan**: Menampilkan langkah roadmap yang sedang ditempuh dan persentase penyelesaian modul (misal: "Iqra 2 - Langkah 2/6").
+   - **Jadwal Belajar**: Kalender/daftar sesi privat yang akan datang di rumah siswa.
+   - **Laporan Harian Terbaru**: Ringkasan laporan harian terakhir yang ditulis oleh pengajar.
+   - **Ringkasan Tagihan**: Status tagihan minggu ini (Belum Dibayar / Lunas / Menunggu Konfirmasi).
+3. **Detail Laporan Harian**: Wali membuka tab "Laporan Sesi" untuk membaca rincian tanggal, jam belajar, materi yang dibahas, dan catatan pribadi pengajar untuk setiap pertemuan.
+4. **Detail Laporan Perkembangan**: Wali membuka tab "Laporan Perkembangan" untuk membaca laporan evaluasi berkala per blok pertemuan (setiap 10 atau 12 sesi).
+5. **Konfirmasi Pembayaran**: Wali membuka tab "Tagihan", mengunggah bukti transfer bank, lalu menekan tombol "Konfirmasi WhatsApp" untuk mengirim pesan konfirmasi otomatis ke admin.
 
-**Kelas Ngaji:**
-- Keterangan: IQRO berapa, halaman berapa
-- Al-Quran: Surat + Ayat (misal: Al-Fatihah 1-7)
-- Keterangan tambahan
-- Jam mulai / selesai
+---
 
-**Kelas Calistung:**
-- Outline garis besar (tanpa detail IQRO/Al-Quran)
+## 3. Alur Pengguna: Pengajar (Tentor)
 
-**Roadmap saran saya:**
-- Buat 1 table `roadmap_steps` dengan:
-  - program_id
-  - order
-  - title
-  - body_text (Markdown)
-  - level (opsional)
-  - duration_hours (untuk ngaji/calistung)
+Setelah login, pengajar dialihkan ke `/app/dashboard` (atau dashboard pengajar):
 
-Contoh untuk Ngaji:
-- Step 1: IQRO 1-2, halaman 1-15
-- Step 2: Al-Quran Surah Al-Fatihah ayat 1-7, dll.
+1. **Agenda Sesi**: Pengajar melihat daftar jadwal mengajar privat terdekat (nama murid, program, hari, tanggal, jam, alamat rumah siswa).
+2. **Input Laporan Harian**:
+   - Setelah selesai mengajar kelas privat, pengajar membuka sesi tersebut lalu mengklik "Tulis Laporan Harian".
+   - Mengisi data: Tanggal, Jam Mulai, Jam Selesai, Laporan Kegiatan/Materi yang Dibahas hari itu, dan Catatan Pengajar (misalnya: tingkat fokus anak, halaman yang dicapai).
+   - Menyimpan laporan (status sesi berubah menjadi `completed`).
+3. **Input Laporan Perkembangan**:
+   - Ketika murid menyelesaikan jumlah sesi tertentu sesuai konfigurasi program (misal 12x sesi `Ngaji`), sistem menampilkan tombol "+ Buat Laporan Perkembangan" pada dashboard pengajar.
+   - Pengajar mengisi form evaluasi: Capaian Anak, Materi yang Sudah Dipelajari, Materi yang Masih Belum Dikuasai, dan Catatan/Saran Pengajar.
+   - Laporan ini langsung muncul di dashboard wali murid setelah disimpan.
 
-**Progres per hari:**
-- Simpan di table `progress_tracking` (user_id, step_id, completed, date)
+---
 
-**Konten materi:**
-- Simpan di table `material_items` (body_text = Markdown)
-- Admin edit via /admin/dashboard
+## 4. Alur Pengguna: Admin
 
-## 4. Admin Panel Sederhana
+Setelah login, admin dialihkan ke `/app/admin` (portal admin):
 
-- CRUD Program (Ngaji, Calistung)
-- CRUD Roadmap Step
-- CRUD Material Items
-- Lihat progres anak (per siswa)
-
-## 5. Integrasi Funnel
-
-- Tetap pakai query params `?materi=ngaji` atau `?program=calistung`
-- Setelah daftar, orang tua bisa login langsung
-
-**Next task:**
-- Buat model data lengkap di `docs/erd-lms.md`
-- Update seed data di Supabase
-- Mulai Fase 1 (Auth + DB setup)
+1. **Dashboard Ringkasan**: Melihat jumlah murid aktif, pengajar aktif, tagihan tertunda, dan jumlah pembayaran yang menunggu persetujuan.
+2. **Kelola Pengguna**:
+   - Membuat akun Pengajar dan Wali Murid.
+   - Membuat data Murid dan menghubungkannya dengan Wali Murid yang tepat.
+   - Mengatur Enrollment murid ke Program belajar.
+3. **Kelola Master Program & Roadmap**:
+   - Mengatur parameter program les (termasuk batas sesi per blok `sessionsPerBlock`).
+   - Menyusun modul roadmap dan materi teks.
+4. **Kelola Jadwal & Penugasan**:
+   - Membuat jadwal sesi baru dan menugaskan Pengajar untuk mengajar Murid tertentu.
+5. **Verifikasi Pembayaran**:
+   - Memeriksa bukti transfer yang diunggah wali murid.
+   - Menyetujui bukti transfer (mengubah status tagihan menjadi `paid`/Lunas).

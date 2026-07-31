@@ -38,10 +38,12 @@ Funnel ini **tetap valuable** sebagai channel lead. LMS adalah **evolusi**, buka
 
 | Role | Siapa | Kebutuhan inti |
 |------|--------|----------------|
-| **Admin** | Kamu (single admin dulu) | Kelola program, roadmap, jadwal, materi teks, tagihan |
-| **Peserta / pendaftar** | Yang mau daftar / sudah ikut | Lihat katalog, detail+roadmap, jadwal, materi, status bayar |
+| **Admin** | Admin utama (pengelola les) | Kelola program, roadmap, materi, murid, wali, pengajar, jadwal, tagihan |
+| **Pengajar (Tentor)** | Tutor yang mengajar | Lihat jadwal sesi, input laporan kegiatan harian & laporan perkembangan |
+| **Wali Murid** | Orang tua dari siswa | Pantau progres belajar anak (laporan harian + perkembangan), jadwal, tagihan |
 
-**Belum di MVP:** portal multi-tutor, orang tua multi-anak, role granuler.
+**Catatan Murid:** Murid (anak) tidak memiliki akun login sendiri. Wali murid yang memegang akun login dan dapat memantau lebih dari satu murid (jika mendaftarkan >1 anak).  
+**Belum di MVP:** portal multi-admin, chat in-app, pendaftaran mandiri oleh wali (akun wali dibuat oleh admin).
 
 ---
 
@@ -51,12 +53,15 @@ Funnel ini **tetap valuable** sebagai channel lead. LMS adalah **evolusi**, buka
 
 | Fitur | Keterangan |
 |-------|------------|
-| Katalog & detail program | Deskripsi **teks**; cukup dalam untuk putuskan ikut |
-| Roadmap / alur belajar | Urutan langkah per program/level (bukan cuma list flat) |
-| Jadwal sesi | Daftar/kalender sederhana pertemuan |
-| Materi belajar | Konten **teks** (markdown/plain) per langkah roadmap atau sesi |
-| Pembayaran / tagihan | Invoice + status (unpaid / waiting / paid); konfirmasi manual OK di awal |
-| Funnel WA | Tetap ada sebagai channel lead sampai integrasi diputuskan |
+| Katalog & detail program | Deskripsi **teks**; cukup dalam untuk melihat peta jalan belajar |
+| Roadmap / alur belajar | Urutan langkah per program/level |
+| Jadwal sesi | Daftar pertemuan belajar terstruktur untuk wali dan pengajar |
+| Materi belajar | Konten **teks** (markdown/plain) per langkah roadmap |
+| Pembayaran / tagihan | Invoice + status (unpaid / waiting / paid); konfirmasi manual oleh admin |
+| Laporan Harian | Diisi pengajar: tanggal, jam mulai/selesai, aktivitas/materi dibahas, catatan |
+| Laporan Perkembangan | Rangkuman capaian anak per blok sesi (N sesi) diisi pengajar & dibaca wali |
+| Manajemen Wali & Murid | Akun wali dibuat oleh admin; wali terhubung ke satu atau lebih murid (anak) |
+| Funnel WA | Tetap ada sebagai channel pendaftaran utama sebelum akun dibuat admin |
 
 ### Out of scope (sengaja — Not Doing dulu)
 
@@ -136,10 +141,10 @@ Assignments berbobot, discussions/forum, podcasts, playgrounds AI, code executio
 | Fase | Nama | Hasil “done” | Kode? |
 |------|------|--------------|-------|
 | **0** | Spec & model data | Entity + relasi di doc/ERD kasar; stack kandidat | Docs only |
-| **1** | Fondasi | Auth admin+peserta, DB, shell `/app`, seed 1 program | Ya |
-| **2** | Katalog + roadmap + materi teks | Admin CRUD; peserta read | Ya |
-| **3** | Jadwal sesi | List/kalender; terhubung program | Ya |
-| **4** | Tagihan | Invoice + status; konfirmasi manual; WA opsional bayar | Ya |
+| **1** | Fondasi | Auth admin+pengajar+wali, DB, trigger sync, shell `/app`, seed data | Ya |
+| **2** | Katalog, Murid & Pengajar | Admin CRUD Program, Murid, Pengajar, Wali; list katalog & roadmap | Ya |
+| **3** | Jadwal & Laporan Sesi | Pengajar input Laporan Harian & Laporan Perkembangan per blok | Ya |
+| **4** | Tagihan | Invoice + status; konfirmasi manual; wali lihat tagihan | Ya |
 | **5** | Integrasi funnel | Implement Opsi A atau B yang dipilih | Ya |
 
 Detail task per fase: [`../tasks/todo.md`](../tasks/todo.md).
@@ -151,13 +156,17 @@ Detail task per fase: [`../tasks/todo.md`](../tasks/todo.md).
 Konseptual; nama final menyesuaikan ORM/DB.
 
 ```
-User            id, role (admin|peserta), name, phone, email?, createdAt
-Program         id, slug, name, description, category, basePrice?, active
+User            id, role (admin|pengajar|wali), name, phone, email?, createdAt
+Murid           id, waliId, name, birthDate?, schoolLevel?, createdAt
+Program         id, slug, name, description, category, basePrice?, sessionsPerBlock, active
 RoadmapStep     id, programId, order, title, bodyText, level?
-Session         id, programId, startsAt, endsAt, location?, capacity?, status
+Session         id, programId, pengajarId, muridId, startsAt, endsAt, location?, status
 MaterialItem    id, roadmapStepId | sessionId, title, bodyText, order
-Enrollment      id, userId, programId, status, startedAt
+Enrollment      id, muridId, programId, status, startedAt
 Invoice         id, enrollmentId, amount, status (unpaid|waiting|paid), dueAt, paidAt?, note?
+DailyReport     id, sessionId, muridId, date, startTime, endTime, activity, notes
+ProgressReport  id, muridId, programId, blockNumber, achievements, masteredMaterials, weakMaterials, notes, createdAt
+Progress        id, muridId, roadmapStepId, status (in_progress|completed), updatedAt
 ```
 
 Funnel statis hari ini (`materials.ts`) **bukan** schema LMS — migrasi/mapping diputus di Fase 5.
@@ -201,7 +210,7 @@ Lock stack = output **Fase 0** + catatan di `PROGRESS.md`.
 ## 12. Success criteria roadmap dokumen ini
 
 - [x] MVP in/out tertulis
-- [x] User admin + peserta tertulis
+- [x] User admin + pengajar + wali tertulis
 - [x] Opsi A vs B tertulis (belum final pick)
 - [x] Fase 0–5 tertulis
 - [x] Link progress + tasks

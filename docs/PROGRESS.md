@@ -1,3 +1,30 @@
+### 2026-08-01 — Redesain Perencanaan LMS (Perubahan Role Model & Penambahan Laporan Sesi)
+
+**Fase:** 0 (Revisi)  
+**Status sesi:** selesai
+
+**Dikerjakan:**
+- Mengubah alur peran pengguna (user roles) dari `admin` + `peserta` menjadi 3 peran utama: `admin`, `pengajar` (tentor), dan `wali` (orang tua murid).
+- Menambahkan entitas **Murid** (anak) sebagai entitas data yang dikelola wali (satu wali bisa memiliki lebih dari satu murid). Akun wali dibuat manual oleh admin.
+- Menambahkan fitur **Laporan Kegiatan Harian** per sesi (tanggal, jam mulai, jam selesai, materi dibahas, catatan pengajar).
+- Menambahkan fitur **Laporan Perkembangan** berkala per blok pertemuan (capaian anak, materi dikuasai, materi belum dikuasai, catatan/saran pengajar). Batas blok dikonfigurasi per program (`sessionsPerBlock`).
+- Merevisi dokumen-dokumen perencanaan:
+  - `docs/ROADMAP-LMS.md` (tabel peran, in-scope MVP, fase, model data).
+  - `docs/flow-system.md` (alur pendaftaran, detail alur wali murid, pengajar, admin).
+  - `docs/erd-lms.md` (skema tabel baru `murids`, `daily_reports`, `progress_reports`, dan relasi terkait).
+  - `tasks/todo.md` (penyesuaian daftar tugas per fase).
+
+**File:**
+- `docs/ROADMAP-LMS.md`
+- `docs/flow-system.md`
+- `docs/erd-lms.md`
+- `tasks/todo.md`
+
+**Verifikasi:**
+- Dokumen markdown diperbarui dan di-commit ke Git.
+
+---
+
 ### 2026-08-01 — Pembuatan Prompt Desain UI Google Stitch untuk Seluruh Halaman LMS
 
 **Fase:** 1 (Persiapan Desain/Stitch)  
