@@ -8,6 +8,7 @@
 - Menambahkan entitas **Murid** (anak) sebagai entitas data yang dikelola wali (satu wali bisa memiliki lebih dari satu murid). Akun wali dibuat manual oleh admin.
 - Menambahkan fitur **Laporan Kegiatan Harian** per sesi (tanggal, jam mulai, jam selesai, materi dibahas, catatan pengajar).
 - Menambahkan fitur **Laporan Perkembangan** berkala per blok pertemuan (capaian anak, materi dikuasai, materi belum dikuasai, catatan/saran pengajar). Batas blok dikonfigurasi per program (`sessionsPerBlock`).
+- Menulis ulang seluruh prompt desain UI Google Stitch (16 file) untuk menyesuaikan dengan model 3-role (Wali Murid, Pengajar, Admin) dan alur laporan baru.
 - Merevisi dokumen-dokumen perencanaan:
   - `docs/ROADMAP-LMS.md` (tabel peran, in-scope MVP, fase, model data).
   - `docs/flow-system.md` (alur pendaftaran, detail alur wali murid, pengajar, admin).
@@ -19,6 +20,7 @@
 - `docs/flow-system.md`
 - `docs/erd-lms.md`
 - `tasks/todo.md`
+- `prompt-google-stitch/*` (16 files)
 
 **Verifikasi:**
 - Dokumen markdown diperbarui dan di-commit ke Git.
