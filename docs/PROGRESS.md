@@ -1,3 +1,22 @@
+### 2026-08-01 — Pembuatan Prompt Desain UI Google Stitch untuk Seluruh Halaman LMS
+
+**Fase:** 1 (Persiapan Desain/Stitch)  
+**Status sesi:** selesai
+
+**Dikerjakan:**
+- Menyusun panduan design system terperinci (warna `#4a70a9`, GlassCard, tombol, input, chip) berdasarkan kode funnel nyata.
+- Membuat file `README.md` panduan penggunaan Google Stitch secara bertahap.
+- Membuat 13 file prompt berformat Markdown (.md) yang *self-contained* untuk 7 halaman area peserta dan 6 halaman area admin.
+
+**File:**
+- `prompt-google-stitch/README.md`
+- `prompt-google-stitch/00-login-register.md` s.d. `12-kelola-tagihan.md` (13 files)
+
+**Verifikasi:**
+- Semua berkas tersimpan rapi dan dicommit ke git.
+
+---
+
 ### 2026-08-01 — Fase 1: Setup Supabase Auth, Middleware Proteksi Route, & Halaman Login/Register
 
 **Fase:** 1  
