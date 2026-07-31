@@ -1,7 +1,7 @@
-# Prompt: Login / Register Page - LMS Nurman Course
+# Prompt: Login Page - LMS Nurman Course
 
 ## Context
-Design a responsive, mobile-first Web UI page for the Login and Registration screen of "LMS Sederhana Nurman Course".
+Design a responsive, mobile-first Web UI page for the Login screen of "LMS Sederhana Nurman Course".
 
 ## Visual Vibe & Design System Guidelines
 - **Canvas/Screen Size**: Mobile-first Web UI (optimal viewport width: 400px - 600px).
@@ -17,8 +17,8 @@ Design a responsive, mobile-first Web UI page for the Login and Registration scr
   - Primary button: Background color `#4a70a9`, text color pure white, hover state should darken to `#3a5a99`, rounded corners `rounded-xl`, shadow effect, font-weight medium.
   - Secondary/Text toggle button: Transparent background, text color `#4a70a9`, font-weight bold, hover state should show underline.
 - **Status Messages**:
-  - Error Box: Background `#fee2e2` (light red), text `#b91c1c` (dark red), rounded corners `rounded-xl` (12px), text-sm, medium weight, margin-bottom 16px.
-  - Success Box: Background `#dcfce7` (light green), text `#15803d` (dark green), rounded corners `rounded-xl` (12px), text-sm, medium weight, margin-bottom 16px.
+  - Error Box: Background `#fee2e2` (light red), text `#b91c1c` (dark red), rounded-xl, text-sm, medium weight, margin-bottom 16px.
+  - Success Box: Background `#dcfce7` (light green), text `#15803d` (dark green), rounded-xl, text-sm, medium weight, margin-bottom 16px.
 
 ## Screen Layout & Elements
 
@@ -27,13 +27,12 @@ Design a responsive, mobile-first Web UI page for the Login and Registration scr
 
 ### 2. Header Section
 - Center-aligned.
-- Main Title: "Masuk Akun" (or dynamically toggles to "Daftar Akun").
+- Main Title: "Masuk Akun"
 - Subtitle: "Akses katalog, jadwal, dan materi belajar Anda".
 
 ### 3. Glassmorphism Form Card
 Below the header, place the GlassCard container. Inside the card, display the following fields:
 
-#### A. Mode 1: Login (Default)
 - **Field 1: Email**
   - Label: "Email" (font-semibold, text-gray-700, margin-bottom 4px).
   - Input field: Placeholder "budi@gmail.com", type email.
@@ -42,24 +41,6 @@ Below the header, place the GlassCard container. Inside the card, display the fo
   - Input field: Placeholder "••••••••", type password.
 - **Button: Submit CTA**
   - Label: "Masuk". Full width, blue background `#4a70a9`, rounded-xl.
-- **Footer Text & Switch Mode**:
-  - Center-aligned text below button: "Belum punya akun? [Daftar di sini]" (where "[Daftar di sini]" is a bold link in `#4a70a9` color).
+- **Footer Text**:
+  - Center-aligned text below button: "Lupa password? Hubungi Admin" (text-gray-500, text-xs).
 
-#### B. Mode 2: Register (Switched view)
-If user clicks "Daftar di sini", the card changes to show:
-- **Field 1: Nama Lengkap**
-  - Label: "Nama Lengkap" (font-semibold, text-gray-700).
-  - Input field: Placeholder "Contoh: Budi Santoso", type text.
-- **Field 2: Nomor WhatsApp**
-  - Label: "Nomor WhatsApp" (font-semibold, text-gray-700).
-  - Input field: Placeholder "Contoh: 081234567890", type tel.
-- **Field 3: Email**
-  - Label: "Email"
-  - Input field: Placeholder "budi@gmail.com", type email.
-- **Field 4: Password**
-  - Label: "Password"
-  - Input field: Placeholder "••••••••", type password.
-- **Button: Submit CTA**
-  - Label: "Daftar". Full width, blue background `#4a70a9`, rounded-xl.
-- **Footer Text & Switch Mode**:
-  - Center-aligned text: "Sudah punya akun? [Masuk di sini]" (bold link in `#4a70a9`).

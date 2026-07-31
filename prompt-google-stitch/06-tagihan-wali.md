@@ -1,16 +1,15 @@
-# Prompt: Tagihan Peserta - LMS Nurman Course
+# Prompt: Tagihan Wali Murid - LMS Nurman Course
 
 ## Context
-Design a responsive, mobile-first Web UI for the "Tagihan & Pembayaran" (Invoices & Payments) page accessed by a student (Peserta) in "LMS Sederhana Nurman Course".
+Design a responsive, mobile-first Web UI for the "Tagihan & Pembayaran" (Invoices & Payments) page accessed by a parent (Wali Murid) in "LMS Sederhana Nurman Course".
 
 ## Visual Vibe & Design System Guidelines
 - **Canvas/Screen Size**: Mobile-first Web UI (viewport: 400px - 600px).
 - **Background**: Vertical gradient from soft blue to plain white: `bg-gradient-to-b from-[#4a70a9]/50 to-white`.
-- **Card containers (GlassCard)**: `backdrop-blur-xl bg-white/50 border border-white/70 rounded-3xl shadow-xl`. Sub-cards inside should use `bg-white/60 border border-white/80 rounded-2xl` for layout groupings.
+- **Card containers (GlassCard)**: `backdrop-blur-xl bg-white/50 border border-white/70 rounded-3xl shadow-xl`. Inside, use sub-cards with `bg-white/60 border border-white/80 rounded-2xl` for grouped content.
 - **Typography**: Geist Sans equivalent. Headings and labels: Bold, dark gray (`#111827`).
 - **Primary Buttons**: Background `#4a70a9`, text white, rounded-xl.
-- **Secondary Buttons**: Background `#cbcbcb`, text gray-900, rounded-xl.
-- **Ghost Buttons**: Background `bg-white/40 border border-white/60 text-gray-700`, rounded-xl.
+- **Secondary/Ghost Buttons**: Background `bg-white/40 border border-white/60 text-gray-700`, rounded-xl.
 - **Status Badges**:
   - Unpaid: Background `#fee2e2` (light red), text `#b91c1c` (dark red), rounded-full, font-bold, text-xs.
   - Waiting Confirmation: Background `#fef3c7` (light amber), text `#92400e` (dark amber), rounded-full, font-bold, text-xs.
@@ -23,9 +22,15 @@ Design a responsive, mobile-first Web UI for the "Tagihan & Pembayaran" (Invoice
 - Active menu: **Tagihan** (highlighted `#4a70a9` icon/text).
 
 ### 2. Header
-- PageHeader: Title "Tagihan Saya" (bold, text-white), Subtitle "Lacak tagihan mingguan les Anda dan lakukan konfirmasi pembayaran".
+- PageHeader: Title "Tagihan Saya" (bold, text-white), Subtitle "Lacak tagihan mingguan les anak Anda dan lakukan konfirmasi pembayaran".
 
-### 3. Tagihan Aktif (Current Active Invoice Section)
+### 3. Child Selector (Wali dengan >1 Anak)
+- Below the header, show a horizontal row of chips representing the children.
+  - Label: "Pilih Profil Anak:" (text-xs text-gray-500 font-semibold block mb-2).
+  - Active child: "Budi Santoso" (active tone blue `#4a70a9` background).
+  - Inactive child: "Ani Lestari" (inactive chip, bg-white/40 border-white/60).
+
+### 4. Tagihan Aktif (Current Active Invoice Section)
 - Title: "Tagihan Belum Dibayar" (font-bold text-gray-900 text-lg mb-3).
 - Render a GlassCard container:
   - **Header Row**:
@@ -48,7 +53,7 @@ Design a responsive, mobile-first Web UI for the "Tagihan & Pembayaran" (Invoice
     - A mock file uploader field with a dashed border: "Klik untuk unggah bukti transfer (JPEG/PNG)".
     - A primary CTA button at the bottom: "Konfirmasi Pembayaran via WhatsApp" (blue `#4a70a9` button, with a WhatsApp icon, full width).
 
-### 4. Riwayat Tagihan (Payment History Section)
+### 5. Riwayat Tagihan (Payment History Section)
 - Title: "Riwayat Pembayaran" (font-bold text-gray-900 text-lg mt-6 mb-3).
 - Stack of historical GlassCard elements with lower opacity:
 
