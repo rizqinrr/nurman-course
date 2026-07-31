@@ -16,7 +16,7 @@ async function main() {
   await prisma.user.deleteMany();
 
   // 2. Create Users
-  const admin = await prisma.user.create({
+  await prisma.user.create({
     data: {
       role: 'admin',
       name: 'Admin Nurman Course',
@@ -34,7 +34,7 @@ async function main() {
     },
   });
 
-  const student2 = await prisma.user.create({
+  await prisma.user.create({
     data: {
       role: 'peserta',
       name: 'Ahmad Fauzi',
@@ -81,7 +81,7 @@ async function main() {
     },
   });
 
-  const stepNgaji2 = await prisma.roadmapStep.create({
+  await prisma.roadmapStep.create({
     data: {
       programId: programNgaji.id,
       order: 2,
@@ -91,7 +91,7 @@ async function main() {
     },
   });
 
-  const stepCalistung1 = await prisma.roadmapStep.create({
+  await prisma.roadmapStep.create({
     data: {
       programId: programCalistung.id,
       order: 1,
@@ -101,7 +101,7 @@ async function main() {
     },
   });
 
-  const stepCalistung2 = await prisma.roadmapStep.create({
+  await prisma.roadmapStep.create({
     data: {
       programId: programCalistung.id,
       order: 2,
@@ -121,7 +121,7 @@ async function main() {
   const nextWeek = new Date(now);
   nextWeek.setDate(now.getDate() + 7);
 
-  const sessionNgaji = await prisma.session.create({
+  await prisma.session.create({
     data: {
       programId: programNgaji.id,
       startsAt: new Date(tomorrow.setHours(14, 0, 0, 0)),

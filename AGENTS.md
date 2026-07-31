@@ -27,7 +27,36 @@ Setiap sesi kerja **berpatokan dokumen ini**, bukan mengarang scope.
 1. `tasks/todo.md` — task mana yang `in_progress` / dipilih  
 2. `docs/ROADMAP-LMS.md` — jika task LMS / fase  
 3. `docs/PROGRESS.md` — keputusan terakhir & jangan ulangi kerja  
-4. File ini + kode terkait  
+4. File ini + **kode terkait** (lihat **Codegraph** di bawah)
+
+---
+
+# 🔍 Codegraph (WAJIB untuk kode)
+
+Repo ini di-index Codegraph (folder lokal `.codegraph/`, di-gitignore).
+
+### Kapan WAJIB pakai dulu
+
+Sebelum **Grep / Read berulang / edit** kode app, panggil **`codegraph_explore`** (MCP) untuk:
+
+- “Bagaimana X bekerja?”, alur, bug, “di mana Y?”
+- Edit multi-file / blast radius (siapa call, apa yang terdampak)
+- Baca simbol/file bernama — hasil = source line-numbered (setara Read)
+
+**Query:** nama simbol/file, atau pertanyaan singkat (contoh: `CourseConfigClient pricing`, `vibe-coding getLevelBasePrice`).
+
+### Kapan BOLEH skip Codegraph
+
+- Docs only (`docs/`, `tasks/`, vault, `AGENTS.md` copy)
+- Config non-kode, commit/push git murni
+- Tidak ada `.codegraph/` → skip (jangan `codegraph init` tanpa minta user)
+
+### Aturan
+
+1. **Jangan** Grep+Read loop dulu kalau Codegraph bisa jawab 1 call.  
+2. Source dari Codegraph = sudah “dibaca” — **jangan** Read ulang file yang sama tanpa alasan.  
+3. Setelah edit: perhatikan banner staleness; file stale → Read file itu saja.  
+4. Codegraph **bukan** pengganti tsc/lint/test.  
 
 ### Setelah setiap sesi yang mengubah repo
 

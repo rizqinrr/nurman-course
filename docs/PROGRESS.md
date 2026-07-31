@@ -1,3 +1,34 @@
+### 2026-08-01 — Fase 1: Setup Supabase Auth, Middleware Proteksi Route, & Halaman Login/Register
+
+**Fase:** 1  
+**Status sesi:** selesai
+
+**Dikerjakan:**
+- Install dependensi frontend Supabase (`@supabase/supabase-js`, `@supabase/ssr`)
+- Buat helper Supabase Client (`lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/middleware.ts`)
+- Buat Next.js Middleware (`middleware.ts`) untuk proteksi route `/app/*` dan pembagian route berdasarkan role admin vs peserta
+- Buat SQL Trigger di Supabase untuk sinkronisasi otomatis registrasi user (`auth.users` -> `public.users`)
+- Buat halaman Auth (`app/login/page.tsx`) dengan UI Glassmorphism modern
+- Buat halaman dashboard minimal peserta (`app/app/dashboard/page.tsx`) and admin (`app/app/admin/page.tsx`)
+- Perbaikan semua lint errors dan warnings di seluruh codebase
+
+**File:**
+- `lib/supabase/client.ts`
+- `lib/supabase/server.ts`
+- `lib/supabase/middleware.ts`
+- `middleware.ts`
+- `app/login/page.tsx`
+- `app/app/dashboard/page.tsx`
+- `app/app/admin/page.tsx`
+- `backend/prisma/seed.ts`
+
+**Verifikasi:**
+- `npm run lint` & `npx tsc --noEmit` bersih tanpa error/warning.
+- SQL trigger sukses terpasang di database Supabase.
+- Seeding data berjalan lancar.
+
+---
+
 ### 2026-08-01 — Fase 1: Setup Prisma, Database Supabase, dan Seeding Data
 
 **Fase:** 1  

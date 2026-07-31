@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 export const prisma = new PrismaClient();
 
 // Re-export model types for convenience
-export {
+export type {
   User,
   Program,
   RoadmapStep,

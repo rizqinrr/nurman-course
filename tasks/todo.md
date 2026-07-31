@@ -79,10 +79,10 @@ Prioritas rendah:
 ## Fase 1 — Fondasi
 
 - [x] 2026-08-01 F1.1 Pilih & setup DB + env (tanpa commit secret)
-- [ ] F1.2 Auth admin + peserta (minimal)
+- [x] 2026-08-01 F1.2 Auth admin + peserta (minimal)
 - [ ] F1.3 Shell app terautentikasi (`/app` atau setara) + layout
 - [x] 2026-08-01 F1.4 Seed 1 program dummy + 1 admin
-- [ ] F1.5 Proteksi route (admin vs peserta)
+- [x] 2026-08-01 F1.5 Proteksi route (admin vs peserta)
 
 **Exit Fase 1:** login jalan; admin masuk shell; 1 program di DB.
 

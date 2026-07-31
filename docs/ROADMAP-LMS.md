@@ -70,7 +70,42 @@ Funnel ini **tetap valuable** sebagai channel lead. LMS adalah **evolusi**, buka
 
 ---
 
-## 5. Dua opsi arsitektur: funnel ↔ LMS
+## 5. Referensi fitur (LearnHouse → Nurman MVP)
+
+> **Inspirasi saja** — bukan commit pakai/fork LearnHouse, bukan ganti stack.  
+> Sumber: [learnhouse/learnhouse](https://github.com/learnhouse/learnhouse) · [learnhouse.app](https://learnhouse.app) · docs: [docs.learnhouse.app](https://docs.learnhouse.app)  
+> Lisensi LearnHouse: **AGPL-3.0** (self-host/fork = compliance terpisah). Stack mereka (Next + FastAPI + Postgres + Redis) **bukan** keputusan stack Nurman (masih Fase 0).
+
+Filter: **hanya yang dekat MVP §4** (katalog, roadmap, materi teks, jadwal, tagihan + sedikit nice-to-have dekat).
+
+### Cocok / map ke MVP
+
+| Fitur (inspirasi LearnHouse / sejenis) | Map ke Nurman MVP | Catatan |
+|----------------------------------------|-------------------|---------|
+| Courses + detail program | Katalog & detail program | Sudah di MVP §4 |
+| Collections / bundles | Grouping program (opsional) | Nice-to-have dekat katalog; bukan wajib Fase 2 |
+| Block editor / konten kaya | Materi belajar **teks** | Mulai markdown/plain; editor block belakangan |
+| Urutan langkah / path belajar | Roadmap alur per program/level | Intinya urutan langkah — bukan fitur 1:1 LH |
+| Jadwal / daftar pertemuan | Jadwal sesi | List/kalender sederhana; **bukan** live class |
+| Payments (di LH: enterprise) | Tagihan + status bayar | MVP: **manual** (unpaid/waiting/paid); gateway belakangan |
+| User groups (ringan) | Cohort / batch kecil | Hanya jika perlu batasi akses materi per batch |
+| Certificates (ringan) | Backlog **dekat** MVP | Setelah completion tracking; **bukan** Fase 1–2 |
+| Custom branding / landing app | Branding area `/app` | Selaras Opsi A (dual surface) |
+| SEO metadata / OG | SEO halaman program | Funnel + halaman LMS |
+
+### Sadar menarik, tetap di luar MVP (Not Doing dulu)
+
+Assignments berbobot, discussions/forum, podcasts, playgrounds AI, code execution multi-bahasa + auto-grade, collaborative boards, analytics berat, SSO, multi-org/multi-tenant — **tetap out of scope** §4 sampai fase jauh (bukan wishlist aktif).
+
+### Cara pakai section ini
+
+1. Saat spek Fase 0–2: cek kolom **Map ke Nurman MVP** dulu.  
+2. Jangan anggap baris di atas = task coding. Task hanya dari `tasks/todo.md`.  
+3. Kalau mau self-host LearnHouse sebagai eksperimen: catat di `PROGRESS.md` + pahami AGPL; **jangan** campur ke funnel Vercel tanpa keputusan eksplisit.
+
+---
+
+## 6. Dua opsi arsitektur: funnel ↔ LMS
 
 **Belum diputuskan.** Setiap fase implementasi harus merujuk opsi yang aktif di `PROGRESS.md`.
 
@@ -96,7 +131,7 @@ Funnel ini **tetap valuable** sebagai channel lead. LMS adalah **evolusi**, buka
 
 ---
 
-## 6. Fase roadmap
+## 7. Fase roadmap
 
 | Fase | Nama | Hasil “done” | Kode? |
 |------|------|--------------|-------|
@@ -111,7 +146,7 @@ Detail task per fase: [`../tasks/todo.md`](../tasks/todo.md).
 
 ---
 
-## 7. Model data (draft — Fase 0)
+## 8. Model data (draft — Fase 0)
 
 Konseptual; nama final menyesuaikan ORM/DB.
 
@@ -129,7 +164,7 @@ Funnel statis hari ini (`materials.ts`) **bukan** schema LMS — migrasi/mapping
 
 ---
 
-## 8. Stack kandidat (belum lock)
+## 9. Stack kandidat (belum lock)
 
 | Layer | Kandidat | Kriteria pilih |
 |-------|----------|----------------|
@@ -143,7 +178,7 @@ Lock stack = output **Fase 0** + catatan di `PROGRESS.md`.
 
 ---
 
-## 9. Asumsi yang perlu divalidasi
+## 10. Asumsi yang perlu divalidasi
 
 - [ ] Single admin cukup untuk 3–6 bulan ke depan
 - [ ] Materi teks/markdown cukup (tanpa video) untuk program inti
@@ -153,7 +188,7 @@ Lock stack = output **Fase 0** + catatan di `PROGRESS.md`.
 
 ---
 
-## 10. Aturan kerja (wajib untuk agent & manusia)
+## 11. Aturan kerja (wajib untuk agent & manusia)
 
 1. **Jangan coding fitur LMS** sebelum task di `tasks/todo.md` untuk fase itu `in_progress` dan sejalan roadmap.
 2. **Setiap progres** → update `docs/PROGRESS.md` + centang/ubah status di `tasks/todo.md`.
@@ -163,12 +198,13 @@ Lock stack = output **Fase 0** + catatan di `PROGRESS.md`.
 
 ---
 
-## 11. Success criteria roadmap dokumen ini
+## 12. Success criteria roadmap dokumen ini
 
 - [x] MVP in/out tertulis
 - [x] User admin + peserta tertulis
 - [x] Opsi A vs B tertulis (belum final pick)
 - [x] Fase 0–5 tertulis
 - [x] Link progress + tasks
+- [x] Referensi fitur LearnHouse (dekat MVP) tercatat (§5)
 - [ ] Fase 0 entity/ERD diperjelas (saat eksekusi Fase 0)
 - [ ] Stack di-lock (saat eksekusi Fase 0)
