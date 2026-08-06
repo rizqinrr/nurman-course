@@ -14,8 +14,8 @@
 /coverage
 
 # next.js
-/.next/
-/out/
+**/.next/
+**/out/
 
 # production
 /build
@@ -39,6 +39,22 @@ yarn-error.log*
 # codegraph local index
 .codegraph/
 
+# opencode local workflow pack
+.opencode/
+
+# prisma generated client
+backend/src/generated/
+
+# local test screenshots
+tasks/screenshots/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+backend/dev.log
+backend/backend.log
+backend/.server-*.log
+*_build.log
+*.build.log
+frontend/build.log

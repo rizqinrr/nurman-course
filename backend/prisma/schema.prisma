@@ -1,37 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
   id          String       @id @default(uuid())
-  role        String       // "admin" | "peserta"
+  role        String
   name        String
-  phone       String
+  phone       String       @unique
   email       String?      @unique
   createdAt   DateTime     @default(now()) @map("created_at")
-  enrollments Enrollment[]
-  progresses  Progress[]
+  active      Boolean      @default(true)
+  address     String?
+  photoPath   String?      @map("photo_path")
+  murids      Murid[]      @relation("WaliToMurids")
+  sessions    Session[]    @relation("TentorToSessions")
+  enrollments Enrollment[] @relation("TentorToEnrollments")
 
   @@map("users")
 }
 
+model Murid {
+  id              String           @id @default(uuid())
+  waliId          String           @map("wali_id")
+  name            String
+  birthDate       DateTime?        @map("birth_date")
+  schoolLevel     String?          @map("school_level")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  avatarUrl       String?          @map("avatar_url")
+  active          Boolean          @default(true)
+  address         String?
+  registeredAt    DateTime         @default(now()) @map("registered_at") @db.Timestamptz(6)
+  photoPath       String?          @map("photo_path")
+  dailyReports    DailyReport[]
+  enrollments     Enrollment[]
+  prepayments     Prepayment[]
+  wali            User             @relation("WaliToMurids", fields: [waliId], references: [id], onDelete: Cascade)
+  progressReports ProgressReport[]
+  progresses      Progress[]
+  sessions        Session[]
+
+  @@map("murids")
+}
+
 model Program {
-  id           String        @id @default(uuid())
-  slug         String        @unique
-  name         String
-  description  String
-  category     String        // "materi" | "jenjang" | "calistung"
-  basePrice    Float?        @map("base_price")
-  active       Boolean       @default(true)
-  roadmapSteps RoadmapStep[]
-  sessions     Session[]
-  enrollments  Enrollment[]
+  id               String           @id @default(uuid())
+  slug             String           @unique
+  name             String
+  description      String
+  category         String
+  basePrice        Float?           @map("base_price")
+  sessionsPerBlock Int              @default(12) @map("sessions_per_block")
+  active           Boolean          @default(true)
+  hasRoadmap       Boolean          @default(false) @map("has_roadmap")
+  enrollments      Enrollment[]
+  progressReports  ProgressReport[]
+  roadmapSteps     RoadmapStep[]
+  sessions         Session[]
 
   @@map("programs")
 }
@@ -39,13 +70,13 @@ model Program {
 model RoadmapStep {
   id            String         @id @default(uuid())
   programId     String         @map("program_id")
-  program       Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
   order         Int
   title         String
-  bodyText      String         @map("body_text") // Markdown plain
+  bodyText      String         @map("body_text")
   level         String?
   materialItems MaterialItem[]
   progresses    Progress[]
+  program       Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
 
   @@map("roadmap_steps")
 }
@@ -53,13 +84,17 @@ model RoadmapStep {
 model Session {
   id            String         @id @default(uuid())
   programId     String         @map("program_id")
-  program       Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  tentorId      String         @map("tentor_id")
+  muridId       String         @map("murid_id")
   startsAt      DateTime       @map("starts_at")
   endsAt        DateTime       @map("ends_at")
   location      String?
-  capacity      Int?
-  status        String         // "scheduled" | "cancelled" | "completed"
+  status        String
+  dailyReport   DailyReport?
   materialItems MaterialItem[]
+  murid         Murid          @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  program       Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  tentor        User           @relation("TentorToSessions", fields: [tentorId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -67,50 +102,118 @@ model Session {
 model MaterialItem {
   id            String       @id @default(uuid())
   roadmapStepId String?      @map("roadmap_step_id")
-  roadmapStep   RoadmapStep? @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
   sessionId     String?      @map("session_id")
-  session       Session?     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   title         String
-  bodyText      String       @map("body_text") // Markdown plain
+  bodyText      String       @map("body_text")
   order         Int
+  roadmapStep   RoadmapStep? @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
+  session       Session?     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("material_items")
 }
 
 model Enrollment {
   id        String    @id @default(uuid())
-  userId    String    @map("user_id")
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muridId   String    @map("murid_id")
   programId String    @map("program_id")
-  program   Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
-  status    String    // "active" | "completed" | "cancelled"
+  status    String
   startedAt DateTime  @default(now()) @map("started_at")
+  tentorId  String?   @map("tentor_id")
+  murid     Murid     @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  program   Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  tentor    User?     @relation("TentorToEnrollments", fields: [tentorId], references: [id], onDelete: SetNull)
   invoices  Invoice[]
 
   @@map("enrollments")
 }
 
 model Invoice {
-  id           String     @id @default(uuid())
-  enrollmentId String     @map("enrollment_id")
-  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  amount       Float
-  status       String     // "unpaid" | "waiting" | "paid"
-  dueAt        DateTime   @map("due_at")
-  paidAt       DateTime?  @map("paid_at")
-  note         String?
+  id                String     @id @default(uuid())
+  enrollmentId      String     @map("enrollment_id")
+  amount            Float
+  status            String
+  dueAt             DateTime   @map("due_at")
+  paidAt            DateTime?  @map("paid_at")
+  note              String?
+  paymentNote       String?    @map("payment_note")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  paymentProof      String?    @map("payment_proof")
+  paymentProofName  String?    @map("payment_proof_name")
+  paidAmount        Float?     @map("paid_amount")
+  submittedAt       DateTime?  @map("submitted_at")
+  enrollment        Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
   @@map("invoices")
 }
 
+model Prepayment {
+  id               String   @id @default(uuid())
+  muridId          String   @map("murid_id")
+  amount           Float
+  status           String
+  note             String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  paymentProof     String?  @map("payment_proof")
+  paymentProofName String?  @map("payment_proof_name")
+  submittedAt      DateTime? @map("submitted_at")
+  paidAt           DateTime? @map("paid_at")
+  murid            Murid    @relation(fields: [muridId], references: [id], onDelete: Cascade)
+
+  @@map("prepayments")
+}
+
+model PaymentAccount {
+  id            String   @id @default(uuid())
+  bankName      String   @map("bank_name")
+  accountNumber String   @map("account_number")
+  accountName   String   @map("account_name")
+  isActive      Boolean  @default(true) @map("is_active")
+  isDefault     Boolean  @default(false) @map("is_default")
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("payment_accounts")
+}
+
+model DailyReport {
+  id        String   @id @default(uuid())
+  sessionId String   @unique @map("session_id")
+  muridId   String   @map("murid_id")
+  date      DateTime @db.Date
+  startTime String   @map("start_time")
+  endTime   String   @map("end_time")
+  activity  String
+  notes     String?
+  murid     Murid    @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("daily_reports")
+}
+
+model ProgressReport {
+  id                String   @id @default(uuid())
+  muridId           String   @map("murid_id")
+  programId         String   @map("program_id")
+  blockNumber       Int      @map("block_number")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  achievements      String[]
+  masteredMaterials String[] @map("mastered_materials")
+  weakMaterials     String[] @map("weak_materials")
+  murid             Murid    @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@map("progress_reports")
+}
+
 model Progress {
   id            String      @id @default(uuid())
-  userId        String      @map("user_id")
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muridId       String      @map("murid_id")
   roadmapStepId String      @map("roadmap_step_id")
-  roadmapStep   RoadmapStep @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
-  status        String      // "in_progress" | "completed"
+  status        String
   updatedAt     DateTime    @updatedAt @map("updated_at")
+  murid         Murid       @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  roadmapStep   RoadmapStep @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
 
   @@map("progresses")
 }

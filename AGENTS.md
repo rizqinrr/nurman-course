@@ -140,131 +140,106 @@ Sebelum **Grep / Read berulang / edit** kode app, panggil **`codegraph_explore`*
 
 ---
 
-# 📁 Folder Structure (Clean)
+# 📁 Folder Structure (Monorepo)
 
-/app → routing & halaman  
-/components/ui → reusable UI (Button, Chip, GlassCard, …)  
-/components/course → section domain funnel (landing: SocialProof, FeaturedPrograms, Testimonials, Reveal, CountUp)  
-/data → data statis (materials, landing)  
-/utils → helper functions  
-/lib → konstanta global  
-/docs → roadmap LMS, progress log  
-/tasks → checklist eksekusi (`todo.md`)
+- `frontend/` → Aplikasi frontend Next.js App Router (funnel & LMS UI)
+- `backend/` → API Server Express dengan Prisma ORM & PostgreSQL Supabase
+- `packages/shared/` → Shared TypeScript types dan Zod schemas
+- `docs/` → Spesifikasi, ERD, dan arah roadmap LMS (bukan runtime)
+- `tasks/` → Checklist eksekusi tugas sesi (`todo.md` & `plan.md`)
+- `desain-ui-frontend/` → Kumpulan rancangan prompt Google Stitch untuk desain UI (19 file)
 
 ---
 
 # 📦 Folder Responsibilities
 
-app/
+frontend/app/
+- Semua routing berbasis Next.js App Router (funnel marketing `/course` & LMS UI `/app`)
 
-- Semua routing berbasis App Router
-- Entry point semua flow user (funnel)
+frontend/components/ui/
+- Komponen UI reusable bergaya glassmorphism (Button, GlassCard, dll)
 
-components/ui/
+frontend/components/course/
+- Section dan motion helpers untuk landing page funnel
 
-- Komponen UI reusable
-- Tidak mengandung logic bisnis
+frontend/data/
+- Data statis landing page & materials (funnel)
 
-components/course/
+backend/src/
+- Kode API Express: endpoint health check `/api/health`, profile `/api/users/me`, middleware verifikasi token JWT Supabase (`requireAuth`)
 
-- Section/domain funnel (landing social proof, program favorit, testimoni, motion helpers)
-- Boleh pakai data/landing.ts + framer-motion
+backend/prisma/
+- Skema database Prisma model 3-role (`schema.prisma`) dan script `seed.ts`
 
-data/
-
-- Single source of truth untuk materi/jenjang/calistung (funnel)
-- Landing copy/stats: `data/landing.ts`
-
-utils/
-
-- Helper kecil (formatting, dll)
-
-lib/
-
-- Konstanta global (contoh: WHATSAPP_NUMBER)
+packages/shared/src/
+- Single source of truth untuk Zod schemas (validasi Laporan Harian, Laporan Perkembangan) dan enum status/roles.
 
 docs/
-
-- Roadmap & progress — **bukan** runtime app
+- Roadmap, system flow, ERD skema database
 
 tasks/
-
-- Todo eksekusi untuk manusia & agent
+- Rencana eksekusi dan checklist tugas aktif (todo.md, plan.md)
 
 ---
 
 # 🧩 Key Files Map
 
-app/course/page.tsx
-
+frontend/app/course/page.tsx
 - Role: Hero landing
 - Navigates to: /course/program
 
-app/course/program/page.tsx
-
+frontend/app/course/program/page.tsx
 - Role: Pilih program utama
 - Routes ke: materi / jenjang / calistung
 
-app/course/materi/page.tsx
-
+frontend/app/course/materi/page.tsx
 - Role: List materi
 - Uses: getMaterialsByCategory("materi")
 - Routes: /course/materi/[id]
 
-app/course/materi/[id]/page.tsx
-
+frontend/app/course/materi/[id]/page.tsx
 - Role: Detail materi + level
 - Uses: getMaterialById
 - Routes: /course/config
 
-app/course/jenjang/page.tsx
-
+frontend/app/course/jenjang/page.tsx
 - Role: List jenjang
 - Uses: getMaterialsByCategory("jenjang")
 - Routes: /course/config
 
-app/course/calistung/page.tsx
-
+frontend/app/course/calistung/page.tsx
 - Role: Program calistung
 - Uses: getMaterialsByCategory("calistung")
 - Routes: /course/config
 
-app/course/config/page.tsx
-
+frontend/app/course/config/page.tsx
 - Role: Wrapper Suspense untuk halaman config
 - Renders: CourseConfigClient
 
-app/course/config/CourseConfigClient.tsx
-
+frontend/app/course/config/CourseConfigClient.tsx
 - Role: Konfigurasi + **pricing** + CTA WhatsApp
 - Uses: getMaterialById, Chip/Button/GlassCard, WHATSAPP_NUMBER
 - Output: WhatsApp URL
 
-data/materials.ts
-
+frontend/data/materials.ts
 - Role: Data utama (materi, jenjang, calistung)
 - Helper:
   - getMaterialById
   - getMaterialsByCategory
 
-data/landing.ts
-
+frontend/data/landing.ts
 - Role: Social stats, featured programs, testimonials (landing `/course`)
 
-components/course/*
-
+frontend/components/course/*
 - Role: Section landing + Reveal/CountUp (framer-motion)
 
-utils/format.ts
-
+frontend/utils/format.ts
 - Role: Format harga (rb/jt)
 
-lib/constants.ts
-
+frontend/lib/constants.ts
 - Role: Konstanta global (WA number)
 
 docs/ROADMAP-LMS.md · docs/PROGRESS.md · tasks/todo.md
-
 - Role: Arah LMS + tracking eksekusi
 
 ---

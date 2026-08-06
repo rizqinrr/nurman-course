@@ -38,8 +38,8 @@ Funnel ini **tetap valuable** sebagai channel lead. LMS adalah **evolusi**, buka
 
 | Role | Siapa | Kebutuhan inti |
 |------|--------|----------------|
-| **Admin** | Admin utama (pengelola les) | Kelola program, roadmap, materi, murid, wali, pengajar, jadwal, tagihan |
-| **Pengajar (Tentor)** | Tutor yang mengajar | Lihat jadwal sesi, input laporan kegiatan harian & laporan perkembangan |
+| **Admin** | Admin utama (pengelola les) | Kelola program, roadmap, materi, murid, wali, tentor, jadwal, tagihan |
+| **Tentor (Tentor)** | Tutor yang mengajar | Lihat jadwal sesi, input laporan kegiatan harian & laporan perkembangan |
 | **Wali Murid** | Orang tua dari siswa | Pantau progres belajar anak (laporan harian + perkembangan), jadwal, tagihan |
 
 **Catatan Murid:** Murid (anak) tidak memiliki akun login sendiri. Wali murid yang memegang akun login dan dapat memantau lebih dari satu murid (jika mendaftarkan >1 anak).  
@@ -55,11 +55,11 @@ Funnel ini **tetap valuable** sebagai channel lead. LMS adalah **evolusi**, buka
 |-------|------------|
 | Katalog & detail program | Deskripsi **teks**; cukup dalam untuk melihat peta jalan belajar |
 | Roadmap / alur belajar | Urutan langkah per program/level |
-| Jadwal sesi | Daftar pertemuan belajar terstruktur untuk wali dan pengajar |
+| Jadwal sesi | Daftar pertemuan belajar terstruktur untuk wali dan tentor |
 | Materi belajar | Konten **teks** (markdown/plain) per langkah roadmap |
 | Pembayaran / tagihan | Invoice + status (unpaid / waiting / paid); konfirmasi manual oleh admin |
-| Laporan Harian | Diisi pengajar: tanggal, jam mulai/selesai, aktivitas/materi dibahas, catatan |
-| Laporan Perkembangan | Rangkuman capaian anak per blok sesi (N sesi) diisi pengajar & dibaca wali |
+| Laporan Harian | Diisi tentor: tanggal, jam mulai/selesai, aktivitas/materi dibahas, catatan |
+| Laporan Perkembangan | Rangkuman capaian anak per blok sesi (N sesi) diisi tentor & dibaca wali |
 | Manajemen Wali & Murid | Akun wali dibuat oleh admin; wali terhubung ke satu atau lebih murid (anak) |
 | Funnel WA | Tetap ada sebagai channel pendaftaran utama sebelum akun dibuat admin |
 
@@ -141,9 +141,9 @@ Assignments berbobot, discussions/forum, podcasts, playgrounds AI, code executio
 | Fase | Nama | Hasil “done” | Kode? |
 |------|------|--------------|-------|
 | **0** | Spec & model data | Entity + relasi di doc/ERD kasar; stack kandidat | Docs only |
-| **1** | Fondasi | Auth admin+pengajar+wali, DB, trigger sync, shell `/app`, seed data | Ya |
-| **2** | Katalog, Murid & Pengajar | Admin CRUD Program, Murid, Pengajar, Wali; list katalog & roadmap | Ya |
-| **3** | Jadwal & Laporan Sesi | Pengajar input Laporan Harian & Laporan Perkembangan per blok | Ya |
+| **1** | Fondasi | Auth admin+tentor+wali, DB, trigger sync, shell `/app`, seed data | Ya |
+| **2** | Katalog, Murid & Tentor | Admin CRUD Program, Murid, Tentor, Wali; list katalog & roadmap | Ya |
+| **3** | Jadwal & Laporan Sesi | Tentor input Laporan Harian & Laporan Perkembangan per blok | Ya |
 | **4** | Tagihan | Invoice + status; konfirmasi manual; wali lihat tagihan | Ya |
 | **5** | Integrasi funnel | Implement Opsi A atau B yang dipilih | Ya |
 
@@ -156,11 +156,11 @@ Detail task per fase: [`../tasks/todo.md`](../tasks/todo.md).
 Konseptual; nama final menyesuaikan ORM/DB.
 
 ```
-User            id, role (admin|pengajar|wali), name, phone, email?, createdAt
+User            id, role (admin|tentor|wali), name, phone, email?, createdAt
 Murid           id, waliId, name, birthDate?, schoolLevel?, createdAt
 Program         id, slug, name, description, category, basePrice?, sessionsPerBlock, active
 RoadmapStep     id, programId, order, title, bodyText, level?
-Session         id, programId, pengajarId, muridId, startsAt, endsAt, location?, status
+Session         id, programId, tentorId, muridId, startsAt, endsAt, location?, status
 MaterialItem    id, roadmapStepId | sessionId, title, bodyText, order
 Enrollment      id, muridId, programId, status, startedAt
 Invoice         id, enrollmentId, amount, status (unpaid|waiting|paid), dueAt, paidAt?, note?
@@ -210,7 +210,7 @@ Lock stack = output **Fase 0** + catatan di `PROGRESS.md`.
 ## 12. Success criteria roadmap dokumen ini
 
 - [x] MVP in/out tertulis
-- [x] User admin + pengajar + wali tertulis
+- [x] User admin + tentor + wali tertulis
 - [x] Opsi A vs B tertulis (belum final pick)
 - [x] Fase 0–5 tertulis
 - [x] Link progress + tasks
