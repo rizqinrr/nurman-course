@@ -1,0 +1,44 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Nurman Course to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SSH key
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+      - name: Add VPS host key
+        run: |
+          ssh-keyscan -H 43.156.207.5 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync source to VPS
+        run: |
+          rsync -az --delete \
+            --exclude 'node_modules' \
+            --exclude '.next' \
+            --exclude 'dist' \
+            --exclude '.git' \
+            --exclude '.env*' \
+            -e "ssh -i ~/.ssh/id_deploy" \
+            ./ ubuntu@43.156.207.5:/home/ubuntu/MyProject/nurman-course/
+
+      - name: Build & restart on VPS
+        run: |
+          ssh -i ~/.ssh/id_deploy ubuntu@43.156.207.5 \
+            'sudo -n /opt/nurman-deploy/deploy.sh'
