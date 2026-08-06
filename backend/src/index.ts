@@ -55,7 +55,7 @@ function generatePlaceholderEmail(phone: string): string {
   return generateWaliEmail(phone);
 }
 const DEFAULT_NEW_USER_PASSWORD = "12345678";
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 // Middleware
 app.use(cors());
@@ -3169,7 +3169,7 @@ async function startServer() {
     await prisma.$connect();
     console.log('Successfully connected to database via Prisma.');
     
-    app.listen(PORT, () => {
+    app.listen(PORT, '127.0.0.1', () => {
       console.log(`Express API Server is running on port ${PORT}`);
     });
   } catch (error) {
@@ -3195,4 +3195,4 @@ export type {
   DailyReport,
   ProgressReport,
   Progress
-} from '@prisma/client';
+} from './generated/client';
