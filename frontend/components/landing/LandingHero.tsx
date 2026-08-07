@@ -34,8 +34,7 @@ export default function LandingHero() {
       className="relative overflow-hidden pt-28 pb-20 sm:pt-36 sm:pb-28"
       aria-label="Hero Nurman Course"
     >
-      {/* deploy-test: v3 */}
-      <div data-deploy-test="v3" className="sr-only">deploy-test-v3</div>
+      
       {/* Decorative gradient blobs */}
       <div
         aria-hidden="true"
