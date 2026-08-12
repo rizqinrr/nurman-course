@@ -2,11 +2,12 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { ClipboardList, Plus, Search, Edit3, XCircle, Receipt } from "lucide-react";
+import { ClipboardList, Plus, Search, Edit3, XCircle, Receipt, Trash2 } from "lucide-react";
 import { createEnrollmentSchema, updateEnrollmentSchema } from "@nurman-course/shared";
 import Button from "@/components/ui/Button";
 import GlassCard from "@/components/ui/GlassCard";
 import PageHeader from "@/components/ui/PageHeader";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { apiFetch, buildQuery } from "@/lib/api";
 import { formatSessionDateTime } from "@/lib/format";
 
@@ -91,6 +92,8 @@ export default function AdminEnrollmentPage() {
   const [editingEnrollment, setEditingEnrollment] = useState<AdminEnrollment | null>(null);
   const [selectedEnrollment, setSelectedEnrollment] = useState<AdminEnrollment | null>(null);
   const [form, setForm] = useState<AdminEnrollmentForm>(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<AdminEnrollment | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadEnrollments = useCallback(async () => {
     setLoading(true);
@@ -209,6 +212,26 @@ export default function AdminEnrollmentPage() {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const enrollment = deleteTarget;
+    setDeleteTarget(null);
+    setDeleting(true);
+    setErrorMessage(null);
+    setNotice(null);
+    try {
+      await apiFetch(`/api/admin/enrollments/${enrollment.id}`, { method: "DELETE" });
+      setNotice("Enrollment berhasil dihapus permanen.");
+      if (editingEnrollment?.id === enrollment.id) resetForm();
+      if (selectedEnrollment?.id === enrollment.id) setSelectedEnrollment(null);
+      await loadEnrollments();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal menghapus enrollment.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full flex-grow flex flex-col gap-6">
       <PageHeader
@@ -296,7 +319,7 @@ export default function AdminEnrollmentPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex shrink-0 gap-2 flex-wrap">
                       <button
                         type="button"
                         onClick={() => void handleDetail(enrollment)}
@@ -310,6 +333,13 @@ export default function AdminEnrollmentPage() {
                         className="inline-flex items-center gap-1.5 rounded-lg bg-white/70 px-3 py-2 text-xs font-bold text-gray-700 ring-1 ring-gray-200 hover:bg-white"
                       >
                         <Edit3 size={14} /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(enrollment)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 ring-1 ring-red-100 hover:bg-red-100"
+                      >
+                        <Trash2 size={14} /> Hapus
                       </button>
                     </div>
                   </div>
@@ -439,6 +469,21 @@ export default function AdminEnrollmentPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Hapus Enrollment Permanen?"
+        message={
+          deleteTarget
+            ? `Hapus permanen enrollment ${deleteTarget.murid?.name || deleteTarget.muridId} pada program ${deleteTarget.program?.name || "-"}? ${deleteTarget._count?.invoices ?? 0} tagihan terkait akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.`
+            : undefined
+        }
+        confirmLabel={deleting ? "Menghapus..." : "Hapus"}
+        danger
+        icon={<Trash2 size={20} strokeWidth={2.25} />}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }

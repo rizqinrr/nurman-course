@@ -1,3 +1,407 @@
+# Progress Log — nurman-course
+
+> Log sesi kerja, keputusan, dan status fase. Satu-satunya log progres yang dijaga opencode.
+> Task checklist: [`../tasks/todo.md`](../tasks/todo.md) · Roadmap: [`ROADMAP-LMS.md`](./ROADMAP-LMS.md) · Aturan: [`../AGENTS.md`](../AGENTS.md)
+
+## Cara pakai
+
+- **Entri baru** selalu ditaruh **paling atas** (di bawah blok ini), menggantikan posisi entri yang paling lama di bawah.
+- Satu entri = satu sesi kerja yang mengubah repo (kode **atau** docs). Sesi tidak dianggap selesai sebelum entri ini ditulis (lihat Definition of Done di `AGENTS.md`).
+- Vault (`D:\04_Writing\My Vault\My Projects\nurman-course\`) **bukan** pengganti file ini — cukup sync ringkas 1×/hari atau saat diminta user.
+
+## Template entri (copy-paste, isi sesuai sesi)
+
+```markdown
+### YYYY-MM-DD — Ringkasan singkat (berapa kata)
+
+**Fase:** <fase / task, e.g. ADM-5 (Uiux)>
+**Status sesi:** <selesai / sebagian selesai / blocked> — <1–2 kalimat hasil>
+
+**Request user:** <permintaan asli user; "—" jika inisiatif sendiri>
+
+**Keputusan (klarifikasi):** <(1) ...; (2) ...> — tulis hanya yang benar-benar diputuskan.
+
+**Dikerjakan:**
+- **<Area>** `<path/file>`: <perubahan inti, singkat & terukur>.
+
+**Verifikasi:** <command + hasil, e.g. `tsc --noEmit` exit 0, `next build` N routes OK; backend restart bila ada>
+
+**Residual:** <QA manual / task follow-up / risiko tersisa>
+```
+
+## Tabel Keputusan (arsitektur / stack / A|B / aturan penting)
+
+| Tanggal | Keputusan | Alasan |
+|---------|-----------|--------|
+| YYYY-MM-DD | <keputusan> | <alasan> |
+
+---
+
+### 2026-08-12 — Jadwal wali (dashboard + /app/jadwal): filter waktu + hapus dummy "Kak Kiki"
+
+**Fase:** AD-HOC / portal (branch `main`)
+**Status sesi:** selesai — kartu "Sesi Terdekat" di dashboard wali kini memakai sesi scheduled yang benar-benar belum lewat (paling dekat) dengan nama tentor **real**; halaman `/app/jadwal` wali memisahkan Sesi Mendatang vs Riwayat berbasis waktu (scheduled yang lewat pindah ke Riwayat), konsisten dengan perbaikan tentor/admin.
+
+**Request user:** "perbaiki juga jadwal sesi untuk wali" (dari `/app/dashboard`).
+
+**Keputusan:** terapkan keputusan ke **dashboard + `/app/jadwal` wali** (user pilih "keduanya"). Nama mentor diambil dari `tentor` yang sudah ada di respon `/api/me/sessions` (bukan hardcode).
+
+**Dikerjakan:**
+- `frontend/app/app/(wali)/dashboard/page.tsx`: `DbSession` tambah `tentor?: {id,name}`; `getUpcomingSessionWali()` filter `scheduled` & `endsAt > Date.now()` sort asc ambil [0], `tutorName` = `tentor?.name || "Kak Tentor"` (hapus hardcode "Kak Kiki").
+- `frontend/app/app/(wali)/jadwal/page.tsx`: `passedIds` dari `new Date(s.endsAt).getTime() <= Date.now()`; `upcomingSessions` = scheduled belum lewat sort asc; `pastSessions` = `completed || cancelled` + scheduled lewat sort desc; render badge status-aware (Dibatalkan / Hadir-Selesai / Menunggu Laporan).
+
+**Verifikasi:** `npx tsc --noEmit` (frontend) exit 0; `npx next build` compiled successful + 35 routes OK.
+
+**Residual:** QA `/app/dashboard` & `/app/jadwal` (role wali): sesi lewat pindah Riwayat, "Sesi Terdekat" nama tentor real, tak ada "Kak Kiki"; badge Riwayat benar untuk cancelled/selesai/lewat. Backend tak diubah.
+
+---
+
+### 2026-08-12 — Jadwal tentor & admin: modal konfirmasi aksi + filternya polarisasi sesi (Sesi Mendatang ≠ lewat)
+
+**Fase:** AD-HOC / portal (branch `main`)
+**Status sesi:** selesai — aksi Batalkan & Hapus di kartu sesi kini pakai `ConfirmDialog` (Batalkan amber info, Hapus merah `danger`), menggantikan `native confirm()`. Filter jadwal diperbaiki: "Sesi Mendatang" hanya menampilkan sesi scheduled yang **belum lewat** waktunya; sesi scheduled yang `endsAt`-nya sudah lewat otomatis pindah ke **Riwayat**.
+
+**Request user:** tombol Hapus dibuat merah (beri modal konfirmasi); bug — sesi yang tanggal/jamnya sudah lewat masih tampil di "Sesi Mendatang" padahal harus masuk Riwayat; sesi Mendatang hanya sesi hari ini/terdekat yang belum lewat.
+
+**Keputusan:** pakai komponen `ConfirmDialog` yang sudah ada (tentor & admin, pola di `admin/roadmap`). `passedIds` dihitung dari `sessionsDataRaw` (timestamp ISO asli) dengan `new Date(s.endsAt).getTime() <= Date.now()`; polarisasi `upcomingSessions`/`pastSessions` memakai set itu. Action handler diubah jadi `setCancelTarget`/`setDeleteTarget` + `confirmCancel`/`confirmDelete` (dengan `confirmBusy`). Batalkan = non-danger `Ban` amber; Hapus = `danger` merah ikon `Trash2`.
+
+**Dikerjakan** (2 file identik → `frontend/app/app/tentor/jadwal/page.tsx` & `frontend/app/app/admin/jadwal/page.tsx`); admin penulisannya perlu hati-hati karena `AdminSession` beda field:
+- Import `ConfirmDialog` + ikon `Ban`.
+- State `cancelTarget`/`deleteTarget` (`SessionWithRelations`/`AdminSession`) + `confirmBusy`.
+- Filter `upcomingSessions`/`pastSessions` berbasis `passedIds`.
+- Handler `confirmCancel`/`confirmDelete` (PATCH status cancelled / DELETE), hapus `handleCancel`/`handleDelete`.
+- Tombol kartu: "Batalkan" `border-amber-200 text-amber-700` → `setCancelTarget`; "Hapus" `text-red-500` → `setDeleteTarget`.
+- Render 2 `ConfirmDialog` (Batalkan non-danger, Hapus `danger`) sebelum penutup root.
+
+**Verifikasi:** `npx tsc --noEmit` (frontend) exit 0; `npx next build` compiled successful + 35 routes OK. Grep `handleCancel`/`handleDelete` di app tidak ada sisa (kecuali file lain yang memang beda fitur).
+
+**Residual:** QA `/app/tentor/jadwal` & `/app/admin/jadwal`: buat sesi dengan waktu lewat → masuk Riwayat (badge amber "Butuh Laporan"); sesi belum lewat → di Mendatang; klik Batalkan → popup info → pindah Riwayat sebagai "Dibatalkan"; klik Hapus → popup merah → hilang permanen. Catatan: `passedIds` memakai waktu mesin lokal browser (WIB developer); bila ada sesi lintas zona tetap berfungsi karena `Date` dibandingkan absolut. Backend tak diubah.
+
+---
+
+### 2026-08-12 — Form jadwal (tentor & admin): "Jam Selesai" auto-fill +1 jam dari "Jam Mulai"
+
+**Fase:** AD-HOC / portal (branch `main`)
+**Status sesi:** selesai — saat user memilih/ubah "Jam Mulai" di form Buat/Edit jadwal, "Jam Selesai" otomatis terisi = Jam Mulai + 1 jam (default, tetap bisa diedit manual; hanya ter-set ulang saat Jam Mulai berubah).
+
+**Request user:** "ketika bikin jadwal, setelah milih jam mulai, otomatis jam selesainya berjarak 1 jam, bisa dirubah, hanya default saja" — berlaku di tentor & admin (user: "sekalian").
+
+**Keputusan:** helper `addOneHour` di `frontend/utils/format.ts` (parse `HH:MM`, +1 jam, wrap `%24`, padStart). onChange "Jam Mulai" memakai state updater untuk set `endTime = v ? addOneHour(v) : f.endTime`. Default form (`emptyForm` + `openCreate`) disinkron ke 15:00→16:00.
+
+**Dikerjakan:**
+- `frontend/utils/format.ts`: tambah export `addOneHour(time)`.
+- `frontend/app/app/tentor/jadwal/page.tsx`: import `addOneHour`; onChange "Jam Mulai"; default `emptyForm`/`openCreate` endTime `16:00`.
+- `frontend/app/app/admin/jadwal/page.tsx`: identik.
+
+**Verifikasi:** `npx tsc --noEmit` (frontend) exit 0; `npx next build` compiled successful + 35 routes OK.
+
+**Residual:** QA di `/app/tentor/jadwal` & `/app/admin/jadwal`: pilih jam mulai → selesai ikut +1 jam; ubah selesai manual tetap; openEdit tetap memakai jam asli sesi (tak diubah — benar). Backend tak perlu restart (murni FE).
+
+---
+
+### 2026-08-12 — Dashboard tentor: bagian "Evaluasi Perkembangan Belajar" kini live (hapus dummy Budi Santoso)
+
+**Fase:** AD-HOC / portal tentor (branch `main`)
+**Status sesi:** selesai — section yang tadinya hardcode dummy kini didorong dari data live; tak ada string `Budi Santoso`/`Ngaji Iqra`/`murid-budi`/`prog-ngaji` lagi.
+
+**Request user:** bagian "Evaluasi Perkembangan Belajar" di `/app/tentor/dashboard` masih data dummy → jadikan live, hilang jika tak ada, deteksi dari sesi & laporan perkembangan.
+
+**Keputusan:** skema deteksi = murid dengan sesi `completed` mencapai ambang `program.sessionsPerBlock` per pasangan murid+program, tapi belum ada `ProgressReport` terbit untuk blok tersebut → munculkan alert amber + CTA menuju `laporan-perkembangan` memakai ID asli (`murid.id`, `program.id`, `block`). Section disembunyikan total bila tak ada yang memenuhi.
+
+**Dikerjakan** (semua di `frontend/app/app/tentor/dashboard/page.tsx`):
+- Tambah import `ProgressReport`; state `progressReports` & `completedBlocksPending`.
+- `loadData()` kini fetch `/api/me/progress-reports` (`.catch` aman) di `Promise.all`.
+- Helper baru `detectCompletedBlocksPending(sessions, reports)`: grup sesi `completed` per `(muridId, programId)`, hitung blok tuntas (`floor(len/sessionsPerBlock)`), cek ketiadaan rapor via Set `${muridId}|${programId}|${blockNumber}` → kembali daftar `{murid, program, blockNumber}`.
+- Render section: hanya tampil bila `completedBlocksPending.length > 0`; kartu amber per entri memakai nama/program live; Link CTA pakai ID asli. Empty-state tidak dirender (section hilang).
+
+**Verifikasi:** `npx tsc --noEmit` (frontend) exit 0; `npx next build` compiled successful + 35 routes OK (2 dari JSON output).
+
+**Residual:** QA di `/app/tentor/dashboard` dengan data seed (Budi Santoso, program Ngaji) — harus muncul alert dengan ID asli yang membuka form `laporan-perkembangan`; bila sudah terbit rapor untuk blok-nya maka section hilang. Backend tak diubah; tak perlu restart.
+
+---
+
+### 2026-08-12 — Portal tentor mobile: sidebar drawer + logo pembuka; update password; dashboard ringkas
+
+**Fase:** AD-HOC / portal polish (branch `main`)
+**Status sesi:** selesai — nav mobile tentor kini pakai sidebar drawer (logo sebagai tombol pembuka, teks brand dihapus dari top bar, bottom bar tak disentuh); profil dapat fitur ubah kata sandi; dashboard lebih ringkas.
+
+**Request user:** "fokus ke tentor, terutama mobile view" → tambah sidebar "menu lebih lengkap dan jelas", logo diperbesar & klik → buka sidebar (logo ikut geser), teks 'Nurman Course' di top bar dibuang; tambah fitur update password di `/app/tentor/profil`; dashboard dibuat informatif tapi ringkas, tombol 'Buat Jadwal' & 'Lihat Semua' dihapus; bottom bar jangan disentuh.
+
+**Keputusan (klarifikasi):** logo top bar mobile = tombol pembuka drawer (diperbesar `h-11 w-11`, `translate-x` saat terbuka); drawer menu lengkap 5 menu (pola `admin/layout.tsx`) + Keluar; update password via Supabase client `auth.updateUser({password})` (tanpa endpoint backend baru); bottom bar 5 ikon tetap.
+
+**Dikerjakan:**
+- **`frontend/app/app/tentor/layout.tsx`**: import `useEffect/useState`; state `mobileNavOpen` + tutup saat route change & via `Escape`; top bar mobile: hapus teks brand, logo sebagai `<button>` pembuka `aria-expanded` + `translate-x-3` saat terbuka; tambah **sidebar drawer** (backdrop blur + panel `w-72 max-w-[85vw]`, 5 menu desktop + Keluar, `role=dialog / aria-modal`, `max-w`, scroll); bottom bar (`mobileNavLinks` + center Dashboard 3D) **tidak diubah**.
+- **`frontend/app/app/tentor/profil/page.tsx`**: status `newPassword/confirmPassword/showPw/updating/pwError/pwSuccess`; handler `handleUpdatePassword` (min 6, cocok konfirmasi, `createClient().auth.updateUser({password})`); section "Ubah Kata Sandi" (2 input + toggle lihat/sembunyikan, notice sukses emerald / error red, tombol Simpan Kata Sandi).
+- **`frontend/app/app/tentor/dashboard/page.tsx`**: header "Agenda Mengajar Privat" — hapus aksi kanan (Link "Buat Jadwal" dan "Lihat Semua"); struktur `border-b` sederhana.
+
+**Verifikasi:** `npx tsc --noEmit` (frontend) exit 0; `npx next build` compiled successful + 35 routes OK.
+
+**Residual:** QA visual browser mobile (`/app/tentor/*`): hamburger/logo buka drawer, logo geser, tab menu highlight, Keluar konfirmasi; ubah kata sandi perlu tes live dengan session tentor aktif (keharusan login ulang di sesi Supabase berikut); dashboard tampilan tanpa 2 tombol header terlihat rapi di mobile/desktop.
+
+---
+
+### 2026-08-12 — Login page pakai logo Nurman Course (lingkaran gelap, non-klik)
+
+**Fase:** AD-HOC / portal polish (branch `main`)
+**Status sesi:** selesai — brand header di `/login` (sebelumnya kotak `GraduationCap`) diganti logo lingkaran ala landing, non-klik.
+
+**Request user:** "halaman login juga, kasih logo kita, dan dibuat ga bisa di klik kayak di /landing."
+
+**Keputusan (klarifikasi):** varian **Nav (gelap)** — lingkaran `bg-[#2e4b7a]` + `border-2 border-white/80` + shadow biru, konsisten dgn logo header tentor/wali; non-klik (div dekoratif, tanpa link).
+
+**Dikerjakan:**
+- **Frontend** `frontend/app/login/page.tsx`: tambah `import Image from "next/image"`; hapus `GraduationCap` dari import lucide (tak terpakai lagi); brand header baris ~118-120 → `div` `pointer-events-none aria-hidden h-16 w-16 rounded-full border-2 border-white/80 bg-[#2e4b7a] shadow-[0_8px_18px_rgba(74,112,169,0.5)]` berisi `Image /Nlogo.png h-14 w-14 rounded-full object-cover`; judul "Selamat Datang Kembali" + deskripsi tetap.
+
+**Verifikasi:** `npx tsc --noEmit` frontend 0 error; (visual /login perlu cek manual).
+
+**Residual:** QA visual manual `/login` — logo rapi, tidak ada aksi klik/navigasi.
+
+---
+
+### 2026-08-12 — Header tentor & wali pakai logo Nurman Course gaya landing (lingkaran gelap, diperkecil)
+
+**Fase:** AD-HOC / portal polish (branch `main`)
+**Status sesi:** selesai — brand di header portal tentor dan wali ("Parent Portal") kini logo lingkaran ala landing, diperkecil, + teks.
+
+**Request user:** "logo Nurman Course udh punya, tolong dipake di header tentor dan murid" → lanjutan: "logonya dibuat kayak di halaman /landing, tapi diperkecil."
+
+**Keputusan (klarifikasi):** (1) gaya **Logo + teks**; (2) varian **Nav (gelap)** — lingkaran `bg-[#2e4b7a]` + `border-2 border-white/80` + shadow biru (`LandingNav.tsx`), diperkecil untuk header portal.
+
+**Dikerjakan:**
+- **Tentor** `frontend/app/app/tentor/layout.tsx`: tambah import `Image`; sidebar desktop → `flex items-center gap-3` wrapper lingkaran `h-11 w-11` (`Image h-10 w-10 rounded-full`) + `<h1>` teks; mobile top bar box `GraduationCap` diganti `span` lingkaran `h-8 w-8` (`Image h-7 w-7`) + teks, badge "Tentor" tetap; hapus import `GraduationCap`.
+- **Wali/murid** `frontend/app/app/(wali)/layout.tsx`: tambah import `Image`; sidebar desktop → wrapper lingkaran `h-11 w-11` + `<h1>`; mobile top bar (sebelumnya teks-saja) → `span` lingkaran `h-8 w-8` + teks; `GraduationCap` tetap (nav "Program Anak").
+
+**Verifikasi:** `npx tsc --noEmit` frontend 0 error; (visual desktop+mobile perlu cek manual).
+
+**Residual:** QA visual manual `/app/tentor/jadwal` & `/app` memastikan lingkaran gelap rapi di sidebar & mobile bar.
+
+---
+
+### 2026-08-12 — Admin: hapus permanent Enrollment + tombol Hapus di `/app/admin/enrollment`
+
+**Fase:** AD-HOC / admin polish (branch `main`)
+**Status sesi:** selesai — admin sekarang bisa menghapus enrollment beserta tagihan terkait secara permanen.
+
+**Request user:** "admin juga bisa hapus enrollment" (dengan gambar; konfirmasi = **hapus permanen**, bukan sekadar set status Dibatalkan).
+
+**Keputusan (klarifikasi):** hapus permanen (kontra hapus-lunak): `DELETE /api/admin/enrollments/:id` menghapus enrollment + cascade Invoice terkait; Session tidak terpengaruh karena di schema tidak berelasi ke Enrollment (hanya ke murid+program).
+
+**Dikerjakan:**
+- **Backend** `backend/src/index.ts`: tambah `app.delete('/api/admin/enrollments/:id', requireAuth, requireAdmin, ...)` setelah blok PATCH enrollment — cek keberadaan (404 bila null), `prisma.enrollment.delete`, respon `{ data:{id}, deleted:true, cascaded:{ invoices } }`; tangani P2025 → 404.
+- **Frontend** `frontend/app/app/admin/enrollment/page.tsx`: import `Trash2` + `ConfirmDialog`; state `deleteTarget`/`deleting`; handler `confirmDelete()` (`DELETE /api/admin/enrollments/${id}` → notice "berhasil dihapus permanen" + reload); tombol merah **Hapus** di tiap kartu; baris aksi `flex-shrink-0 gap-2` → ditambah `flex-wrap` (anti-overflow mobile, lanjut pola sesi 11-08); `ConfirmDialog` peringatan jumlah tagihan (`_count.invoices`) yang ikut terhapus.
+
+**Verifikasi:** `npx tsc --noEmit` backend & frontend exit 0; backend direstart (PID baru port 5000); smoke test `DELETE /api/admin/enrollments/test-123` → 401 (auth required, rute terdaftar, bukan 404).
+
+**Residual:** belum test end-to-end hapus enrollment nyata via browser (perlu login admin + data uji); hapus enrollment tidak menghapus Session/laporan (by-design, karena tak terhubung di schema).
+
+---
+
+### 2026-08-11 — Admin murid mobile rapi (fix overflow) + fitur Reset PW akun Wali
+
+**Fase:** AD-HOC / admin polish (branch `main`)
+**Status sesi:** selesai — memperbaiki layout mobile `/app/admin/murid` yang overflow horizontal, dan menambah reset password akun Wali untuk murid (mengikuti pola tentor).
+
+**Request user:** "tampilan mobile jadi keluar halaman, dirapihin; kalo bisa ada fitur reset password juga kayak tentor."
+
+**Akar masalah overflow:** baris tombol aksi di `admin/murid/page.tsx` sebelumnya `flex shrink-0 gap-2` dengan 4 tombol (Detail, Edit, Nonaktifkan, Hapus) → lebih lebar dari kartu di layar sempit → halaman overflow. Halaman tentor sudah aman (`flex-wrap`).
+
+**Dikerjakan (hanya `frontend/app/app/admin/murid/page.tsx`):**
+- Ubah baris aksi → `flex flex-wrap gap-2` (tombol membungkus di mobile), konsisten dgn tentor.
+- **Reset Password akun Wali** (murid login sbg parent): `handleResetPassword` (prompt default `12345678`, `POST /api/admin/users/${murid.wali.id}/reset-password`, guard bila wali kosong), state `lastTempPassword`/`copied`, `handleCopy`, tombol **"Reset PW"** (amber `KeyRound`) di tiap kartu, banner sky berisi password temp + tombol **Salin** (Copy/Check). Import `KeyRound`/`Copy`/`Check`.
+
+**Verifikasi:** `npx tsc --noEmit` frontend 0 error; `npx next build` compiled.
+
+**Residual:** reset PW memakai endpoint generik yang sudah ada (tak nilai baru di backend); jika satu Wali memiliki >1 murid, reset PW mempengaruhi akun Wali tsb (shared); hanya halaman `admin/murid` yang diubah.
+
+---
+
+### 2026-08-11 — Admin: hapus permanen Murid & Tentor + modal konfirmasi (soft vs hard)
+
+**Fase:** AD-HOC / admin management (branch `main`)
+**Status sesi:** selesai — admin kini bisa **menghapus permanen** data Murid & Tentor (bukan hanya nonaktifkan), lengkap dengan **modal konfirmasi**.
+
+**Request user:** "admin bisa hapus data murid dan mentor, walau bisa nonaktifin, admin juga bisa hapus data apapun, dengan modal konfirmasi." Keputusan lanjutan user: **hapus permanen (cascade)** + **hapus juga user Supabase Auth** agar tak bisa login. Scope ronde ini: **Murid + Tentor** (modul lain task terpisah).
+
+**Keputusan:** pisahkan 2 perilaku via query param `?force=1`:
+- tanpa `force` → **soft** (deactivate `active:false`).
+- `?force=1` → **hard delete** `prisma.<model>.delete` (cascade).
+
+**Backend — `backend/src/index.ts`:**
+- `DELETE /api/admin/murids/:id` → soft selalu (perbaiki perilaku lama yg menghapus bila tak ada relasi); `?force=1` → `prisma.murid.delete` cascade.
+- `DELETE /api/admin/users/:id` → soft (deactivate); `?force=1` → `prisma.user.delete` cascade + **`supabaseAdmin.auth.admin.deleteUser(id)`** agar akun login mati. Guard tetap: tidak bisa hapus/nonaktif diri sendiri atau akun admin (`403`). Id pola `Prisma.user.id` = Supabase auth id.
+
+**Frontend:**
+- `ConfirmDialog.tsx`: tambah props opsional `icon?: ReactNode` (default LogOut) — backward-compatible; modal hapus pakai ikon `Trash2`.
+- `admin/murid/page.tsx`: ganti `window.confirm` → `ConfirmDialog`; tombol **"Nonaktifkan"** (orange, soft) + tombol **"Hapus"** (Trash2, merah → `DELETE ?force=1`) dengan modal warning jumlah `_count.enrollments`/`_count.sessions` yg ikut cascade.
+- `admin/tentor/page.tsx`: sama — tombol **"Nonaktif"** + **"Hapus"** (warning `_count.sessions` ikut hapus + akun Supabase dihapus).
+
+**Verifikasi:** `npx tsc --noEmit` backend & frontend 0 error; `npx next build` compiled; tidak ada sisa `window.confirm` di kedua halaman.
+
+**Residual:** cascade permanen menghapus riwayat berelasi (sudah disetujui user); tidak ada backend server aktif saat verifikasi live (restart `npm run dev --workspace=backend` dibutuhkan setelah edit); modul admin lain (program/enrollment/sesi/tagihan) belum di-coverage hapus permanen.
+
+---
+
+### 2026-08-11 — Admin portal mobile: ganti bottom bar → sidebar drawer (hamburger menu)
+
+**Fase:** AD-HOC / UIUX polish (branch `main`)
+**Status sesi:** selesai — navigasi mobile portal admin yang mula-mula penuh (8 item + Portal + Keluar di bottom bar) diganti **sidebar drawer** yang buka/tutup via **hamburger menu**.
+
+**Request user:** "untuk halaman milik admin yg mobile, ubah ga usah ada bottom bar karena terlalu penuh, dibikin sidebar biasa pake burger menu yg bisa nutup dan buka. Apakah mempengaruhi role lain?" — Jawaban: **tidak**, tiap role punya layout terpisah (`admin/layout.tsx`, `tentor/layout.tsx`, `(wali)/layout.tsx`), berubah hanya `/app/admin/*`.
+
+**Dikerjakan (hanya `frontend/app/app/admin/layout.tsx`):**
+- Tambah state `mobileNavOpen` + efek tutup saat `pathname` berubah + penutupan via `Escape` (keydown listener saat terbuka).
+- Top bar mobile sticky (`md:hidden`): tombol hamburger (`Menu`, `aria-label`/`aria-expanded`) + brand "Nurman Course" + badge "Admin".
+- Replace Mobile BottomNavBar (baris lama 203–242) dengan **drawer drawer**: backdrop gelap (klik → tutup) + panel slide dari kiri (`translate-x` transition) berisi seluruh 9 nav (termasuk *Roadmap* yang sebelumnya tak ada di nav mobile) + badge `waitingCount` di Tagihan + "Pilih Portal" + "Keluar" (`askLogout`).
+- Ikon lucide `Menu`, `X` ditambah; `mobileNavLinks` di-isi lengkap 9 item.
+- Padding konten: `pb-24` → `pb-6` (tidak ada lagi bottom bar yang menutupi konten).
+- Aksesibilitas: `role="dialog"`/`aria-modal`, `aria-label` buka/tutup; backdrop & Escape menutup; `print:hidden`.
+
+**Verifikasi:** `npx tsc --noEmit` frontend 0 error; konten tak tertutup bar; drawer tidak overflow (scrollable `overflow-y-auto`); halaman tentor/wali mobile tidak tersentuh.
+
+**Residual:** penutupan saat navigasi substring (`pathname.startsWith`) — admin memakai exact match (`pathname === href`) jadi aman; tidak ada uji visual browser otomatis (manual via `localhost:3000/app/admin`).
+
+---
+
+### 2026-08-11 — Redesign halaman login `/login` (visual + interaktif, tanpa ubah logic)
+
+**Fase:** AD-HOC / UIUX polish (branch `main`)
+**Status sesi:** selesai — tampilan halaman login dipercantik supaya lebih clean & interaktif; **logika auth diam (identik)**.
+
+**Request user:** "perbaiki design login page biar lebih clean dan interaktif ... tanpa ngubah logic". Diproses via skill `ui-ux-pro-max`.
+
+**Design system (skill):** Minimal Single Column + Trust & Authority; warna brand `#4a70a9`/`#3a5a99` dipertahankan; aksesibilitas 4.5:1, focus ring, loading feedback.
+
+**Dikerjakan (semua visual-only, logic `handleAuth`/`resolve-phone`/signUp/signIn identik):**
+- Header brand (logo GraduationCap dalam gradient + judul/tagline) menggantikan `PageHeader` yang bernada in-app.
+- Latar gradien lembut + 3 blobs blur dekoratif (`login-orb` drift) — `motion-reduce`-safe.
+- Entrance halus pada kartu (`login-entrance` fade-up) — `motion-reduce`-safe.
+- Input: ikon lucide (Mail/User/Phone/Lock), label dengan `htmlFor`, focus ring `ring-4 ring-[#4a70a9]/15`, `autoComplete` benar.
+- Password: toggle **tampil/sembunyikan** (Eye/EyeOff) + `aria-label`.
+- Alert error/sukses pakai ikon (AlertCircle/CheckCircle2) + `role` semantik.
+- Tombol: spinner `Loader2 animate-spin` saat loading, panah `ArrowRight` bergeser saat hover (`group-hover`).
+- Footer trust note (ShieldCheck) + link toggle Masuk/Daftar.
+- Helper dinamis email/WA (tindak lanjut request user): guide di bawah input login berubah sesuai isi — kosong (tidak ada teks), diawali angka → "Format: 62xxxxxxxxxxx ... bukan 08...", selain itu → "Gunakan format email yang valid"; presentasi saja, logic `handleAuth`/`resolve-phone` tetap identik.
+
+**Perbaikan komponen:** `components/ui/Button.tsx` baseStyles + `inline-flex items-center justify-center gap-2` (agar ikon+teks di tombol rata tengah — dulu `justify-center/gap-2` tak berefek, lihat catatan TENTOR-12). Berlaku global, aman.
+
+**Verifikasi:** `npx tsc --noEmit` frontend 0 error; `npx next build` compiled (0 error) — terminal port `localhost:3000/login`.
+
+**Residual:** tidak ada perubahan behavior/state; eslint/prettier tidak dijalankan (kemungkinan indentation beda di `prettier`).
+
+**Tindak lanjut (final, 2026-08-11 — request user "kamu nulisnya di password" + "gas"):**
+- **Fix posisi**: helper dinamis sempat nyasar ke blok Password (redesign awal); dipindah ke blok Email, Password kembali ke catatan "Password default 12345678".
+- **Login-only**: halaman daftar dihapus total — buang state `isSignUp`/`name`/`phone`, cabang `signUp` di `handleAuth`, field Nama & Nomor WhatsApp, toggle footer Masuk/Daftar, `successMsg` (tak terpakai), import `User`/`Phone`/`ShieldCheck`. `handleAuth` kini alur login murni (resolve-phone → `signInWithPassword` → redirect role-aware), identik dengan cabang login sebelumnya.
+- **Placeholder email dikosongkan**; **subtitle hitam** (`text-black`); **footer kredit resmi** "© {tahun} Nurman Course" (`new Date().getFullYear()`) menggantikan trust-note.
+- **Verifikasi final:** `npx tsc --noEmit` frontend 0 error; dev `localhost:3000/login`.
+
+**Keputusan:** akun baru dibuat via Admin Portal (bukan self-register) — selaras alur funnel & migrasi role yang sudah ada; tidak ada halaman daftar publik.
+
+---
+
+### 2026-08-11 — Fix Prisma client stale pasca-revert (backend dev kembali berjalan)
+
+**Fase:** AD-HOC / pasca-revert (branch `main`)
+**Status sesi:** selesai — setelah revert migrasi, `npm run dev --workspace=backend` gagal (`ts-node src/index.ts`) karena error tipe Prisma.
+
+**Request user:** "update todo" + gas perbaikan setelah diagnosa (plan mode) menemukan akar masalah.
+
+**Akar masalah:** `git restore` mengembalikan `schema.prisma` + source tapi **tidak** me-regenerate Prisma client. Client yang terpasang di `node_modules` masih dari sesi migrasi (field `ProgressReport.achievements/masteredMaterials/weakMaterials` bertipe `String[]` di skema hasil revert, tapi client lama `string`; `StringFilter.mode` juga tak eksis di client usang). Error: `string[] not assignable to string` di `index.ts:486–488` & `seed.ts:309–313`, plus `mode` di `index.ts:948`.
+
+**Dikerjakan:**
+- `npx prisma generate` (backend) → client v5.22.0 dihasilkan dari skema hasil revert.
+- Verifikasi `npx tsc --noEmit` backend = **0 error**; frontend = **0 error**.
+- Boot `npm run dev --workspace=backend` → log: "Successfully connected to database via Prisma." + "Express API Server is running on port 5000" (backend hidup di port 5000).
+- Sync docs: entri PROGRESS ini + 1 baris Meta di `tasks/todo.md`.
+
+**Verifikasi:** tsc backend & frontend exit 0; log boot backend konfirmasi koneksi DB Prisma + server port 5000.
+
+**Residual:** proses `next dev` user (PID 32836/17928) & codegraph MCP (PID 31336) dibiarkan (milik user). Tidak ada perubahan schema/data; tidak perlu `prisma db push` (DB sudah sesuai commit HEAD).
+
+---
+
+### 2026-08-11 — Migrasi Supabase → MySQL dibatalkan, di-revert ke kondisi sebelum migrasi
+
+**Fase:** AD-HOC / undo (branch `main`)
+**Status sesi:** selesai — keputusan migrasi database Supabase → MySQL + auth self-hosted **dibatalkan oleh user**. Semua perubahan migrasi yang belum dikomit di-revert (targeted), working tree kembali ke kondisi sebelum sesi migrasi.
+
+**Request user:** "balik lagi ke awal, ambil commit main yg terakhir, karena ga jadi pindah ke mysql, salah langkah."
+
+**Keputusan (klarifikasi):** (1) revert **targeted** — membatalkan migrasi saja tanpa menghapus kerja uncommitted yang lebih dulu (disiplin dok `AGENTS.md` & `docs/PROGRESS.md` 07-29→08-11); BUKAN `git reset --hard`. (2) Commit target = `fb9bc7a` (HEAD main sudah di sana; pertluasan migrasi semua belum dikomit).
+
+**Dikerjakan:**
+- **`git restore`** (ke HEAD `fb9bc7a`) file migrasi: `backend/.env.example`, `backend/package.json`, `backend/prisma/schema.prisma` (balik `provider="postgresql"` + tipe asli), `backend/prisma/seed.ts` (balik `getOrCreateSupabaseUser`), `backend/src/index.ts` (balik verifikasi JWT Supabase), `backend/src/middleware/auth.ts`, `package-lock.json`, `tasks/plan.md` (kembali ADM Plan).
+- **Hapus** file baru `backend/src/auth.ts`.
+- **Pulihkan manual** file gitignored ke nilai Supabase asli: `backend/.env` (`DATABASE_URL`/`DIRECT_URL` + `SUPABASE_*`), `frontend/.env.local` (`NEXT_PUBLIC_SUPABASE_*` + `SUPABASE_SERVICE_ROLE_KEY`), `frontend/.env.example`.
+- **`tasks/todo.md`** kembali ke pra-migrasi dengan re-add 3 baris Meta 08-11.
+- **Drop DB MySQL** `nurman_course` (dibuat sementara di Laragon) + `npm install` (prune `bcryptjs`/`jose` dari `node_modules`).
+
+**Verifikasi:** `git diff HEAD --stat` = hanya `AGENTS.md`, `docs/PROGRESS.md`, `tasks/todo.md` (perubahan pra-migrasi yang dipertahankan, ±0 untuk kode); grep backend bebas `bcryptjs/jose/passwordHash/JWT_SECRET/mysql`; `schema.prisma` = `provider "postgresql"`.
+
+**Residual:** tidak ada untuk migrasi (batal). Arsitektur tetap **Supabase (Postgres + Auth)** seperti semula; jika suatu saat mau pindah DB, sebaiknya bikin task + branch terpisah dan komit baseline dulu.
+
+---
+
+### 2026-08-11 — Install Agent Skills Supabase (global) + OAuth MCP Supabase sukses
+
+**Fase:** Meta / tooling (di luar git repo — skill ~/.agents, token ~/.local/share/opencode)
+**Status sesi:** selesai — skill resmi Supabase terpasang ke global `~/.agents/skills`, dan OAuth MCP Supabase berhasil diautentikasi (login browser).
+
+**Request user:** jalankan instruksi config MCP Supabase: (1) set MCP, (2) `npx skills add supabase/agent-skills`, (3) `opencode mcp auth supabase`.
+
+**Keputusan (klarifikasi):** MCP supabase (remote `mcp.supabase.com`) sudah ada di config aktif sejak sesi sebelumnya → tidak perlu ubah config; cukup instal skill + login OAuth.
+
+**Dikerjakan:**
+- **Agent Skills** `npx skills add supabase/agent-skills --global --yes`: terpasang `~\.agents\skills\supabase` & `~\.agents\skills\supabase-postgres-best-practices` (universal: OpenCode, dll; symlink ke Claude Code/Hermes). "Failed 2" hanya untuk target PromptScript (tidak dukung global) — bukan kegagalan.
+- **OAuth** `opencode mcp auth supabase`: browser authorize sukses → output "Authentication successful!". Token akses di-refresh; `refreshToken` di `mcp-auth.json` long-lived (auto-refresh saat connect). Catatan: file `mcp-auth.json`/SQLite `.local/share/opencode` tidak berubah LastWrite di run ini — token persisten biasanya ditulis saat next connect MCP; tidak ada aksi tambahan.
+
+**Verifikasi:** browser OAuth sukses; skill terlihat sebagai `supabase` & `supabase-postgres-best-practices` di available skills.
+
+**Residual:** restart/start ulang opencode agar MCP supabase (dan codegraph dari sesi sebelumnya) termuat; jika masih prompt auth di sesi baru, refresh otomatis via refreshToken/hanya login 1× lagi.
+
+---
+
+### 2026-08-11 — Fix tooling opencode: register MCP codegraph di config aktif + diagnosa auth Supabase MCP
+
+**Fase:** Meta / tooling (di luar git repo — `D:\AI Agent\opencode-data\opencode.json`)
+**Status sesi:** selesai — MCP codegraph ter-register di config aktif; penyebab "supabase butuh auth" dijelaskan (OAuth token expired) tanpa ubah file.
+
+**Request user:** (1) cari tahu kenapa Supabase MCP butuh auth; (2) MCP codegraph sudah tidak ada di session.
+
+**Keputusan (klarifikasi):** (1) Supabase MCP = hosted remote (`mcp.supabase.com`) yang butuh OAuth akun Supabase (Management API) → login ulang via browser saat connect; (2) tambah `mcp.codegraph` (local) ke config aktif.
+
+**Dikerjakan:**
+- **Diagnosa** `D:\AI Agent\opencode-data\opencode.json` (aktif via `OPENCODE_CONFIG`): blok `mcp` berisi `supabase` (remote, OAuth) + `stitch` — **tanpa codegraph**. Config `C:\Users\Kiki\.config\opencode\opencode.jsonc` yang punya codegraph bukan yang dimuat → tool `codegraph_explore` tak ter-register.
+- **Supabase auth:** token OAuth di `mcp-auth.json` expired (`expiresAt 2026-08-11 13:51 UTC`, sekarang 14:35) → opencode minta authorize lagi. Tanpa perubahan file.
+- **`opencode.json`:** tambah blok `mcp.codegraph` (`type: local`, `command: ["codegraph","serve","--mcp"]`, `enabled: true` → didapati `codegraph.cmd` terpasang & `.codegraph/` ada).
+
+**Verifikasi:** `ConvertFrom-Json` config sukses (JSON VALID) → `mcp keys: supabase, stitch, codegraph`.
+
+**Residual:** perlu restart/start ulang opencode agar MCP codegraph termuat; login OAuth Supabase dilakukan user via browser sekali. `opencode.jsonc` duplikat (Kiki) yang berisi codegraph dibiarkan (tidak dihapus) — bisa dirapikan lain waktu.
+
+---
+
+### 2026-08-11 — Perkuat disiplin dokumentasi: Step 0 wajib baca docs + template PROGRESS + peran vault
+
+**Fase:** Meta / dokumentasi & proses (docs only)
+**Status sesi:** selesai — disiplin baca & update docs dipertegas di `AGENTS.md`, template log ditambahkan di `docs/PROGRESS.md`, dan peran vault diperjelas (hasil akhir, bukan realtime). Vault disync agar ADM-4.2 ditandai done.
+
+**Request user:** (1) opencode di proyek ini wajib baca dokumentasi dan membuat/menjaga dokumentasi agar tetap ter-tracking; (2) vault hanya hasil akhir/ringkasan harian, dokumen yang benar ada di proyek ini.
+
+**Keputusan (klarifikasi):** (1) enforcement lewat perkuat aturan di `AGENTS.md`/`PROGRESS.md` (bukan command baru / subagent / file baru); (2) cukup pakai dokumen yang sudah ada (tidak buat API_MAP/CHANGELOG baru); (3) vault dianggap hasil akhir — boleh tertinggal, sync 1×/hari atau saat diminta.
+
+**Dikerjakan:**
+- **`AGENTS.md`:** ganti "Urutan baca sebelum eksekusi non-trivial" → **"Step 0 (WAJIB tiap sesi)"** — membaca `tasks/todo.md`, `docs/PROGRESS.md` (entri teratas + tabel Keputusan), `docs/ROADMAP-LMS.md`, dan `AGENTS.md` + kode terkait sebelum aksi apa pun; tegas "tidak boleh coding sebelum Step 0 selesai".
+- **`AGENTS.md`:** "Setelah setiap sesi" → **"Definition of Done — sync docs"** — sesi yang mengubah repo belum selesai sampai PROGRESS (entri di atas, ikut template), todo (centang/tanggal/in_progress), dan Keputusan (bila arsitektur) diperbarui; verifikasi docs bagian dari selesai.
+- **`AGENTS.md`:** tambah blok **peran vault** — vault hanya hasil akhir/ringkasan harian, boleh tertinggal, jangan over-sync, tidak menggantikan repo sebagai source of truth eksekusi.
+- **`docs/PROGRESS.md`:** tambah blok atas — header `# Progress Log`, **cara pakai**, **template entri kosong** (Fase/Status/Request/Keputusan/Dikerjakan/Verifikasi/Residual), dan tabel **Keputusan** kosong (rujukan AGENTS "template ada di file" jadi nyata).
+- **Vault** `00 - Index.md`, `02 - Rencana Perbaikan.md`, `03 - Roadmap LMS Sederhana.md`: tandai ADM-4.2 = Done; In progress vault dialihkan ke ADM-5.
+
+**Verifikasi:** docs only — tidak ada kode/build/test. Edit dicek langsung dari hasil tool.
+
+**Residual:** tidak ada untuk sesi ini; mulai sesi berikutnya, Step 0 & Definition of Done di `AGENTS.md` berlaku sebagai aturan wajib.
+
+---
+
 ### 2026-08-06 — Landing `/landing`: nav Tentang Kami/Testimoni, hero benefits + harga pulse, section About & Testimoni
 
 **Fase:** Funnel polish ad-hoc (branch `uiux`)

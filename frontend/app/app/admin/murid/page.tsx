@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState, useRef } from "react";
-import { Edit3, Plus, Search, UserRound, XCircle, Camera } from "lucide-react";
+import { Edit3, Plus, Search, UserRound, XCircle, Camera, Trash2, KeyRound, Copy, Check } from "lucide-react";
 import { createMuridSchema } from "@nurman-course/shared";
 import Button from "@/components/ui/Button";
 import GlassCard from "@/components/ui/GlassCard";
 import PageHeader from "@/components/ui/PageHeader";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { apiFetch } from "@/lib/api";
 import { Murid } from "@/data/lms";
 
@@ -87,6 +88,11 @@ export default function AdminMuridPage() {
   const [selectedMurid, setSelectedMurid] = useState<AdminMurid | null>(null);
   const [form, setForm] = useState<MuridForm>(emptyForm);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<AdminMurid | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminMurid | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [lastTempPassword, setLastTempPassword] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const loadMurids = useCallback(async () => {
     setLoading(true);
@@ -223,11 +229,16 @@ export default function AdminMuridPage() {
     }
   };
 
-  const handleDeactivate = async (murid: AdminMurid) => {
-    if (!window.confirm(`Nonaktifkan murid ${murid.name}?`)) return;
+  const handleDeactivate = (murid: AdminMurid) => {
     setErrorMessage(null);
     setNotice(null);
+    setDeactivateTarget(murid);
+  };
 
+  const confirmDeactivate = async () => {
+    if (!deactivateTarget) return;
+    const murid = deactivateTarget;
+    setDeactivateTarget(null);
     try {
       await apiFetch(`/api/admin/murids/${murid.id}`, { method: "DELETE" });
       setNotice("Murid berhasil dinonaktifkan.");
@@ -237,6 +248,53 @@ export default function AdminMuridPage() {
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Gagal menonaktifkan murid.");
     }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const murid = deleteTarget;
+    setDeleteTarget(null);
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/admin/murids/${murid.id}?force=1`, { method: "DELETE" });
+      setNotice("Murid berhasil dihapus permanen.");
+      if (editingMurid?.id === murid.id) resetForm();
+      if (selectedMurid?.id === murid.id) setSelectedMurid(null);
+      await loadMurids();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal menghapus murid.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleResetPassword = async (murid: AdminMurid) => {
+    if (!murid.wali?.id) {
+      setErrorMessage("Wali belum terhubung, tidak bisa reset password.");
+      return;
+    }
+    const input = window.prompt(`Reset password akun Wali ${murid.wali.name} (default 12345678). Kosongkan untuk default:`, "12345678");
+    if (input === null) return;
+    setErrorMessage(null);
+    setNotice(null);
+    setLastTempPassword(null);
+    try {
+      const body = input.trim() === "" ? {} : { password: input.trim() };
+      const res = await apiFetch<{ temporaryPassword: string }>(`/api/admin/users/${murid.wali.id}/reset-password`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      setLastTempPassword(res.temporaryPassword);
+      setNotice(`Password akun Wali ${murid.wali.name} direset ke ${res.temporaryPassword}.`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal reset password.");
+    }
+  };
+
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   return (
@@ -255,6 +313,14 @@ export default function AdminMuridPage() {
       {notice && (
         <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 whitespace-pre-line">
           {notice}
+        </div>
+      )}
+      {lastTempPassword && (
+        <div role="status" className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800 flex items-center justify-between gap-2">
+          <span>Password Wali: <code className="rounded bg-white px-1.5 py-0.5 font-mono text-sky-900">{lastTempPassword}</code> — default <code>12345678</code> jika kosong. Bagikan ke wali; login pakai No WA + password ini di <code>/login</code>.</span>
+          <button type="button" onClick={() => handleCopy(lastTempPassword, "temp-pw")} className="shrink-0 rounded-lg bg-white px-2.5 py-1.5 text-xs font-bold ring-1 ring-sky-200 hover:bg-sky-50 inline-flex items-center gap-1">
+            {copied === "temp-pw" ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />} Salin
+          </button>
         </div>
       )}
 
@@ -315,7 +381,7 @@ export default function AdminMuridPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => setSelectedMurid(murid)}
@@ -330,15 +396,29 @@ export default function AdminMuridPage() {
                       >
                         <Edit3 size={14} /> Edit
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleResetPassword(murid)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
+                      >
+                        <KeyRound size={14} /> Reset PW
+                      </button>
                       {murid.active !== false && (
                         <button
                           type="button"
                           onClick={() => void handleDeactivate(murid)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 ring-1 ring-red-100 hover:bg-red-100"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-2 text-xs font-bold text-orange-600 ring-1 ring-orange-100 hover:bg-orange-100"
                         >
                           <XCircle size={14} /> Nonaktifkan
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(murid)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 ring-1 ring-red-100 hover:bg-red-100"
+                      >
+                        <Trash2 size={14} /> Hapus
+                      </button>
                     </div>
                   </div>
                 </GlassCard>
@@ -498,6 +578,31 @@ export default function AdminMuridPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deactivateTarget}
+        title="Nonaktifkan Murid?"
+        message={deactivateTarget ? `Murid ${deactivateTarget.name} tidak dapat login dan tidak ditampilkan di daftar aktif. Data tetap tersimpan.` : undefined}
+        confirmLabel="Nonaktifkan"
+        danger
+        onCancel={() => setDeactivateTarget(null)}
+        onConfirm={() => void confirmDeactivate()}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Hapus Murid Permanen?"
+        message={
+          deleteTarget
+            ? `Hapus permanen murid ${deleteTarget.name}? Data terkait akan ikut terhapus: ${deleteTarget._count?.enrollments ?? 0} enrollment, ${deleteTarget._count?.sessions ?? 0} sesi (beserta laporan & tagihan). Tindakan ini tidak dapat dibatalkan.`
+            : undefined
+        }
+        confirmLabel={deleting ? "Menghapus..." : "Hapus"}
+        danger
+        icon={<Trash2 size={20} strokeWidth={2.25} />}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }

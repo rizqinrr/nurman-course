@@ -102,6 +102,7 @@ interface DbInvoice extends Invoice {
 
 interface DbSession extends Session {
   program: Program;
+  tentor?: { id: string; name: string };
   dailyReport?: DailyReport | null;
 }
 
@@ -190,8 +191,20 @@ export default function DashboardWaliPage() {
   };
 
   const getUpcomingSessionWali = () => {
-    const s = sessions.find(s => s.muridId === selectedMuridId && s.status === "scheduled");
-    return s ? { startsAt: formatSessionDateTime(s.startsAt), tutorName: "Kak Kiki", location: s.location || "Rumah Siswa" } : null;
+    const upcoming = sessions
+      .filter(
+        (s) =>
+          s.muridId === selectedMuridId &&
+          s.status === "scheduled" &&
+          new Date(s.endsAt).getTime() > Date.now(),
+      )
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+    if (!upcoming) return null;
+    return {
+      startsAt: formatSessionDateTime(upcoming.startsAt),
+      tutorName: upcoming.tentor?.name || "Kak Tentor",
+      location: upcoming.location || "Rumah Siswa",
+    };
   };
 
   const getUnpaidInvoiceWali = () => {

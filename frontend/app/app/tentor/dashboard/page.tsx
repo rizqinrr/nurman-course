@@ -7,7 +7,8 @@ import {
   Session,
   DailyReport,
   Murid,
-  Program
+  Program,
+  ProgressReport
 } from "@/data/lms";
 import { apiFetch } from "@/lib/api";
 import GlassCard from "@/components/ui/GlassCard";
@@ -107,6 +108,41 @@ interface SessionWithRelations extends Session {
   program?: Program;
 }
 
+function detectCompletedBlocksPending(
+  sessions: SessionWithRelations[],
+  reports: ProgressReport[],
+) {
+  const existing = new Set(
+    reports.map((r) => `${r.muridId}|${r.programId}|${r.blockNumber}`),
+  );
+  const perPair = new Map<string, SessionWithRelations[]>();
+
+  sessions.forEach((s) => {
+    if (s.status !== "completed" || !s.murid || !s.program) return;
+    const key = `${s.muridId}|${s.programId}`;
+    if (!perPair.has(key)) perPair.set(key, []);
+    perPair.get(key)!.push(s);
+  });
+
+  const pending: { murid: Murid; program: Program; blockNumber: number }[] = [];
+
+  perPair.forEach((pairSessions) => {
+    const first = pairSessions[0];
+    const murid = first.murid!;
+    const program = first.program!;
+    const sessionsPerBlock = program.sessionsPerBlock || 12;
+    const blocksFinished = Math.floor(pairSessions.length / sessionsPerBlock);
+
+    for (let block = 1; block <= blocksFinished; block++) {
+      if (!existing.has(`${murid.id}|${program.id}|${block}`)) {
+        pending.push({ murid, program, blockNumber: block });
+      }
+    }
+  });
+
+  return pending;
+}
+
 export default function TentorDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [profileName, setProfileName] = useState("Tentor");
@@ -114,6 +150,12 @@ export default function TentorDashboardPage() {
   const [pendingCount, setPendingCount] = useState(0);
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
   const [muridsList, setMuridsList] = useState<Murid[]>([]);
+  const [progressReports, setProgressReports] = useState<ProgressReport[]>([]);
+  const [completedBlocksPending, setCompletedBlocksPending] = useState<{
+    murid: Murid;
+    program: Program;
+    blockNumber: number;
+  }[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -159,12 +201,15 @@ export default function TentorDashboardPage() {
         };
         setProfileName(profileRes.user.name);
 
-        const [sessionsRes, reportsRes, enrollmentsRes] = await Promise.all([
+        const [sessionsRes, reportsRes, enrollmentsRes, progressRes] = await Promise.all([
           apiFetch<{ sessions: SessionWithRelations[] }>("/api/me/sessions"),
           apiFetch<{ reports: DailyReport[] }>("/api/me/daily-reports"),
           apiFetch<{ enrollments: EnrollmentBundle[] }>(
             "/api/me/enrollments",
           ).catch(() => ({ enrollments: [] as EnrollmentBundle[] }) as any),
+          apiFetch<{ reports: ProgressReport[] }>(
+            "/api/me/progress-reports",
+          ).catch(() => ({ reports: [] as ProgressReport[] }) as any),
         ]);
 
         const mappedSessions = sessionsRes.sessions.map((s) => ({
@@ -174,6 +219,7 @@ export default function TentorDashboardPage() {
         }));
         setSessionsData(mappedSessions);
         setDailyReports(reportsRes.reports);
+        setProgressReports(progressRes.reports);
 
         const completedSessions = mappedSessions.filter(
           (s) => s.status === "completed",
@@ -195,6 +241,12 @@ export default function TentorDashboardPage() {
           if (s.murid) mapMuridToList(s.murid as unknown as DbMurid, uniqueMuridsMap);
         });
         setMuridsList(Array.from(uniqueMuridsMap.values()));
+
+        const completedBlocks = detectCompletedBlocksPending(
+          mappedSessions,
+          progressRes.reports,
+        );
+        setCompletedBlocksPending(completedBlocks);
       } catch (err) {
         console.error("Error loading dashboard data:", err);
       } finally {
@@ -308,20 +360,11 @@ export default function TentorDashboardPage() {
 
         {/* Jadwal Mengajar / Sesi Terkini */}
       <section className="flex flex-col gap-4">
-        <div className="flex justify-between items-center border-b border-white/40 pb-2">
+        <div className="border-b border-white/40 pb-2">
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <Clock className="text-[#4a70a9]" size={22} />
             <span>Agenda Mengajar Privat</span>
           </h3>
-          <div className="flex items-center gap-2">
-            <Link href="/app/tentor/jadwal" className="inline-flex items-center gap-1 text-xs font-semibold text-[#4a70a9] hover:underline">
-              <Plus size={14} /> Buat Jadwal
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/app/tentor/jadwal" className="text-xs font-semibold text-[#4a70a9] hover:underline">
-              Lihat Semua
-            </Link>
-          </div>
         </div>
 
         {sessions.length > 0 ? (
@@ -393,32 +436,38 @@ export default function TentorDashboardPage() {
       </section>
 
       {/* Evaluasi Perkembangan Belajar */}
-      <section className="flex flex-col gap-4">
-        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 border-b border-white/40 pb-2">
-          <TrendingUp className="text-[#4a70a9]" size={22} />
-          <span>Evaluasi Perkembangan Belajar</span>
-        </h3>
-        
-        <GlassCard className="p-6 border border-white/80 shadow-sm relative overflow-hidden flex flex-col gap-4">
-          <div className="flex gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-amber-900">
-            <AlertCircle size={20} className="shrink-0 mt-0.5 text-amber-700" />
-            <div>
-              <p className="text-sm font-semibold">Rapor Blok Selesai Terdeteksi</p>
-              <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                Siswa <strong>Budi Santoso</strong> telah menyelesaikan 12 sesi (Blok 1) pada program <strong>Ngaji Iqra &amp; Al-Qur&apos;an</strong>. Harap segera terbitkan Laporan Perkembangan berkala untuk wali murid.
-              </p>
-            </div>
+      {completedBlocksPending.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 border-b border-white/40 pb-2">
+            <TrendingUp className="text-[#4a70a9]" size={22} />
+            <span>Evaluasi Perkembangan Belajar</span>
+          </h3>
+
+          <div className="flex flex-col gap-4">
+            {completedBlocksPending.map(({ murid, program, blockNumber }) => (
+              <GlassCard key={`${murid.id}-${program.id}-${blockNumber}`} className="p-6 border border-white/80 shadow-sm relative overflow-hidden flex flex-col gap-4">
+                <div className="flex gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-amber-900">
+                  <AlertCircle size={20} className="shrink-0 mt-0.5 text-amber-700" />
+                  <div>
+                    <p className="text-sm font-semibold">Rapor Blok Selesai Terdeteksi</p>
+                    <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                      Siswa <strong>{murid.name}</strong> telah menyelesaikan {blockNumber * (program.sessionsPerBlock || 12)} sesi (Blok {blockNumber}) pada program <strong>{program.name}</strong>. Harap segera terbitkan Laporan Perkembangan berkala untuk wali murid.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Link href={`/app/tentor/laporan-perkembangan?muridId=${murid.id}&programId=${program.id}&block=${blockNumber}`}>
+                    <Button variant="primary" className="text-xs py-2 px-5 flex items-center gap-2">
+                      <Plus size={14} />
+                      Buat Laporan Perkembangan
+                    </Button>
+                  </Link>
+                </div>
+              </GlassCard>
+            ))}
           </div>
-          <div className="flex justify-end mt-2">
-            <Link href="/app/tentor/laporan-perkembangan?muridId=murid-budi&programId=prog-ngaji&block=1">
-              <Button variant="primary" className="text-xs py-2 px-5 flex items-center gap-2">
-                <Plus size={14} />
-                Buat Laporan Perkembangan
-              </Button>
-            </Link>
-          </div>
-        </GlassCard>
-      </section>
+        </section>
+      )}
 
     </div>
   );

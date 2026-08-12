@@ -12,7 +12,7 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "font-medium rounded-xl transition-all duration-300 font-sans shadow-md";
+    "inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-300 font-sans shadow-md";
 
   const variants = {
     primary:

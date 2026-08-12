@@ -91,8 +91,15 @@ export default function JadwalSesiPage() {
   };
 
   const activeSessions = getFilteredSessions();
-  const upcomingSessions = activeSessions.filter((s) => s.status === "scheduled");
-  const pastSessions = activeSessions.filter((s) => s.status === "completed");
+  const passedIds = new Set(
+    activeSessions.filter((s) => new Date(s.endsAt).getTime() <= Date.now()).map((s) => s.id),
+  );
+  const upcomingSessions = activeSessions
+    .filter((s) => s.status === "scheduled" && !passedIds.has(s.id))
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  const pastSessions = activeSessions
+    .filter((s) => s.status !== "scheduled" || passedIds.has(s.id))
+    .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
   const filteredReports = getFilteredDailyReports();
 
   const handleContactTutorWA = (startsAtStr: string, tentorName?: string) => {
@@ -203,6 +210,7 @@ export default function JadwalSesiPage() {
                 {pastSessions.map((session) => {
                   const report = filteredReports.find((r) => r.sessionId === session.id);
                   const startsAtStr = formatSessionDateTime(session.startsAt);
+                  const isCancelled = session.status === "cancelled";
                   return (
                     <div 
                       key={session.id} 
@@ -213,10 +221,21 @@ export default function JadwalSesiPage() {
                           <span className="text-xs sm:text-sm font-bold text-gray-800">
                             {startsAtStr.split(" • ")[0]}
                           </span>
-                          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                            <CheckCircle2 size={12} className="text-emerald-500" />
-                            Hadir / Selesai
-                          </span>
+                          {isCancelled ? (
+                            <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                              Dibatalkan
+                            </span>
+                          ) : session.status === "completed" ? (
+                            <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                              <CheckCircle2 size={12} className="text-emerald-500" />
+                              Hadir / Selesai
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-100 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                              <Clock size={12} />
+                              Menunggu Laporan
+                            </span>
+                          )}
                         </div>
                         {report ? (
                           <p className="text-xs sm:text-sm text-gray-600">
@@ -224,7 +243,7 @@ export default function JadwalSesiPage() {
                           </p>
                         ) : (
                           <p className="text-xs sm:text-sm text-gray-500">
-                            Sesi telah selesai dilaksanakan.
+                            {isCancelled ? "Sesi ini dibatalkan." : "Sesi telah selesai dilaksanakan."}
                           </p>
                         )}
                       </div>

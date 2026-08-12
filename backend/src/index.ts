@@ -1823,8 +1823,9 @@ app.post('/api/admin/users/:id/reset-password', requireAuth, requireAdmin, async
 
 app.delete('/api/admin/users/:id', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res) => {
   const targetId = req.params.id;
+  const force = req.query.force === '1' || req.query.force === 'true';
 
-  // Cegah admin menonaktifkan dirinya sendiri
+  // Cegah admin menonaktifkan/menghapus dirinya sendiri
   if (req.user?.id === targetId) {
     res.status(400).json({ error: { code: 'FORBIDDEN', message: 'Tidak dapat menonaktifkan akun sendiri' } });
     return;
@@ -1846,6 +1847,16 @@ app.delete('/api/admin/users/:id', requireAuth, requireAdmin, async (req: Authen
       return;
     }
 
+    if (force) {
+      // Hapus permanen (cascade relasi) + hapus juga akun Supabase Auth agar tak bisa login
+      await prisma.user.delete({ where: { id: target.id } });
+      if (supabaseAdmin) {
+        await supabaseAdmin.auth.admin.deleteUser(target.id).catch(() => {});
+      }
+      res.json({ data: { id: target.id }, deleted: true });
+      return;
+    }
+
     const updated = await prisma.user.update({
       where: { id: targetId },
       data: { active: false },
@@ -1857,7 +1868,7 @@ app.delete('/api/admin/users/:id', requireAuth, requireAdmin, async (req: Authen
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
       return;
     }
-    console.error('Error deactivating admin user:', error);
+    console.error('Error deleting admin user:', error);
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
   }
 });
@@ -2119,6 +2130,7 @@ app.patch('/api/admin/murids/:id', requireAuth, requireAdmin, async (req: Authen
 });
 
 app.delete('/api/admin/murids/:id', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res) => {
+  const force = req.query.force === '1' || req.query.force === 'true';
   try {
     const murid = await prisma.murid.findUnique({
       where: { id: req.params.id },
@@ -2130,17 +2142,23 @@ app.delete('/api/admin/murids/:id', requireAuth, requireAdmin, async (req: Authe
       return;
     }
 
-    if (murid._count.enrollments > 0 || murid._count.sessions > 0) {
-      const updated = await prisma.murid.update({
-        where: { id: murid.id },
-        data: { active: false },
+    if (force) {
+      // Hapus permanen (cascade relasi)
+      await prisma.murid.delete({ where: { id: murid.id } });
+      res.json({
+        data: { id: murid.id },
+        deleted: true,
+        cascaded: { enrollments: murid._count.enrollments, sessions: murid._count.sessions },
       });
-      res.json({ data: updated, deactivated: true });
       return;
     }
 
-    await prisma.murid.delete({ where: { id: murid.id } });
-    res.status(204).send();
+    // Nonaktif (soft) — selalu set active:false
+    const updated = await prisma.murid.update({
+      where: { id: murid.id },
+      data: { active: false },
+    });
+    res.json({ data: updated, deactivated: true });
   } catch (error) {
     console.error('Error deleting admin murid:', error);
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
@@ -2391,6 +2409,34 @@ app.patch('/api/admin/enrollments/:id', requireAuth, requireAdmin, async (req: A
       return;
     }
     console.error('Error updating admin enrollment:', error);
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+  }
+});
+
+// 15. Admin-Only Delete Enrollment (cascade invoices)
+app.delete('/api/admin/enrollments/:id', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res) => {
+  const targetId = req.params.id;
+
+  try {
+    const existing = await prisma.enrollment.findUnique({
+      where: { id: targetId },
+      select: { id: true, _count: { select: { invoices: true } } },
+    });
+
+    if (!existing) {
+      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Enrollment not found' } });
+      return;
+    }
+
+    await prisma.enrollment.delete({ where: { id: targetId } });
+
+    res.json({ data: { id: targetId }, deleted: true, cascaded: { invoices: existing._count.invoices } });
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Enrollment not found' } });
+      return;
+    }
+    console.error('Error deleting admin enrollment:', error);
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
   }
 });

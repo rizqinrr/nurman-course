@@ -20,14 +20,20 @@ Setiap sesi kerja **berpatokan dokumen ini**, bukan mengarang scope.
 | **Roadmap LMS** | `docs/ROADMAP-LMS.md` | Visi LMS, MVP in/out, fase 0–5, opsi A/B |
 | **Progress log** | `docs/PROGRESS.md` | Log sesi + keputusan + status fase |
 | **Task list** | `tasks/todo.md` | Checklist eksekusi (centang di sini) |
-| **Vault (manusia)** | `D:\04_Writing\My Vault\My Projects\nurman-course\` | Mirror planning; repo menang untuk task/progress |
+| **Vault (manusia)** | `D:\04_Writing\My Vault\My Projects\nurman-course\` | Ringkasan harian/manusia; repo menang untuk task/progress |
 
-### Urutan baca sebelum eksekusi non-trivial
+**Peran vault:** dokumen di repo (tabel di atas) adalah **satu-satunya source of truth eksekusi** dan wajib dijaga opencode. Vault **hanya hasil akhir** — ringkasan harian/manusia, boleh tertinggal, sync cukup 1×/hari atau saat diminta user. Jangan over-sync vault dan jangan menganggap task selesai hanya karena vault di-update.
 
-1. `tasks/todo.md` — task mana yang `in_progress` / dipilih  
-2. `docs/ROADMAP-LMS.md` — jika task LMS / fase  
-3. `docs/PROGRESS.md` — keputusan terakhir & jangan ulangi kerja  
-4. File ini + **kode terkait** (lihat **Codegraph** di bawah)
+### Step 0 (WAJIB tiap sesi) — baca sebelum aksi apa pun
+
+Baca dulu SETIAP sesi, berapa pun kecilnya tugas, SEBELUM coding/read/eksplorasi kode:
+
+1. `tasks/todo.md` — task mana yang `in_progress` / dipilih (jangan kerjakan di luar task tanpa dicatat).
+2. `docs/PROGRESS.md` — entri teratas + tabel **Keputusan**: keputusan terakhir, jangan ulangi kerja.
+3. `docs/ROADMAP-LMS.md` — jika task LMS / fase.
+4. `AGENTS.md` ini + **kode terkait** (lihat **Codegraph** di bawah).
+
+> Tidak boleh coding/menambah task sebelum Step 0 selesai. Kalau task belum jelas → tanya user, bukan ngarang.
 
 ---
 
@@ -58,12 +64,14 @@ Sebelum **Grep / Read berulang / edit** kode app, panggil **`codegraph_explore`*
 3. Setelah edit: perhatikan banner staleness; file stale → Read file itu saja.  
 4. Codegraph **bukan** pengganti tsc/lint/test.  
 
-### Setelah setiap sesi yang mengubah repo
+### Definition of Done — sync docs (wajib tiap sesi yang mengubah repo)
 
-1. Update **`docs/PROGRESS.md`** (entri baru di atas, template ada di file).  
-2. Update **`tasks/todo.md`** (centang `[x]` + tanggal, atau pindah in_progress).  
-3. Jika keputusan arsitektur → tabel **Keputusan** di `PROGRESS.md`.  
-4. Jangan anggap selesai hanya karena kode jalan — **docs progress/task wajib sync**.
+Sesi yang mengubah repo (kode **atau** docs) **BELUM selesai** sampai seluruh langkah berikut tuntas. Verifikasi docs menjadi bagian dari "selesai", bukan opsional:
+
+1. Update **`docs/PROGRESS.md`** — entri baru di **atas** mengikuti template di bagian atas file (Fase / Status sesi / Request user / Keputusan / Dikerjakan / Verifikasi / Residual).
+2. Update **`tasks/todo.md`** — centang `[x]` + tanggal, atau pindah `in_progress`; task baru dari scope creep tulis di sini dulu.
+3. Jika keputusan arsitektur → catat di tabel **Keputusan** di `PROGRESS.md`.
+4. Jangan anggap selesai hanya karena kode jalan — **docs progress/task wajib sync** (jika langkah ini tak bisa dijalankan, sebutkan alasannya; vault tidak menghitung dan tidak menggantikan ini).
 
 ### Larangan scope
 

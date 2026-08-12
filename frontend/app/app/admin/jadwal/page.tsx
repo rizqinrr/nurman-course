@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Murid, Program } from "@/data/lms";
 import { apiFetch } from "@/lib/api";
+import { addOneHour } from "@/utils/format";
 import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
   CalendarDays, Clock, MapPin, BookOpen,
-  CheckCircle2, AlertTriangle, History, Plus, X, Edit3, Trash2, GraduationCap,
+  CheckCircle2, AlertTriangle, History, Plus, X, Edit3, Trash2, GraduationCap, Ban,
 } from "lucide-react";
 
 const formatSessionDateTime = (isoString: string) => {
@@ -50,7 +52,7 @@ interface JadwalForm {
   location: string;
 }
 
-const emptyForm: JadwalForm = { enrollmentId: "", date: new Date().toISOString().slice(0,10), startTime: "15:00", endTime: "16:30", location: "" };
+const emptyForm: JadwalForm = { enrollmentId: "", date: new Date().toISOString().slice(0,10), startTime: "15:00", endTime: "16:00", location: "" };
 
 export default function AdminJadwalPage() {
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,9 @@ export default function AdminJadwalPage() {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<AdminSession | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminSession | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -90,8 +95,16 @@ export default function AdminJadwalPage() {
 
   useEffect(() => { void loadData(); }, [loadData]);
 
-  const upcomingSessions = sessionsFormatted.filter(s => s.status === "scheduled").sort((a,b) => a.startsAt.localeCompare(b.startsAt));
-  const pastSessions = sessionsFormatted.filter(s => s.status === "completed" || s.status === "cancelled").sort((a,b) => b.startsAt.localeCompare(a.startsAt));
+  const nowMs = Date.now();
+  const passedIds = new Set(
+    sessionsDataRaw.filter((s) => new Date(s.endsAt).getTime() <= nowMs).map((s) => s.id),
+  );
+  const upcomingSessions = sessionsFormatted
+    .filter((s) => s.status === "scheduled" && !passedIds.has(s.id))
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  const pastSessions = sessionsFormatted
+    .filter((s) => s.status !== "scheduled" || passedIds.has(s.id))
+    .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
 
   const openCreate = () => {
     setEditingSession(null);
@@ -100,7 +113,7 @@ export default function AdminJadwalPage() {
       enrollmentId: firstEnr?.id || "",
       date: new Date().toISOString().slice(0,10),
       startTime: "15:00",
-      endTime: "16:30",
+      endTime: "16:00",
       location: firstEnr?.murid?.address || "",
     });
     setShowForm(true);
@@ -177,25 +190,35 @@ export default function AdminJadwalPage() {
     }
   };
 
-  const handleCancel = async (id: string) => {
-    if (!confirm("Batalkan sesi ini?")) return;
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const id = cancelTarget.id;
+    setConfirmBusy(true);
     try {
       await apiFetch(`/api/admin/sessions/${id}`, { method: "PATCH", body: JSON.stringify({ status: "cancelled" }) });
       setNotice("Sesi dibatalkan");
+      setCancelTarget(null);
       await loadData();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Gagal batalkan");
+    } finally {
+      setConfirmBusy(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Hapus jadwal ini? Tidak bisa dikembalikan.")) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setConfirmBusy(true);
     try {
       await apiFetch(`/api/admin/sessions/${id}`, { method: "DELETE" });
       setNotice("Jadwal dihapus");
+      setDeleteTarget(null);
       await loadData();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Gagal hapus");
+    } finally {
+      setConfirmBusy(false);
     }
   };
 
@@ -254,7 +277,7 @@ export default function AdminJadwalPage() {
                 <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none focus:border-[#4a70a9]" />
               </label>
               <label className="block text-xs font-bold text-gray-700">Jam Mulai
-                <input type="time" required value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none focus:border-[#4a70a9]" />
+                <input type="time" required value={form.startTime} onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, startTime: v, endTime: v ? addOneHour(v) : f.endTime })); }} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none focus:border-[#4a70a9]" />
               </label>
               <label className="block text-xs font-bold text-gray-700">Jam Selesai
                 <input type="time" required value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none focus:border-[#4a70a9]" />
@@ -301,10 +324,10 @@ export default function AdminJadwalPage() {
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <Button variant="ghost" onClick={() => openEdit(session)} className="justify-center text-xs py-2 gap-1"><Edit3 size={14} /> Edit</Button>
-                    <Button variant="ghost" onClick={() => { void handleCancel(session.id); }} className="justify-center text-xs py-2 gap-1 border-red-200 text-red-600 hover:bg-red-50">Batalkan</Button>
+                    <Button variant="ghost" onClick={() => setCancelTarget(session)} className="justify-center text-xs py-2 gap-1 border-amber-200 text-amber-700 hover:bg-amber-50"><Ban size={14} /> Batalkan</Button>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { void handleDelete(session.id); }} className="w-full text-[11px] font-semibold text-gray-400 hover:text-red-500 flex items-center justify-center gap-1 py-1"><Trash2 size={12} /> Hapus</button>
+                    <button onClick={() => setDeleteTarget(session)} className="w-full text-[11px] font-semibold text-red-500 hover:text-red-700 flex items-center justify-center gap-1 py-1"><Trash2 size={12} /> Hapus</button>
                   </div>
                 </GlassCard>
               );
@@ -363,6 +386,29 @@ export default function AdminJadwalPage() {
           </GlassCard>
         )}
       </section>
+
+      <ConfirmDialog
+        open={!!cancelTarget}
+        title="Batalkan Jadwal?"
+        message="Sesi akan dibatalkan dan pindah ke Riwayat. Anda tetap bisa membuat ulang jika perlu."
+        confirmLabel={confirmBusy ? "Membatalkan..." : "Batalkan"}
+        cancelLabel="Tutup"
+        icon={<Ban size={20} strokeWidth={2.25} />}
+        onConfirm={() => void confirmCancel()}
+        onCancel={() => setCancelTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Hapus Jadwal?"
+        message={deleteTarget ? `Sesi ${deleteTarget.murid?.name || "murid"} akan dihapus permanen dan tidak bisa dikembalikan.` : ""}
+        confirmLabel={confirmBusy ? "Menghapus..." : "Hapus"}
+        cancelLabel="Batal"
+        danger
+        icon={<Trash2 size={20} strokeWidth={2.25} />}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

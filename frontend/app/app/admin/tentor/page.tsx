@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Copy, Check, Edit3, KeyRound, Plus, Search, UserRound, XCircle } from "lucide-react";
+import { Camera, Copy, Check, Edit3, KeyRound, Plus, Search, UserRound, XCircle, Trash2 } from "lucide-react";
 import { createUserSchema } from "@nurman-course/shared";
 import Button from "@/components/ui/Button";
 import GlassCard from "@/components/ui/GlassCard";
 import PageHeader from "@/components/ui/PageHeader";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { apiFetch, buildQuery } from "@/lib/api";
 import { User } from "@/data/lms";
 
@@ -62,6 +63,9 @@ export default function AdminTutorPage() {
   const [lastTempPassword, setLastTempPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<AdminTutor | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminTutor | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadTutors = useCallback(async () => {
     setLoading(true);
@@ -197,11 +201,16 @@ export default function AdminTutorPage() {
     }
   };
 
-  const handleDeactivate = async (tutor: AdminTutor) => {
-    if (!window.confirm(`Nonaktifkan tentor ${tutor.name}? Akun tidak dapat login lagi.`)) return;
+  const handleDeactivate = (tutor: AdminTutor) => {
     setErrorMessage(null);
     setNotice(null);
+    setDeactivateTarget(tutor);
+  };
 
+  const confirmDeactivate = async () => {
+    if (!deactivateTarget) return;
+    const tutor = deactivateTarget;
+    setDeactivateTarget(null);
     try {
       await apiFetch(`/api/admin/users/${tutor.id}`, { method: "DELETE" });
       setNotice("Tentor berhasil dinonaktifkan.");
@@ -210,6 +219,24 @@ export default function AdminTutorPage() {
       await loadTutors();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Gagal menonaktifkan tentor.");
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const tutor = deleteTarget;
+    setDeleteTarget(null);
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/admin/users/${tutor.id}?force=1`, { method: "DELETE" });
+      setNotice("Tentor berhasil dihapus permanen.");
+      if (editingTutor?.id === tutor.id) resetForm();
+      if (selectedTutor?.id === tutor.id) setSelectedTutor(null);
+      await loadTutors();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal menghapus tentor.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -338,8 +365,9 @@ export default function AdminTutorPage() {
                       <button type="button" onClick={() => handleEdit(tutor)} className="inline-flex items-center gap-1.5 rounded-lg bg-white/70 px-3 py-2 text-xs font-bold text-gray-700 ring-1 ring-gray-200 hover:bg-white"><Edit3 size={14} /> Edit</button>
                       <button type="button" onClick={() => void handleResetPassword(tutor)} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"><KeyRound size={14} /> Reset PW</button>
                       {tutor.active !== false && (
-                        <button type="button" onClick={() => void handleDeactivate(tutor)} className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 ring-1 ring-red-100 hover:bg-red-100"><XCircle size={14} /> Nonaktif</button>
+                        <button type="button" onClick={() => void handleDeactivate(tutor)} className="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-2 text-xs font-bold text-orange-600 ring-1 ring-orange-100 hover:bg-orange-100"><XCircle size={14} /> Nonaktif</button>
                       )}
+                      <button type="button" onClick={() => setDeleteTarget(tutor)} className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 ring-1 ring-red-100 hover:bg-red-100"><Trash2 size={14} /> Hapus</button>
                     </div>
                   </div>
                 </GlassCard>
@@ -460,6 +488,31 @@ export default function AdminTutorPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deactivateTarget}
+        title="Nonaktifkan Tentor?"
+        message={deactivateTarget ? `Tentor ${deactivateTarget.name} tidak dapat login dan tidak ditampilkan di daftar aktif. Data tetap tersimpan.` : undefined}
+        confirmLabel="Nonaktifkan"
+        danger
+        onCancel={() => setDeactivateTarget(null)}
+        onConfirm={() => void confirmDeactivate()}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Hapus Tentor Permanen?"
+        message={
+          deleteTarget
+            ? `Hapus permanen tentor ${deleteTarget.name}? Akun Supabase akan dihapus (tidak bisa login), ${deleteTarget._count?.sessions ?? 0} sesi yang diampu ikut terhapus (laporan ikut), dan enrollment menjadi tanpa tentor. Tindakan ini tidak dapat dibatalkan.`
+            : undefined
+        }
+        confirmLabel={deleting ? "Menghapus..." : "Hapus"}
+        danger
+        icon={<Trash2 size={20} strokeWidth={2.25} />}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }

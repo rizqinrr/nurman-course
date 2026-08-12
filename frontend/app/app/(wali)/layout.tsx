@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { 
@@ -99,9 +100,14 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
       {/* SideNavBar (Desktop) */}
       <nav className="hidden md:flex h-screen w-64 fixed left-0 top-0 border-r border-white/60 shadow-xl flex-col gap-6 p-6 bg-white/30 backdrop-blur-2xl z-50 pt-16">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#4a70a9] to-indigo-600 bg-clip-text text-transparent">
-            Nurman Course
-          </h1>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-[#2e4b7a] shadow-[0_8px_18px_rgba(74,112,169,0.5)]">
+              <Image src="/Nlogo.png" alt="Logo Nurman Course" width={500} height={500} priority className="h-10 w-10 rounded-full object-cover" />
+            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#4a70a9] to-indigo-600 bg-clip-text text-transparent">
+              Nurman Course
+            </h1>
+          </div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">
             Parent Portal
           </p>
@@ -152,8 +158,13 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
       <main className="flex-grow md:ml-64 flex flex-col min-h-screen relative z-10 pb-20 md:pb-8">
         {/* Mobile TopBar: brand + Profile Avatar */}
         <div className="md:hidden sticky z-40 flex items-center justify-between gap-2 px-4 py-2 bg-white/70 backdrop-blur-xl border-b border-white/60 top-0">
-          <span className="text-base font-bold bg-gradient-to-r from-[#4a70a9] to-indigo-600 bg-clip-text text-transparent whitespace-nowrap">
-            Nurman Course
+          <span className="flex items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-[#2e4b7a] shadow-[0_5px_12px_rgba(74,112,169,0.5)]">
+              <Image src="/Nlogo.png" alt="Logo Nurman Course" width={500} height={500} priority className="h-7 w-7 rounded-full object-cover" />
+            </span>
+            <span className="text-base font-bold bg-gradient-to-r from-[#4a70a9] to-indigo-600 bg-clip-text text-transparent whitespace-nowrap">
+              Nurman Course
+            </span>
           </span>
           <Link
             href="/app/profile"

@@ -90,6 +90,35 @@ button,
   }
 }
 
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-entrance {
+  animation: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(18px, -14px) scale(1.08);
+  }
+}
+
+.login-orb {
+  animation: drift 12s ease-in-out infinite;
+}
+
 .price-pulse {
   animation: price-pulse 2s ease-in-out infinite;
 }
@@ -109,6 +138,14 @@ button,
   }
 
   .animate-ping {
+    animation: none;
+  }
+
+  .login-entrance {
+    animation: none;
+  }
+
+  .login-orb {
     animation: none;
   }
 }

@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
+  icon?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,6 +22,7 @@ export default function ConfirmDialog({
   confirmLabel = "Konfirmasi",
   cancelLabel = "Batal",
   danger = false,
+  icon,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -46,7 +48,7 @@ export default function ConfirmDialog({
                 : "bg-[#4a70a9]/15 text-[#4a70a9]"
             }`}
           >
-            <LogOut size={20} strokeWidth={2.25} />
+            {icon ?? <LogOut size={20} strokeWidth={2.25} />}
           </span>
           <button
             type="button"

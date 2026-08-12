@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
 import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
 import { useLogout } from "@/lib/useLogout";
-import { ChevronLeft, LogOut, User, Mail, Phone, GraduationCap, Shield, Users } from "lucide-react";
+import { ChevronLeft, LogOut, User, Mail, Phone, GraduationCap, Shield, Users, KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface TentorProfile {
   id: string;
@@ -28,6 +29,43 @@ export default function TentorProfilePage() {
   const [profile, setProfile] = useState<TentorProfile | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSuccess, setPwSuccess] = useState<string | null>(null);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError(null);
+    setPwSuccess(null);
+    if (newPassword.length < 6) {
+      setPwError("Password minimal 6 karakter.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError("Konfirmasi password tidak sama.");
+      return;
+    }
+    setUpdating(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setPwError(error.message || "Gagal mengubah password.");
+        return;
+      }
+      setPwSuccess("Password berhasil diubah.");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPw(false);
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : "Gagal mengubah password.");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -127,6 +165,55 @@ export default function TentorProfilePage() {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="border-t border-gray-200/50 pt-5">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 flex items-center gap-1.5"><KeyRound size={14} className="text-[#4a70a9]" /> Ubah Kata Sandi</h3>
+          <form onSubmit={handleUpdatePassword} className="mt-3 space-y-3">
+            {pwSuccess && (
+              <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs text-emerald-700 flex items-center gap-2">
+                <CheckCircle2 size={15} className="shrink-0" /> {pwSuccess}
+              </div>
+            )}
+            {pwError && (
+              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs text-red-700 flex items-center gap-2">
+                <AlertCircle size={15} className="shrink-0" /> {pwError}
+              </div>
+            )}
+            <div className="relative">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Password Baru</label>
+              <input
+                type={showPw ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                minLength={6}
+                className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-[#4a70a9]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                aria-label={showPw ? "Sembunyikan password" : "Tampilkan password"}
+                className="absolute right-3 bottom-2.5 text-gray-400 hover:text-[#4a70a9]"
+              >
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Konfirmasi Password Baru</label>
+              <input
+                type={showPw ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                minLength={6}
+                className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3.5 py-2.5 text-sm text-gray-700 outline-none focus:border-[#4a70a9]"
+              />
+            </div>
+            <Button type="submit" disabled={updating} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#4a70a9] hover:bg-[#3a5a99] text-white text-sm px-4 py-2.5">
+              <KeyRound size={15} /> {updating ? "Menyimpan..." : "Simpan Kata Sandi"}
+            </Button>
+          </form>
         </div>
 
         <div className="border-t border-gray-200/50 pt-5 flex justify-center">

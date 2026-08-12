@@ -12,3 +12,14 @@ export function formatPrice(price: number): string {
   const ribu = Math.round(price / 1000);
   return `Mulai dari ${ribu}rb`;
 }
+
+/**
+ * Add 1 hour to a "HH:MM" time string (wraps past 23:59 into the same day).
+ * Used as a default auto-fill for the session end time.
+ */
+export function addOneHour(time: string): string {
+  const [hh, mm] = time.split(":").map(Number);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return time;
+  const nextHour = (hh + 1) % 24;
+  return `${String(nextHour).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
