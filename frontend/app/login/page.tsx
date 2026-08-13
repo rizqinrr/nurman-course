@@ -42,7 +42,7 @@ function LoginForm() {
 
       if (!isEmail) {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/resolve-phone`,
+          `${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/auth/resolve-phone`,
           {
             method: "POST",
             headers: {
