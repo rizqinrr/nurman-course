@@ -305,7 +305,30 @@ export default function DashboardWaliPage() {
         <RealtimeClock />
       </header>
 
-
+      {/* Child selector */}
+      {murids.length > 1 && (
+        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-white/30 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-sm">
+          <span className="text-xs font-semibold text-gray-500 shrink-0">Siswa:</span>
+          <div className="flex gap-2">
+            {murids.map((m) => {
+              const isSelected = m.id === selectedMuridId;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setSelectedMuridId(m.id)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
+                    isSelected
+                      ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-md shadow-[#4a70a9]/30"
+                      : "bg-white/50 border-white/70 text-gray-600 hover:bg-white/85"
+                  }`}
+                >
+                  {m.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Top Block: Sesi Terdekat & Tagihan Ringkas (H-1) */}
       {selectedMurid && (

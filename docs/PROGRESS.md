@@ -37,6 +37,47 @@
 
 ---
 
+### 2026-08-20 — Portal wali: selector murid (multi-anak) di Dashboard/Jadwal/Laporan/Tagihan + Ubah Kata Sandi di Profil Wali
+
+**Fase:** UIUX / portal wali (branch `dev`)
+**Status sesi:** selesai — wali dengan >1 anak kini bisa berganti anak di semua halaman portal; profil wali dapat mengubah kata sandi sendiri (paritas fitur dengan portal tentor).
+
+**Request user:** "kita fokus ke halaman wali dulu ya"; multi-murid di profil **tidak perlu** (tetap tampilkan murid pertama saja); setelah selesai push ke branch `dev`.
+
+**Keputusan (klarifikasi):** profil wali tidak diubah jadi daftar semua anak — tetap menampilkan `profile.murids[0]`; yang ditambah hanya fitur Ubah Kata Sandi.
+
+**Dikerjakan:**
+- `(wali)/dashboard/page.tsx`, `(wali)/jadwal/page.tsx`, `(wali)/laporan/page.tsx`, `(wali)/tagihan/page.tsx`: sisipkan **selector murid** (tab pill glassmorphism, hanya tampil jika `murids.length > 1`, pola sama dengan katalog program) di bawah header — mengubah `selectedMuridId`; data sudah difilter client-side per murid, jadi tanpa perubahan backend.
+- `(wali)/profile/page.tsx`: tambah section **Ubah Kata Sandi** (form Password Baru + Konfirmasi, toggle show/hide `Eye`/`EyeOff`, validasi min 6 & konfirmasi cocok, `supabase.auth.updateUser({password})` client-side, busy state, notifikasi sukses/error) — pola sama persis dengan `tentor/profil/page.tsx`; import `createClient` + ikon `KeyRound/Eye/EyeOff/CheckCircle2/AlertCircle`.
+
+**Verifikasi:** `npx tsc --noEmit` frontend exit 0; `npm run build` sukses. Backend tak diubah.
+
+**Residual:** QA manual browser (role wali dengan 2+ murid): ganti tab siswa di 4 halaman → data ikut berubah; ubah kata sandi di profil → berhasil + notifikasi; belum di-commit/push.
+
+---
+
+### 2026-08-20 — Katalog program wali: filter kategori + kartu informatif ringkas; detail program split Terdaftar vs Belum Terdaftar
+
+**Fase:** UIUX / portal wali (branch `dev`)
+**Status sesi:** selesai — `/app/program` jadi katalog bersih dengan tab filter kategori (Semua/Materi/Jenjang/Calistung), search, dan kartu informatif ringkas yang semuanya mengarah ke halaman detail; `/app/program/[slug]` kini membedakan status pendaftaran — belum terdaftar = info program + outline silabus + CTA daftar WA; sudah terdaftar = peta jalan interaktif yang sudah ada.
+
+**Request user:** "jadi semacam catalog itu, card2 ga usah terlalu rinci, yg penting informatif, kalo di klik masuk ke halaman detail program, nanti bisa daftar lewat situ; di halaman catalog program ada filter kategori juga".
+
+**Keputusan (klarifikasi):** kartu katalog tidak memuat tombol WA langsung — semua kartu link ke `/app/program/[slug]`; halaman detail jadi pusat info + aksi pendaftaran. Status pendaftaran dideteksi dari enrollment `active` murid terpilih.
+
+**Dikerjakan:**
+- `frontend/app/app/(wali)/program/page.tsx`: tambah tab filter kategori (state `activeCategory`, `CATEGORY_FILTERS`), selector murid jika >1 anak, kartu ringkas (ikon kategori `getCategoryIcon`, badge status Terdaftar/Tersedia/Coming Soon, nama, deskripsi `line-clamp-2`, investasi/sesi, CTA "Lihat Detail"/"Buka Peta Jalan"), seluruh kartu = `<Link>` ke detail; hapus aksi WA langsung dari kartu.
+- `frontend/app/app/(wali)/program/[slug]/page.tsx`: hitung `isEnrolled` (enrollment `active` murid terpilih); jika belum terdaftar → header "Detail Program", kartu info (kategori, deskripsi penuh, investasi/sesi, jumlah sesi/blok, peserta, status), section "Materi yang Akan Dipelajari" (outline roadmap non-expandable), sticky CTA "Daftar Sekarang via WhatsApp" (disabled jika tak ada murid / program nonaktif); jika terdaftar → peta jalan interaktif existing (progress, expand langkah, Tanya Guru, bottom bar sesi selesai).
+- **Penyesuaian lanjutan (req user):** label "Investasi" → "Mulai dari" (katalog + detail + CTA); CTA "Daftar Sekarang" tidak lagi `fixed` — jadi kartu menonjol di alur halaman (border hijau `#25D366` + logo SVG WhatsApp hijau + shadow emerald); bar "Sesi Selesai / Lihat Laporan Riwayat Sesi" juga tidak lagi `fixed` — jadi GlassCard statis di bawah peta jalan; padding bawah container dikurangi (`pb-44 md:pb-28` → `pb-12`).
+- **Modal detail materi (req user):** outline "Materi yang Akan Dipelajari" (belum terdaftar) kini bisa diklik (`cursor-pointer` + chevron kanan) → membuka modal backdrop-blur berisi header langkah/level, deskripsi lengkap via `MarkdownContent`, tombol hijau WhatsApp "Tanya Materi Ini" (auto-fill pesan: nama anak + judul langkah + nama program) dan tombol Tutup.
+- **Revisi (req user):** filter kategori di katalog jadi **dropdown** (bukan tombol sebaris); header card program tanpa ikon logo — cukup kategori (kiri) + status (kanan); modal materi disederhanakan — hapus badge langkah/level, hapus tombol "Tanya Materi Ini" & "Tutup", hanya tombol close `X` kanan atas; tombol CTA diperkecil & sebaris — teks cukup **"Daftar Sekarang"** + logo WA hijau.
+
+**Verifikasi:** `npx tsc --noEmit` frontend exit 0; `npm run build` sukses — semua route OK (termasuk `/app/program` statik & `/app/program/[slug]` dinamis). Backend tak diubah.
+
+**Residual:** QA manual browser (role wali): filter kategori + search di katalog, klik kartu → detail; belum terdaftar → info + outline + CTA WA; pilih murid lain → status berubah; sudah terdaftar → peta jalan normal. Belum di-commit ke `dev`.
+
+---
+
 ### 2026-08-12 — Jadwal wali (dashboard + /app/jadwal): filter waktu + hapus dummy "Kak Kiki"
 
 **Fase:** AD-HOC / portal (branch `main`)
