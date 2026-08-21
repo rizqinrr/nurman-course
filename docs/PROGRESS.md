@@ -33,7 +33,29 @@
 
 | Tanggal | Keputusan | Alasan |
 |---------|-----------|--------|
+| 2026-08-20 | Implementasi In-Memory Cache di `apiFetch` | Mengurangi request berulang & loading screen berputar saat navigasi antar menu portal. |
 | YYYY-MM-DD | <keputusan> | <alasan> |
+
+---
+
+### 2026-08-20 — Portal: In-Memory Client-Side Cache (1 Jam) dengan Smart Invalidation
+
+**Fase:** Optimasi Performa / UIUX (branch `dev`)
+**Status sesi:** selesai — navigasi menu di portal wali/tentor/admin kini instan tanpa delay loading screen berkat memory caching.
+
+**Request user:** "apakah bisa pake cache? biar mengurangi loading? yg paling tepat gimana deh"
+
+**Keputusan (klarifikasi):**
+1. Menggunakan **Opsi 1 (In-Memory Cache)** global pada utility `apiFetch` agar berimbas ke seluruh portal secara otomatis.
+2. TTL diatur **1 jam** agar menghemat loading screen saat navigasi.
+3. Menggunakan **Smart Invalidation per Tipe Data**: Jika ada request mutasi (`POST`/`PUT`/`DELETE`), sistem hanya menghapus kategori cache yang bersangkutan saja (invoices, reports, sessions, users/profile) alih-alih menghapus semua secara agresif.
+
+**Dikerjakan:**
+- `frontend/lib/api.ts`: tambah interface `CacheEntry`, variabel `getCache` Map, `CACHE_TTL` (1 jam), fungsi pintar `invalidateCache(path)`, perbarui signature `apiFetch` dengan opsi `bypassCache` (di-destructure agar tidak bocor ke request fetch). Jika request `GET` dan bukan `bypassCache`, layani via memory cache. Jika request mutasi, lakukan invalidasi selektif.
+
+**Verifikasi:** `npx tsc --noEmit` frontend exit 0; `npm run build` sukses.
+
+**Residual:** QA manual browser (navigasi Dashboard ➔ Jadwal ➔ Laporan instan; setelah simpan form/mutasi, data ter-refresh otomatis).
 
 ---
 
