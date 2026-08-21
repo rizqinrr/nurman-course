@@ -33,8 +33,32 @@
 
 | Tanggal | Keputusan | Alasan |
 |---------|-----------|--------|
+| 2026-08-20 | Implementasi NC Debugger Widget (Dev Mode) | Mempermudah penelusuran request API, cache hit/miss/invalidated, dan SQL Query timing layaknya Laravel Debugbar. |
 | 2026-08-20 | Implementasi In-Memory Cache di `apiFetch` | Mengurangi request berulang & loading screen berputar saat navigasi antar menu portal. |
 | YYYY-MM-DD | <keputusan> | <alasan> |
+
+---
+
+### 2026-08-20 — Dev-tooling: Kustom Debugger Widget (NC Debugger) & Prisma SQL Logging
+
+**Fase:** Tooling / DX (Developer Experience) (branch `dev`)
+**Status sesi:** selesai — debugger widget kustom (seperti Laravel Debugbar) melayang di kanan bawah layar untuk menampilkan riwayat request API, cache status, status code, dan latency secara real-time. Console backend juga menampilkan query SQL Prisma beserta durasinya.
+
+**Request user:** "adakah semacma library untuk membantu proses development, kalo dilaravel ada library / apa itu aku lupa, nampilinnya di bagian bawah halaman, jadi ada querynya, ada keterangan timestamp nya, brp lamabisa uambil data itu dll"
+
+**Keputusan (klarifikasi):**
+1. Membuat widget kustom murni (tanpa dependency besar) di frontend untuk menampilkan metrik request `apiFetch`.
+2. Mengintegrasikan SQL logging di backend Express melalui event `query` milik PrismaClient agar query database tampil di terminal server beserta timing (ms).
+
+**Dikerjakan:**
+- `frontend/lib/api.ts`: tambah array `fetchLogs`, event listener `addLogListener`/`notifyLogListeners`, serta perekaman durasi latency, status code, dan metadata cache (`HIT`, `MISS`, `INVALIDATED`) di dalam `apiFetch`.
+- `frontend/components/ui/DebugBar.tsx`: widget debugger melayang yang responsif, collapsible, hydration-safe, dan hanya aktif pada mode development (`NODE_ENV === 'development'`).
+- `frontend/app/layout.tsx`: daftarkan komponen `<DebugBar />` di dalam root body layout.
+- `backend/src/index.ts`: konfigurasikan `new PrismaClient` agar memancarkan event `query` jika bukan mode produksi, lalu cetak SQL query berwarna cyan beserta timing (ms) di console terminal server.
+
+**Verifikasi:** `npx tsc --noEmit` frontend + `npm run build` backend & frontend sukses.
+
+**Residual:** QA manual widget dengan berganti halaman dan melihat pembaruan request di panel debugger.
 
 ---
 

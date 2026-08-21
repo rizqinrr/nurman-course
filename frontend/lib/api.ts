@@ -2,6 +2,30 @@ import { createClient as createBrowserClient } from './supabase/client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
+export interface FetchLogEntry {
+  id: string;
+  path: string;
+  method: string;
+  duration: number;
+  status: number;
+  cacheStatus: 'HIT' | 'MISS' | 'INVALIDATED';
+  timestamp: string;
+}
+
+export const fetchLogs: FetchLogEntry[] = [];
+let logListeners: (() => void)[] = [];
+
+export function addLogListener(listener: () => void) {
+  logListeners.push(listener);
+  return () => {
+    logListeners = logListeners.filter(l => l !== listener);
+  };
+}
+
+function notifyLogListeners() {
+  logListeners.forEach(l => l());
+}
+
 interface CacheEntry {
   data: any;
   timestamp: number;
@@ -57,6 +81,7 @@ export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit & { bypassCache?: boolean } = {}
 ): Promise<T> {
+  const start = typeof window !== 'undefined' ? performance.now() : 0;
   const { bypassCache, ...fetchOptions } = options;
   const method = fetchOptions.method || 'GET';
   const isGet = method.toUpperCase() === 'GET';
@@ -64,6 +89,19 @@ export async function apiFetch<T = unknown>(
   if (isGet && !bypassCache) {
     const cached = getCache.get(path);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+        const duration = Math.round(performance.now() - start);
+        fetchLogs.push({
+          id: Math.random().toString(36).substring(7),
+          path,
+          method,
+          duration,
+          status: 200,
+          cacheStatus: 'HIT',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+        notifyLogListeners();
+      }
       return cached.data as T;
     }
   }
@@ -89,10 +127,28 @@ export async function apiFetch<T = unknown>(
   }
 
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const response = await fetch(`${API_BASE_URL}${cleanPath}`, {
-    ...fetchOptions,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${cleanPath}`, {
+      ...fetchOptions,
+      headers,
+    });
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      const duration = Math.round(performance.now() - start);
+      fetchLogs.push({
+        id: Math.random().toString(36).substring(7),
+        path,
+        method,
+        duration,
+        status: 0,
+        cacheStatus: isGet ? 'MISS' : 'INVALIDATED',
+        timestamp: new Date().toLocaleTimeString(),
+      });
+      notifyLogListeners();
+    }
+    throw err;
+  }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
@@ -113,6 +169,19 @@ export async function apiFetch<T = unknown>(
     } else {
       message = `HTTP error! status: ${response.status}`;
     }
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      const duration = Math.round(performance.now() - start);
+      fetchLogs.push({
+        id: Math.random().toString(36).substring(7),
+        path,
+        method,
+        duration,
+        status: response.status,
+        cacheStatus: isGet ? 'MISS' : 'INVALIDATED',
+        timestamp: new Date().toLocaleTimeString(),
+      });
+      notifyLogListeners();
+    }
     throw new Error(message);
   }
 
@@ -120,6 +189,20 @@ export async function apiFetch<T = unknown>(
 
   if (isGet && !bypassCache) {
     getCache.set(path, { data, timestamp: Date.now() });
+  }
+
+  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    const duration = Math.round(performance.now() - start);
+    fetchLogs.push({
+      id: Math.random().toString(36).substring(7),
+      path,
+      method,
+      duration,
+      status: response.status,
+      cacheStatus: isGet ? 'MISS' : 'INVALIDATED',
+      timestamp: new Date().toLocaleTimeString(),
+    });
+    notifyLogListeners();
   }
 
   return data as T;
