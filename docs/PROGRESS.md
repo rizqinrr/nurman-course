@@ -39,6 +39,31 @@
 
 ---
 
+### 2026-08-21 — Bugfix laporan harian menimpa laporan lama + tabel laporan & modal detail
+
+**Fase:** TENTOR (laporan-harian + dashboard) (branch `dev`)
+**Status sesi:** selesai — bug "tulis laporan malah update laporan lama" diperbaiki di akar penyebabnya; daftar laporan diubah menjadi tabel dengan modal detail; dashboard tentor kini menghitung laporan pending berdasarkan waktu sesi.
+
+**Request user:** "kalo tentor nulis laporan, malah update data laporan yg ada, bukan nambah data ... jadi bisa tulis laporan sesuai jadwal, bisa tulis laporan baru, bisa edit laporan yg udh ada. dan aku mau halaman laporan dibuat jadi tabel aja, ada tombol detail, nanti muncul modal detailnya, tapi kalo di dashboard laporannya tetep muncul detail kaya sekarang"
+
+**Keputusan (klarifikasi):**
+1. Akar bug: tombol "Tulis Laporan" memakai fallback `sessions[0]` saat semua sesi sudah dilaporkan → form kosong terbuka untuk sesi yang sudah berlaporkan → POST `/api/daily-reports` melakukan upsert dan MENIMPA laporan lama. Fallback dihapus total.
+2. Kriteria sesi pending = sesi apa pun `status !== "cancelled"` yang belum punya laporan (bukan hanya `status === "completed"`, karena status completed baru ter-set setelah laporan ditulis).
+3. Auto-redirect `sessionId` → `editSessionId` jika sesi sudah berlaporkan, sebagai pengaman kedua.
+4. Halaman laporan jadi tabel + tombol Detail (modal); tampilan detail card di dashboard dipertahankan.
+
+**Dikerjakan:**
+- **Frontend** `frontend/app/app/tentor/laporan-harian/LaporanHarianClient.tsx`: (1) hapus fallback `sessions[0]`, ganti `handleWriteReport` dengan kriteria pending benar + toast peringatan; (2) tambah `useEffect` auto-redirect ke mode edit bila `sessionId` sudah berlaporkan; (3) ganti daftar card menjadi tabel (No/Siswa/Tanggal/Jam/Program/Aksi) responsif; (4) tambah state `detailReport` + modal detail glassmorphism dengan tombol Edit & Tutup.
+- **Frontend** `frontend/app/app/tentor/dashboard/page.tsx`: (1) simpan `rawEndsAt` ISO asli di mapping session; (2) hitung ulang `pendingCount` = sesi lewat waktu (`endsAt <= now`) && tidak dibatalkan && belum berlaporkan (sebelumnya selalu 0 karena bergantung `status === "completed"`); (3) `getSessionStatusInfo` kini menerima `rawEndsAt` dan menandai sesi lewat waktu sebagai "Butuh Laporan"/"Selesai"; (4) kondisi render tombol aksi diganti dari `status === "completed"` ke `statusInfo.label !== "Terjadwal"`.
+- **Frontend** `frontend/components/ui/DebugBar.tsx`: root container `select-none` → `select-text` agar log bisa diseleksi mouse; tambah tombol Copy Logs (ikon Copy/Check) di header yang menyalin semua log ke clipboard via `navigator.clipboard.writeText` dengan format `[timestamp] METHOD path - Status: X, Cache: Y, Duration: Zms` + feedback "Copied!" hijau 1.5 detik.
+- **Frontend** `LaporanHarianClient.tsx` (revisi user): hapus badge umur `{muridAge} Th` di kolom Siswa tabel (nama tampak menempel umur); umur tetap tampil di modal Detail & print A4.
+
+**Verifikasi:** `npx tsc --noEmit` frontend exit 0; `npm run build` frontend sukses (35 routes).
+
+**Residual:** QA manual alur: tulis laporan baru via tombol (harus pilih sesi pending), edit laporan via tabel & modal, cek badge "Butuh Laporan" di dashboard untuk sesi hari ini yang sudah lewat jamnya. Backend tidak diubah — endpoint upsert tetap, tapi kini tak bisa lagi terpicu fallback salah dari UI.
+
+---
+
 ### 2026-08-20 — Dev-tooling: Kustom Debugger Widget (NC Debugger) & Prisma SQL Logging
 
 **Fase:** Tooling / DX (Developer Experience) (branch `dev`)

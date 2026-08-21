@@ -106,6 +106,7 @@ const formatSessionDateTime = (isoString: string) => {
 interface SessionWithRelations extends Session {
   murid?: Murid;
   program?: Program;
+  rawEndsAt?: string;
 }
 
 function detectCompletedBlocksPending(
@@ -216,19 +217,23 @@ export default function TentorDashboardPage() {
           ...s,
           startsAt: formatSessionDateTime(s.startsAt),
           endsAt: formatSessionDateTime(s.endsAt),
+          rawEndsAt: s.endsAt,
         }));
         setSessionsData(mappedSessions);
         setDailyReports(reportsRes.reports);
         setProgressReports(progressRes.reports);
 
-        const completedSessions = mappedSessions.filter(
-          (s) => s.status === "completed",
+        // Laporan pending = sesi yang sudah lewat waktunya (endsAt <= now),
+        // tidak dibatalkan, dan belum memiliki laporan harian.
+        const nowMs = Date.now();
+        const reportedSessionIds = new Set(
+          reportsRes.reports.map((rep) => rep.sessionId),
         );
-        const reportedSessionIds = reportsRes.reports.map(
-          (rep) => rep.sessionId,
-        );
-        const pending = completedSessions.filter(
-          (s) => !reportedSessionIds.includes(s.id),
+        const pending = sessionsRes.sessions.filter(
+          (s) =>
+            s.status !== "cancelled" &&
+            !reportedSessionIds.has(s.id) &&
+            new Date(s.endsAt).getTime() <= nowMs,
         );
         setPendingCount(pending.length);
 
@@ -272,9 +277,13 @@ export default function TentorDashboardPage() {
   
   const sessions = todaySessions;
   
-  const getSessionStatusInfo = (sessionId: string, status: string) => {
-    if (status === "completed") {
-      const hasReport = dailyReports.some(rep => rep.sessionId === sessionId);
+  const getSessionStatusInfo = (sessionId: string, status: string, rawEndsAt?: string) => {
+    const hasReport = dailyReports.some(rep => rep.sessionId === sessionId);
+    // Sesi dianggap "lewat" jika status completed ATAU waktunya sudah berlalu,
+    // karena status completed baru ter-set setelah laporan ditulis.
+    const isPast = rawEndsAt ? new Date(rawEndsAt).getTime() <= Date.now() : false;
+
+    if (status === "completed" || isPast) {
       if (hasReport) {
         return {
           label: "Selesai",
@@ -372,7 +381,7 @@ export default function TentorDashboardPage() {
             {sessions.map((session) => {
               const murid = muridsList.find((m) => m.id === session.muridId) || session.murid || { name: "Siswa", schoolLevel: "SD" };
               const program = session.program || { id: session.programId, name: "Program Bimbingan" };
-              const statusInfo = getSessionStatusInfo(session.id, session.status);
+              const statusInfo = getSessionStatusInfo(session.id, session.status, session.rawEndsAt);
               
               return (
                 <GlassCard key={session.id} className="p-5 flex flex-col justify-between gap-4 border border-white/80 shadow-sm">
@@ -401,7 +410,7 @@ export default function TentorDashboardPage() {
                   </div>
 
                   <div className="mt-2">
-                    {session.status === "completed" ? (
+                    {statusInfo.label !== "Terjadwal" ? (
                       <Link href={`/app/tentor/laporan-harian?${statusInfo.isPending ? "sessionId" : "editSessionId"}=${session.id}`} className="w-full block">
                         <Button variant={statusInfo.variant} className="w-full justify-center text-xs py-2">
                           {statusInfo.actionLabel}

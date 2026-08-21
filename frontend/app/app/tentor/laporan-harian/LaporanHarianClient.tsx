@@ -6,7 +6,7 @@ import { DailyReportForTentorDetailed, Session, Program, User, DailyReport, Muri
 import { apiFetch } from "@/lib/api";
 import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
-import { ArrowLeft, CheckCircle2, Clock, BookOpen, MapPin, Plus, AlertCircle, Printer } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, BookOpen, MapPin, Plus, AlertCircle, Printer, X, Eye } from "lucide-react";
 
 const NURMAN_ADDR = "Jalan Kalisabuk, Kesugihan, Cilacap";
 const NURMAN_WA = "WA: 0853-xxxx-xxxx";
@@ -108,6 +108,7 @@ export default function LaporanHarianClient() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [tentorName, setTentorName] = useState("Tentor");
   const [profileLoading, setProfileLoading] = useState(true);
+  const [detailReport, setDetailReport] = useState<DailyReportForTentorDetailed | null>(null);
 
   const refreshData = async () => {
     try {
@@ -143,6 +144,16 @@ export default function LaporanHarianClient() {
 
   useEffect(() => { const timer = setTimeout(() => { refreshData(); }, 0); return () => clearTimeout(timer); }, []);
 
+  // Auto-redirect: jika URL memakai sessionId tapi sesi sudah punya laporan,
+  // alihkan ke mode edit agar form terisi data lama (bukan menimpa dengan form kosong).
+  useEffect(() => {
+    if (!sessionId || loading) return;
+    const alreadyReported = reports.some(r => r.sessionId === sessionId);
+    if (alreadyReported) {
+      router.replace(`/app/tentor/laporan-harian?editSessionId=${sessionId}`);
+    }
+  }, [sessionId, reports, loading, router]);
+
   const filteredReports = selectedMuridId === "all" ? reports : reports.filter(r => r.muridId === selectedMuridId);
   const selectedMurid = murids.find(m => m.id === selectedMuridId);
   const muridReports = reports.filter(r => r.muridId === selectedMuridId);
@@ -167,6 +178,17 @@ export default function LaporanHarianClient() {
       await refreshData();
     } catch (err) { console.error("Error submitting report:", err); const errMsg = err instanceof Error ? err.message : "Terjadi kesalahan"; triggerToast("Gagal menyimpan laporan: " + errMsg); }
     handleCloseForm();
+  };
+
+  const handleWriteReport = () => {
+    // Cari sesi apa pun yang belum dilaporkan dan tidak dibatalkan.
+    // TANPA fallback ke sessions[0] — fallback lama menyebabkan laporan lama tertimpa via upsert.
+    const pendingSess = sessions.find(s => s.status !== "cancelled" && !reports.some(r => r.sessionId === s.id));
+    if (pendingSess) {
+      router.push(`/app/tentor/laporan-harian?sessionId=${pendingSess.id}`);
+    } else {
+      triggerToast("Semua sesi mengajar sudah dilaporkan. Buat jadwal baru di halaman Jadwal terlebih dahulu.");
+    }
   };
 
   const handlePrint = () => {
@@ -206,21 +228,50 @@ export default function LaporanHarianClient() {
                       <button onClick={handlePrint} className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/80 hover:bg-white text-[#4a70a9] border border-white/80 shadow-sm font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"><Printer size={16} /> Cetak PDF</button>
                     </div>
                   )}
-                  <button onClick={() => { const pendingSess = sessions.find(s => s.status === "completed" && !reports.some(r => r.sessionId === s.id)); const targetSess = pendingSess || sessions[0]; if (targetSess) { router.push(`/app/tentor/laporan-harian?sessionId=${targetSess.id}`); } else { triggerToast("Tidak ada sesi mengajar yang tersedia."); } }} className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#4a70a9] text-white hover:bg-[#3a5a99] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md active:scale-95"><Plus size={16} /> Tulis Laporan</button>
+                  <button onClick={handleWriteReport} className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#4a70a9] text-white hover:bg-[#3a5a99] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md active:scale-95"><Plus size={16} /> Tulis Laporan</button>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-4">
+            {/* Tabel Daftar Laporan */}
+            <GlassCard className="overflow-hidden border border-white/80 shadow-sm">
               {filteredReports.length > 0 ? (
-                filteredReports.map((report) => (
-                  <GlassCard key={report.id} className="p-5 border border-white/80 shadow-sm flex flex-col gap-3">
-                    <div className="flex justify-between items-start border-b border-gray-200/20 pb-3"><div><h3 className="font-extrabold text-gray-800 text-sm sm:text-base flex items-center gap-2"><span>{report.muridName}</span><span className="text-[10px] font-normal text-gray-500 bg-white/40 px-2.5 py-0.5 rounded-full border border-white/60">{report.muridAge} Tahun</span></h3><p className="text-xs text-gray-500 font-medium mt-1">{report.programName}</p></div><Button variant="ghost" onClick={() => router.push(`/app/tentor/laporan-harian?editSessionId=${report.sessionId}`)} className="text-[11px] border border-gray-200/50 px-3 py-1.5 hover:bg-white/40 shadow-sm shrink-0">Edit</Button></div>
-                    <div className="flex flex-col gap-2 text-xs sm:text-sm"><div className="flex items-center gap-2 text-gray-500 font-semibold"><Clock size={14} className="text-[#4a70a9]" /><span>{report.date} • {report.startTime} - {report.endTime} WIB</span></div><div><span className="text-[10px] font-bold text-gray-400 block mb-0.5 uppercase tracking-wider">Materi</span><p className="font-semibold text-gray-800 leading-relaxed">{report.activity}</p></div><div className="border-l-2 border-[#4a70a9]/30 pl-4 py-1.5 bg-[#4a70a9]/5 rounded-r-xl pr-3"><span className="text-[10px] font-bold text-[#4a70a9] block mb-1 uppercase tracking-wider">Catatan Evaluasi</span><p className="text-xs italic text-gray-600 leading-relaxed">&quot;{report.notes}&quot;</p></div></div>
-                  </GlassCard>
-                ))
-              ) : (<div className="flex flex-col items-center justify-center p-8 bg-white/40 border border-white/60 rounded-3xl text-center gap-3"><AlertCircle className="text-[#4a70a9]" size={36} /><div><h3 className="font-bold text-gray-800 text-sm">Belum Ada Laporan Harian</h3><p className="text-xs text-gray-500 mt-1 max-w-sm">Tulis laporan pertama setelah mengajar selesai.</p></div></div>)}
-            </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs sm:text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200/40 bg-white/40 text-[10px] uppercase tracking-wider text-gray-500">
+                        <th className="px-4 py-3 font-bold w-[36px] text-center">No</th>
+                        <th className="px-4 py-3 font-bold">Siswa</th>
+                        <th className="px-4 py-3 font-bold hidden md:table-cell">Tanggal</th>
+                        <th className="px-4 py-3 font-bold hidden sm:table-cell">Jam</th>
+                        <th className="px-4 py-3 font-bold hidden lg:table-cell">Program</th>
+                        <th className="px-4 py-3 font-bold text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200/30">
+                      {filteredReports.map((report, index) => (
+                        <tr key={report.id} className="hover:bg-white/50 transition-colors">
+                          <td className="px-4 py-3 text-center text-gray-400 font-semibold">{index + 1}</td>
+                          <td className="px-4 py-3">
+                            <span className="font-bold text-gray-800">{report.muridName}</span>
+                            <span className="block md:hidden text-[10px] text-gray-500 mt-0.5">{report.date}</span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 hidden md:table-cell whitespace-nowrap">{report.date}</td>
+                          <td className="px-4 py-3 text-gray-600 hidden sm:table-cell whitespace-nowrap">{report.startTime} - {report.endTime}</td>
+                          <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">{report.programName}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1.5">
+                              <button onClick={() => setDetailReport(report as any)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4a70a9]/10 text-[#4a70a9] border border-[#4a70a9]/20 hover:bg-[#4a70a9]/20 font-semibold text-[11px] transition-colors"><Eye size={13} /> Detail</button>
+                              <button onClick={() => router.push(`/app/tentor/laporan-harian?editSessionId=${report.sessionId}`)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/70 text-gray-600 border border-gray-200/60 hover:bg-white font-semibold text-[11px] transition-colors">Edit</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (<div className="flex flex-col items-center justify-center p-8 text-center gap-3"><AlertCircle className="text-[#4a70a9]" size={36} /><div><h3 className="font-bold text-gray-800 text-sm">Belum Ada Laporan Harian</h3><p className="text-xs text-gray-500 mt-1 max-w-sm">Tulis laporan pertama setelah mengajar selesai.</p></div></div>)}
+            </GlassCard>
 
             {selectedMuridId !== "all" && filteredReports.length > 0 && (
               <div className="md:hidden sticky bottom-[72px] z-20">
@@ -230,6 +281,31 @@ export default function LaporanHarianClient() {
           </div>
         )}
       </div>
+
+      {/* Modal Detail Laporan */}
+      {detailReport && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden" onClick={() => setDetailReport(null)}>
+          <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" />
+          <div className="relative w-full max-w-lg animate-[fadeIn_0.25s_ease-out]" onClick={(e) => e.stopPropagation()}>
+            <GlassCard className="p-6 border border-white/80 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-extrabold text-gray-800 text-base flex items-center gap-2"><span>{detailReport.muridName}</span><span className="text-[10px] font-normal text-gray-500 bg-white/60 px-2.5 py-0.5 rounded-full border border-white/60">{detailReport.muridAge} Tahun</span></h3>
+                  <p className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-1.5"><BookOpen size={13} className="text-[#4a70a9]" />{detailReport.programName}</p>
+                </div>
+                <button onClick={() => setDetailReport(null)} className="p-1.5 rounded-lg hover:bg-white/70 text-gray-500 transition-colors"><X size={18} /></button>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-500 font-semibold border-b border-gray-200/30 pb-3"><Clock size={14} className="text-[#4a70a9]" /><span>{detailReport.date} • {detailReport.startTime} - {detailReport.endTime} WIB</span></div>
+              <div><span className="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-wider">Materi / Aktivitas</span><p className="text-sm font-semibold text-gray-800 leading-relaxed">{detailReport.activity}</p></div>
+              <div className="border-l-2 border-[#4a70a9]/30 pl-4 py-2 bg-[#4a70a9]/5 rounded-r-xl pr-3"><span className="text-[10px] font-bold text-[#4a70a9] block mb-1 uppercase tracking-wider">Catatan Evaluasi</span><p className="text-xs italic text-gray-600 leading-relaxed">&quot;{detailReport.notes}&quot;</p></div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-200/30">
+                <Button variant="ghost" onClick={() => setDetailReport(null)} className="text-xs py-2 px-4">Tutup</Button>
+                <Button variant="primary" onClick={() => { const sid = detailReport.sessionId; setDetailReport(null); router.push(`/app/tentor/laporan-harian?editSessionId=${sid}`); }} className="text-xs py-2 px-4">Edit Laporan</Button>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      )}
 
       {selectedMuridId !== "all" && selectedMurid && (
         <div className="hidden print:block bg-white text-black p-0 font-sans w-full min-h-screen text-[11px] print:text-black">

@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { fetchLogs, addLogListener, FetchLogEntry } from "@/lib/api";
-import { Terminal, Trash2, ChevronDown, Activity } from "lucide-react";
+import { Terminal, Trash2, ChevronDown, Activity, Copy, Check } from "lucide-react";
 
 export default function DebugBar() {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<FetchLogEntry[]>([]);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -27,10 +28,29 @@ export default function DebugBar() {
   const handleClear = () => {
     fetchLogs.length = 0;
     setLogs([]);
+    setCopied(false);
+  };
+
+  const handleCopyLogs = async () => {
+    const text = logs
+      .map(
+        (log) =>
+          `[${log.timestamp}] ${log.method} ${log.path} - Status: ${
+            log.status > 0 ? log.status : "NET_ERR"
+          }, Cache: ${log.cacheStatus}, Duration: ${log.duration}ms`
+      )
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(text || "No API requests logged yet.");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API gagal (mis. non-secure context) — fallback tanpa crash
+    }
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] font-mono text-[11px] select-none">
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] font-mono text-[11px] select-text">
       {/* Tab Trigger (Collapsed) */}
       {!isOpen && (
         <button
@@ -57,6 +77,16 @@ export default function DebugBar() {
               </span>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyLogs}
+                className={`p-1 rounded hover:bg-gray-800 cursor-pointer flex items-center gap-1 transition-colors ${
+                  copied ? "text-emerald-400" : "hover:text-sky-400"
+                }`}
+                title="Copy semua log ke clipboard"
+              >
+                {copied ? <Check size={13} /> : <Copy size={13} />}
+                {copied && <span className="text-[10px] font-bold">Copied!</span>}
+              </button>
               <button
                 onClick={handleClear}
                 className="hover:text-red-400 p-1 rounded hover:bg-gray-800 cursor-pointer"
