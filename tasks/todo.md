@@ -48,7 +48,7 @@
 - [ ] 2026-08-01 M1 Schema Murid: address, registeredAt, photoPath, phone normalization/unique constraint.
 - [ ] 2026-08-01 M2 Shared schema + helper normalize phone.
 - [ ] 2026-08-01 M3 API create/update murid satu flow dengan create/reuse akun wali.
-- [ ] 2026-08-01 M4 Supabase Storage foto murid + signed URL.
+- [ ] 2026-08-01 M4 Supabase Storage foto murid + signed URL. (2026-08-23: on-hold — Opsi bucket publik ditolak user karena foto bisa diakses tanpa login; butuh keputusan privat bucket + signed URL. Foto tetap base64 di `photoPath`.)
 - [ ] 2026-08-01 M5 UI admin murid: form murid + wali, upload foto, status, detail.
 - [x] 2026-08-05 M6 Login email/nomor hape dengan password.
 - [x] 2026-08-05 M6.1 Fix auto-generate email untuk wali tanpa email (login nomor WA).
@@ -91,7 +91,7 @@ Ad-hoc:
 - [ ] Paket 12 sesi / all-in Vibe Coding (masih diskusi)
 
 Prioritas tinggi:
-- [ ] P1 Sync `AGENTS.md` / `SYSTEM_MAP.md` dengan kode (pricing path = `CourseConfigClient.tsx`; hapus legacy `components/course/`)
+- [~] 2026-08-23 P1 Sync `AGENTS.md` / `SYSTEM_MAP.md` dengan kode (branch `dev`) — **SYSTEM_MAP.md selesai** (rewrite penuh: routing 35 route, folder structure, key files api.ts/DebugBar/middleware/lms.ts/seed.ts, data flow portal, 13 model Prisma); **AGENTS.md menyusul**. Keputusan: migrasi foto murid ke Supabase Storage dibatalkan (bucket publik = foto bisa diakses tanpa login, user menolak; M4 on-hold); rule 1 wali = 1 murid dipertahankan (blok 409 tidak dihapus)
 - [ ] P2 Metadata + README (bukan boilerplate create-next-app)
 - [ ] P3 Label WA calistung: pesan WA pakai "Program" jika `program=calistung`
 

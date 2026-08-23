@@ -1,209 +1,262 @@
 # 🧭 Project Overview
 
-- Aplikasi frontend untuk alur pendaftaran les Nurman Course.
-- Tech stack: Next.js App Router (Next.js 14+), React, Tailwind CSS.
-- Gaya UI: glassmorphism ringan, mobile-first, flow cepat ke WhatsApp.
-- Database: PostgreSQL (Supabase) + Prisma ORM.
-- Authentication: Supabase Auth dengan custom login & endpoint lookup phone.
+- Monorepo aplikasi Nurman Course: **funnel pendaftaran** (`/course`, output WhatsApp) + **portal LMS** (`/app`: wali, tentor, admin).
+- Tech stack frontend: Next.js 16 App Router + Turbopack, React 19, Tailwind CSS v4.
+- Backend: Express 4 (TypeScript) + Prisma ORM 5 → PostgreSQL Supabase.
+- Auth: Supabase Auth (JWT diverifikasi middleware Express; login email/nomor WA).
+- Shared: `packages/shared` — Zod schemas & tipe TypeScript dipakai FE dan BE.
+- Dev tooling: NC Debugger widget (`components/ui/DebugBar.tsx`, dev-only) — log request API, cache status, latency.
+- Gaya UI: glassmorphism ringan, mobile-first; funnel berujung ke WhatsApp.
 - Arah LMS: `docs/ROADMAP-LMS.md` · progress: `docs/PROGRESS.md` · tasks: `tasks/todo.md` · agent: `AGENTS.md`.
 
 ---
 
 # 🔀 Routing Flow
 
-## Funnel Landing & Pendaftaran
-/course  
-→ Landing hero. CTA ke /course/program.
+## Landing Marketing & Funnel Pendaftaran
+/landing
+→ Landing page marketing terpisah (hero, stats, kategori, tentang kami, testimoni).
 
-/course/program  
+/course
+→ Landing hero funnel. CTA ke /course/program.
+
+/course/program
 → Pilih jenis program (materi, jenjang, calistung).
 
-/course/materi  
+/course/materi
 → List materi kategori materi dari data statis.
 
-/course/jenjang  
+/course/jenjang
 → List jenjang pendidikan (SD 1-3, SD 4-6, SMP) dari data statis.
 
-/course/calistung  
+/course/calistung
 → List program calistung dari data statis.
 
-/course/materi/[id]  
+/course/materi/[id]
 → Detail materi, pilih level, lanjut ke config.
 
-/course/config  
+/course/config
 → Konfigurasi durasi/frekuensi/peserta/hari/jam, hitung estimasi, kirim ke WhatsApp.
 
-/course/config → WhatsApp  
+/course/config → WhatsApp
 → Data pilihan di-encode ke URL wa.me menggunakan nomor dari constants.
 
-## Portal & Dashboard Aplikasi (LMS UI)
-/login  
-→ Halaman login multi-metode (email atau nomor WhatsApp + password).
+## Auth
+/login
+→ Login multi-metode (email atau nomor WhatsApp + password); resolve nomor WA via `/api/auth/resolve-phone`.
 
-/app  
-→ Main landing page portal (mengalihkan user sesuai dengan role).
+/app
+→ Portal selector; middleware proteksi role-based (admin/tentor/wali).
 
-### Area Wali Murid `/app/(wali)`
-/app/dashboard  
-→ Ringkasan program aktif murid, grafik progress mingguan, dan laporan terbaru.
-/app/program  
-→ List program/kelas aktif yang diikuti oleh murid.
-/app/program/[slug]  
-→ Detail pelajaran, modul belajar, daftar materi, dan riwayat presensi per program.
-/app/laporan  
-→ Tab laporan harian (progress lesson, performa, catatan tentor) & laporan perkembangan (tiap beberapa sesi).
-/app/jadwal  
-→ Jadwal les anak mingguan lengkap dengan detail tentor dan ruang/jam.
-/app/tagihan  
-→ Daftar invoice pembayaran bulanan beserta status, nomor rekening tujuan, dan bukti bayar.
+### Area Wali Murid — route group `(wali)`
+/app/dashboard
+→ Ringkasan murid terpilih: profil + foto, program aktif + progress bar, laporan harian & perkembangan terakhir, sesi terdekat, tagihan H-1. Selector multi-murid bila > 1 anak.
+
+/app/program
+→ Katalog program (tab filter kategori + search + status Terdaftar/Tersedia/Coming Soon).
+
+/app/program/[slug]
+→ Detail program: belum terdaftar = outline silabus + CTA daftar via WA; sudah terdaftar = roadmap belajar interaktif. Modal detail materi.
+
+/app/laporan
+→ Tab laporan harian & laporan perkembangan anak, tombol diskusi WA per laporan.
+
+/app/jadwal
+→ Jadwal les anak (mendatang + riwayat), badge status-aware.
+
+/app/tagihan
+→ Invoice + prabayar: upload bukti bayar (foto/PDF), riwayat pembayaran, tombol konfirmasi WA.
+
+/app/profile
+→ Profil wali: data akun, daftar murid, ubah kata sandi.
+
+/app/materi
+→ Halaman katalog materi pelajaran (mandiri, di luar route group wali).
 
 ### Area Tentor `/app/tentor`
-/app/tentor/dashboard  
-→ Overview tugas mengajar, list murid aktif, review cepat modul, and menu input.
-/app/tentor/jadwal  
-→ Agenda dan jadwal mengajar mingguan tentor.
-/app/tentor/laporan-harian  
-→ Form input jurnal mengajar harian murid (materi, absen, nilai, dan komentar).
-/app/tentor/laporan-perkembangan  
-→ Form input/evaluasi laporan perkembangan berkala.
+/app/tentor/dashboard
+→ Agenda mengajar hari ini, stat ringkas, evaluasi perkembangan belajar (murid siap rapor), badge laporan pending berbasis waktu sesi.
+
+/app/tentor/jadwal
+→ CRUD jadwal mengajar (buat/edit/batalkan/hapus sesi via ConfirmDialog, polarisasi mendatang vs riwayat).
+
+/app/tentor/laporan-harian
+→ Tabel laporan harian + tombol Detail (modal), form tulis/edit laporan per sesi pending, print A4 per blok. Sesi yang sudah berlaporkan otomatis mode edit.
+
+/app/tentor/laporan-perkembangan
+→ Form input/evaluasi laporan perkembangan berkala (per blok sesi).
+
+/app/tentor/profil
+→ Profil tentor + update password.
 
 ### Area Admin `/app/admin`
-/app/admin/dashboard / /app/admin/  
-→ Overview statistik operasional bimbel, total murid, tentor, tagihan unpaid.
-/app/admin/murid  
-→ Manajemen data murid, alamat, foto, verifikasi ortu/wali, link wali akun.
-/app/admin/tentor  
-→ Manajemen data tentor/pengajar aktif.
-/app/admin/program  
-→ Manajemen master program belajar bimbel.
-/app/admin/enrollment  
-→ Pendaftaran murid ke program belajar tertentu beserta assign tentor.
-/app/admin/tagihan  
-→ Pembuatan invoice bulanan, tracking pembayaran, dan approval konfirmasi bayar.
-/app/admin/rekening  
-→ Setup bank account tujuan pembayaran.
+/app/admin
+→ Dashboard statistik operasional (murid/tentor/program aktif, tagihan waiting, sesi hari ini) via endpoint khusus.
+
+/app/admin/murid
+→ Manajemen murid + akun wali (create/reuse akun, foto base64, reset password wali, nonaktifkan/hapus permanen).
+
+/app/admin/tentor
+→ Manajemen data tentor aktif/nonaktif.
+
+/app/admin/pengguna
+→ Manajemen akun pengguna (folder ada; cek isi aktual sebelum andalkan).
+
+/app/admin/program
+→ CRUD master program (slug, harga, sessionsPerBlock, status).
+
+/app/admin/enrollment
+→ Pendaftaran murid ke program + assign tentor.
+
+/app/admin/jadwal
+→ CRUD sesi semua murid (mirror kemampuan jadwal tentor).
+
+/app/admin/roadmap
+→ Roadmap langkah belajar + material item per program.
+
+/app/admin/tagihan
+→ Invoice + prabayar: verifikasi bukti bayar (modal/foto fullscreen), lunas/batalkan, terbitkan invoice.
+
+/app/admin/tagihan/[invoiceId]
+→ Detail bukti pembayaran fullscreen (foto/PDF).
+
+/app/admin/rekening
+→ Setup rekening tujuan pembayaran.
 
 ---
 
 # 📁 Folder Structure (Monorepo)
 
-- `frontend/` → Aplikasi frontend Next.js App Router (funnel & LMS UI)
-  - `app/` → Route layout dan page, terbagi atas `/course` (funnel), `/app` (portal), `/login`
-  - `components/`
-    - `ui/` → UI atom bergaya glassmorphism (Button, Chip, GlassCard, dll.)
-    - `course/` → Section landing page funnel
-  - `data/` → Data statis (materials.ts, landing.ts)
-  - `lib/` → Global utils dan constants (constants.ts)
-  - `utils/` → Text/currency helpers
-- `backend/` → API Server Express
-  - `src/` → Entrypoint index.ts, middleware (auth.ts), dan routes
-  - `prisma/` → Skema database, migrasi SQL, dan seed script database
-- `packages/shared/` → Shared libraries antara frontend & backend
-  - `src/` → Zod schemas (laporan harian/perkembangan), TypeScript types
-- `docs/` → Spesifikasi, ERD, dan arah roadmap LMS (bukan runtime)
-- `tasks/` → Checklist eksekusi tugas sesi (`todo.md` & `plan.md`)
-- `desain-ui-frontend/` → Kumpulan rancangan prompt Google Stitch untuk desain UI (19 file)
+- `frontend/` → Aplikasi Next.js (funnel & portal LMS)
+  - `app/` → Routing: `/landing`, `/course/*` (funnel), `/login`, `/app/*` (portal; wali dalam route group `(wali)`)
+  - `components/ui/` → Atom UI glassmorphism (Button, GlassCard, ConfirmDialog, ProofModal, DebugBar, dll.)
+  - `components/course/` → Section landing funnel (SocialProof, Testimonials, TutorCarousel, Reveal/CountUp)
+  - `components/landing/` → Section landing `/landing`
+  - `data/` → `materials.ts` (funnel statis), `landing.ts` (landing statis), `lms.ts` (tipe data portal)
+  - `lib/` → `api.ts` (apiFetch + cache + log debugger), `constants.ts`, `format.ts`, `useLogout.tsx`
+  - `middleware.ts` → Proteksi route role-based
+- `backend/` → API Express
+  - `src/index.ts` → Seluruh endpoint API
+  - `src/middleware/auth.ts` → Verifikasi JWT Supabase (`requireAuth`, `requireAdmin`)
+  - `prisma/schema.prisma` + `prisma/seed.ts` → Skema & seed DB
+  - `src/generated/client` → Build artifact Prisma (jangan edit)
+- `packages/shared/src/index.ts` → Zod schemas + helper (`normalizePhone`) + tipe, dipakai FE & BE
+- `docs/` → Spesifikasi, ERD, roadmap LMS (bukan runtime)
+- `tasks/` → Checklist eksekusi (`todo.md`, `plan.md`)
+- `desain-ui-frontend/` → Rancangan prompt Google Stitch (19 file)
 
 ---
 
 # 🧩 Key Files Map
 
 ## Core & Shared
+frontend/lib/api.ts
+- Role: `apiFetch` — Bearer JWT, memory cache GET 1 jam, smart invalidation per kategori saat mutasi, `fetchLogs` + listener untuk NC Debugger.
+
+frontend/components/ui/DebugBar.tsx
+- Role: Widget debugger melayang (dev-only): riwayat request, status code, cache HIT/MISS/INVALIDATED, durasi; tombol Copy Logs ke clipboard.
+
+frontend/middleware.ts
+- Role: Proteksi route portal berdasarkan role hasil session Supabase.
+
 frontend/data/materials.ts
-- Role: Sumber data materi/jenjang/calistung + helper getMaterialById/getMaterialsByCategory.
+- Role: Sumber data funnel (materi/jenjang/calistung) + helper getMaterialById/getMaterialsByCategory.
+
+frontend/data/lms.ts
+- Role: Tipe data portal (DbMurid, DailyReport, ProgressReport, DbInvoice, dll.).
 
 frontend/lib/constants.ts
 - Role: Konstanta global, termasuk WHATSAPP_NUMBER.
 
 packages/shared/src/index.ts
-- Role: Defini tipe bersama & schema validasi data input.
+- Role: Zod schemas semua domain (murid, user, program, enrollment, session, invoice, prepayment, laporan, roadmap, material) + normalizePhone + tipe infer.
 
 backend/prisma/schema.prisma
-- Role: Skema database relasional PostgreSQL (User, Wali, Murid, Tentor, Program, Enrollment, Laporan, Tagihan).
+- Role: 13 model — User (3 role), Murid, Program, RoadmapStep, Session, MaterialItem, Enrollment, Invoice, Prepayment, PaymentAccount, DailyReport, ProgressReport, Progress.
+
+backend/prisma/seed.ts
+- Role: Seed akun via Supabase Admin API (getOrCreateSupabaseUser) + data dummy dev. ⚠️ Menjalankan deleteMany — JANGAN di DB production.
 
 backend/src/index.ts
-- Role: Main API backend server, routing authorization `/api/auth/resolve-phone`, `/api/health`, dll.
+- Role: Seluruh endpoint Express, dikelompokkan:
+  - Auth: `POST /api/auth/resolve-phone`, health check
+  - Profil: `GET /api/users/me` (+ murids)
+  - Wali: `/api/me/{enrollments,sessions,daily-reports,progress-reports,invoices,prepayments,notifications}`, payment & prabayar
+  - Tentor: `POST /api/daily-reports` (upsert per sessionId), `POST /api/progress-reports`, CRUD `/api/me/sessions`
+  - Admin: CRUD `murids|users|programs|enrollments|sessions|invoices|prepayments|roadmap-steps|material-items|payment-accounts`, notifications, dashboard stats, reset-password
 
 backend/src/middleware/auth.ts
-- Role: Middleware auth JWT token verifier (`requireAuth`) menggunakan library Supabase Auth.
+- Role: `requireAuth` (verifikasi JWT Supabase), `requireAdmin`.
 
 ## Flow Funnel Pendaftaran
 frontend/app/course/page.tsx
-- Role: Hero landing khusus flow course.
-- Navigates to: /course/program.
+- Role: Hero landing funnel. Navigates to: /course/program.
 
 frontend/app/course/program/page.tsx
-- Role: Pilihan program utama.
-- Routes to: /course/materi, /course/jenjang, /course/calistung.
+- Role: Pilihan program utama. Routes to: materi / jenjang / calistung.
 
-frontend/app/course/materi/page.tsx
-- Role: List materi kategori materi.
-- Uses: getMaterialsByCategory("materi"), formatPrice.
-- Routes to: /course/materi/[id].
-
-frontend/app/course/jenjang/page.tsx
-- Role: List jenjang pendidikan.
-- Uses: getMaterialsByCategory("jenjang"), formatPrice.
-- Routes to: /course/config?materi={id}&level=1.
-
-frontend/app/course/calistung/page.tsx
-- Role: List program calistung.
-- Uses: getMaterialsByCategory("calistung"), formatPrice.
-- Routes to: /course/config?program=calistung&materi={id}&level=1.
+frontend/app/course/materi/page.tsx · jenjang · calistung
+- Role: List per kategori via getMaterialsByCategory. Routes to: /course/materi/[id] atau langsung /course/config.
 
 frontend/app/course/materi/[id]/page.tsx
-- Role: Detail materi + pemilihan level.
-- Uses: getMaterialById(id), formatPrice.
-- Routes to: /course/config?materi={id}&level={selectedLevel}.
-
-frontend/app/course/config/page.tsx
-- Role: Wrapper Suspense untuk config.
-- Renders: CourseConfigClient.
+- Role: Detail materi + pemilihan level. Routes to: /course/config?materi={id}&level={n}.
 
 frontend/app/course/config/CourseConfigClient.tsx
-- Role: Konfigurasi akhir + pricing + CTA WhatsApp.
-- Uses: getMaterialById, Chip/Button/GlassCard, WHATSAPP_NUMBER.
-- Sends data to: URL WhatsApp (wa.me).
+- Role: Konfigurasi akhir + pricing (satu-satunya tempat hitung harga) + CTA WhatsApp (wa.me).
 
-## Portal & Auth
+## Portal (contoh kunci)
 frontend/app/login/page.tsx
-- Role: Login page bypass/resolve nomor WhatsApp ke email terdaftar Supabase.
+- Role: Login email/nomor WA + resolve phone.
 
 frontend/app/app/(wali)/dashboard/page.tsx
-- Role: Dashboard index wali murid (ringkasan murid, menu cepat).
+- Role: Dashboard wali — agregat 5 endpoint (/api/me/*) + selector multi-murid.
 
 frontend/app/app/tentor/laporan-harian/LaporanHarianClient.tsx
-- Role: Client interface pengisian laporan jurnal harian oleh tentor.
+- Role: Tabel laporan + modal detail + form tulis/edit (auto-redirect sessionId→editSessionId bila sudah berlaporkan).
+
+frontend/app/app/admin/murid/page.tsx
+- Role: CRUD murid + akun wali (foto resize canvas → base64 → POST/PATCH admin murids).
 
 ---
 
 # 🔗 Data Flow
 
-materials.ts  
-→ dipakai di halaman list/detail (materi, jenjang, calistung)  
-→ user memilih item + level  
-→ parameter dikirim via URL query ke /course/config  
-→ config hitung estimasi harga dinamis  
+## Funnel
+materials.ts
+→ dipakai di halaman list/detail (materi, jenjang, calistung)
+→ user memilih item + level
+→ parameter dikirim via URL query ke /course/config
+→ config hitung estimasi harga dinamis
 → ringkasan dikirim ke WhatsApp.
+
+## Portal LMS
+Portal pages
+→ `apiFetch` (cek memory cache 1 jam; miss → fetch dengan Bearer JWT)
+→ Express API (requireAuth/requireAdmin → verifikasi JWT Supabase)
+→ Prisma → PostgreSQL Supabase
+→ mutasi (POST/PATCH/DELETE) → invalidasi cache kategori terkait (reports/sessions/invoices/users/...)
+→ NC Debugger merekam tiap request (dev only).
 
 ---
 
 # ⚠️ Important Rules
 
-- Jangan hardcode daftar materi di page, selalu ambil dari data/materials.ts.
-- Logika pricing utama tetap terpusat di app/course/config/CourseConfigClient.tsx.
-- Routing flow harus konsisten: /course → /program → pilihan program → /config.
+- Funnel: jangan hardcode daftar materi di page, selalu ambil dari data/materials.ts.
+- Pricing HANYA di app/course/config/CourseConfigClient.tsx — jangan duplikasi.
 - Nomor WhatsApp gunakan lib/constants.ts, jangan duplikasi angka di file lain.
+- Portal: semua request lewat `apiFetch` (bukan fetch langsung) agar cache + debugger bekerja.
+- Validasi input pakai Zod schema dari packages/shared — jangan definisikan ulang di FE/BE.
 
 ---
 
 # 🧠 Notes for Future Development
 
-- Tambah/ubah materi: edit data/materials.ts.
+- Tambah/ubah materi funnel: edit data/materials.ts.
 - Ubah perhitungan harga: edit app/course/config/CourseConfigClient.tsx.
+- Ubah UI global: edit components/ui/.
+- Tambah endpoint baru: backend/src/index.ts + schema Zod di packages/shared + konsumsi via apiFetch.
 - Arah LMS / progress: docs/ROADMAP-LMS.md, docs/PROGRESS.md, tasks/todo.md.
-- Ubah tampilan tombol/chip/card global: edit components/ui/.
-- Jika menambah program baru, update:
+- Jika menambah program funnel baru, update:
   - app/course/program/page.tsx (entry pilihan)
   - data/materials.ts (data kategori)
   - page turunan program sesuai kebutuhan.

@@ -39,6 +39,27 @@
 
 ---
 
+### 2026-08-23 — Sinkronisasi SYSTEM_MAP.md dengan kode (P1 sebagian)
+
+**Fase:** Meta / dokumentasi (P1) (branch `dev`)
+**Status sesi:** selesai — `SYSTEM_MAP.md` ditulis ulang agar sinkron dengan kondisi kode aktual (routing, folder, key files, data flow). `AGENTS.md` menyusul (P1 belum tuntas penuh).
+
+**Request user:** "malem ini cukup perbaiki system_map aja dulu, biar sinkron nnti kalo mau update" (setelah membatalkan rencana M4 Supabase Storage karena foto publik tanpa login dianggap tidak cocok).
+
+**Keputusan (klarifikasi):**
+1. Migrasi foto murid ke Supabase Storage **dibatalkan** — Opsi A (bucket publik) berarti foto bisa diakses tanpa login; user menolak. Foto tetap base64 di kolom `photoPath`. Task M4 statusnya efektif blocked/on-hold menunggu keputusan privat+signed URL.
+2. Rule bisnis **1 wali = 1 murid dipertahankan** (blok 409 di POST /api/admin/murids tidak dihapus) — selector multi-murid wali tetap ada sebagai future-proofing.
+3. Scope malam ini docs-only: SYSTEM_MAP.md saja, AGENTS.md menyusul.
+
+**Dikerjakan:**
+- `SYSTEM_MAP.md`: rewrite penuh — overview stack (Next 16/Turbopack, React 19, Tailwind v4, Express+Prisma+Supabase, workspaces, NC Debugger); routing lengkap 35 route (`/landing`, `/app/profile`, `/app/materi`, `/app/tentor/profil`, admin `jadwal`/`roadmap`/`tagihan/[invoiceId]`, deskripsi laporan-harian baru tabel+modal); folder structure sinkron (`(wali)` group, components/landing, lib/api.ts, middleware.ts, data/lms.ts); key files map tambah api.ts (cache+debugger), DebugBar.tsx, middleware.ts, lms.ts, seed.ts (+warning jangan seed prod), deskripsi index.ts per kelompok endpoint, 13 model Prisma; data flow portal (apiFetch cache → JWT → Prisma → invalidasi); rules tambah (wajib apiFetch, Zod dari shared).
+
+**Verifikasi:** Daftar model & route diverifikasi langsung dari kode (`rg "^model"` schema.prisma = 13 model; listing folder frontend/app/app + build output 35 routes). Docs-only, tidak ada perubahan kode.
+
+**Residual:** P1 belum tuntas — `AGENTS.md` masih perlu disinkronkan (bagian Key Files Map & routing-nya juga stale). Folder kosong terdeteksi: `frontend/app/app/dashboard/` dan `frontend/app/app/admin/pengguna/` (tanpa file) — kandidat dibersihkan di sesi lain.
+
+---
+
 ### 2026-08-21 — Bugfix laporan harian menimpa laporan lama + tabel laporan & modal detail
 
 **Fase:** TENTOR (laporan-harian + dashboard) (branch `dev`)
