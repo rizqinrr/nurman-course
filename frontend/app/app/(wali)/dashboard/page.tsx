@@ -70,7 +70,7 @@ function RealtimeClock() {
 
   return (
     <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0">
-      <div className="flex items-center gap-1.5 px-3.5 py-1 bg-white/50 border border-white/70 rounded-full shadow-sm">
+      <div className="flex items-center gap-1.5 px-3.5 py-1 bg-app-white border border-app-border rounded-full shadow-sm">
         <CalendarDays size={13} className="text-[#4a70a9]" />
         <span className="text-[11px] font-semibold text-gray-700">{dateStr}</span>
       </div>
@@ -225,8 +225,8 @@ export default function DashboardWaliPage() {
   );
 
   const sessionCard = (
-    <GlassCard className="p-6 flex flex-col gap-4 border border-white/80 shadow-sm">
-      <div className="flex items-center gap-2 border-b border-white/40 pb-3">
+    <div className="p-6 flex flex-col gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
+      <div className="flex items-center gap-2 border-b border-app-border/40 pb-3">
         <Calendar className="text-gray-500" size={20} />
         <h3 className="font-bold text-gray-800 text-base">Sesi Terdekat</h3>
       </div>
@@ -238,7 +238,7 @@ export default function DashboardWaliPage() {
             <p className="text-xs text-gray-500">{upcomingSession.location}</p>
           </div>
           <Link href="/app/jadwal" className="mt-4 w-full block">
-            <Button variant="ghost" className="w-full text-xs justify-center py-2">
+            <Button variant="ghost" className="w-full text-xs justify-center py-2.5 border border-app-primary/30 text-app-primary bg-app-white hover:bg-app-surface rounded-[6px]">
               Detail Jadwal
             </Button>
           </Link>
@@ -248,12 +248,12 @@ export default function DashboardWaliPage() {
           Belum ada jadwal sesi terdekat.
         </div>
       )}
-    </GlassCard>
+    </div>
   );
 
   const invoiceCard = (
-    <GlassCard className="p-6 flex flex-col gap-4 border border-white/80 shadow-sm">
-      <div className="flex items-center gap-2 justify-between border-b border-white/40 pb-3">
+    <div className="p-6 flex flex-col gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
+      <div className="flex items-center gap-2 justify-between border-b border-app-border/40 pb-3">
         <div className="flex items-center gap-2">
           <CreditCard className="text-gray-500" size={20} />
           <h3 className="font-bold text-gray-800 text-base">Tagihan Terdekat</h3>
@@ -276,7 +276,7 @@ export default function DashboardWaliPage() {
             </p>
           </div>
           <Link href="/app/tagihan" className="w-full block">
-            <Button className="w-full text-xs justify-center py-2.5 shadow-[0_4px_12px_rgba(74,112,169,0.3)]">
+            <Button className="w-full text-xs justify-center py-2.5 shadow-[0_4px_12px_rgba(74,112,169,0.3)] rounded-[6px]">
               Rincian Pembayaran
             </Button>
           </Link>
@@ -286,14 +286,14 @@ export default function DashboardWaliPage() {
           Semua tagihan sudah lunas!
         </div>
       )}
-    </GlassCard>
+    </div>
   );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col gap-6">
       
       {/* Top Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/40 backdrop-blur-xl border border-white/60 shadow-sm rounded-2xl p-6 gap-4">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-app-white border border-app-border shadow-md rounded-2xl p-6 gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">
             Halo, {parentName}!
@@ -307,7 +307,7 @@ export default function DashboardWaliPage() {
 
       {/* Child selector */}
       {murids.length > 1 && (
-        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-white/30 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-app-white border border-app-border p-4 rounded-2xl shadow-md">
           <span className="text-xs font-semibold text-gray-500 shrink-0">Siswa:</span>
           <div className="flex gap-2">
             {murids.map((m) => {
@@ -316,10 +316,10 @@ export default function DashboardWaliPage() {
                 <button
                   key={m.id}
                   onClick={() => setSelectedMuridId(m.id)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
+                  className={`px-4 py-1.5 rounded-[6px] text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
                     isSelected
                       ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-md shadow-[#4a70a9]/30"
-                      : "bg-white/50 border-white/70 text-gray-600 hover:bg-white/85"
+                      : "bg-white border-app-border text-gray-600 hover:bg-app-surface"
                   }`}
                 >
                   {m.name}
@@ -344,13 +344,13 @@ export default function DashboardWaliPage() {
           
           {/* Block A: Informasi Murid & Program */}
           <section className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 border-b border-white/40 pb-2">
+            <div className="flex items-center gap-3 border-b border-app-border/40 pb-2">
               <UserCheck className="text-[#4a70a9]" size={24} />
               <h3 className="text-lg font-bold text-gray-800">Informasi Murid & Program</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Profil Murid */}
-              <GlassCard className="p-5 flex items-center gap-4 border border-white/80 shadow-sm">
+              <div className="p-5 flex items-center gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                 {selectedMurid.photoPath || selectedMurid.avatarUrl ? (
                   <img
                     src={selectedMurid.photoPath || selectedMurid.avatarUrl || ""}
@@ -368,10 +368,10 @@ export default function DashboardWaliPage() {
                     {calculateAge(selectedMurid.birthDate)} Tahun • {selectedMurid.schoolLevel || "Belum ditentukan"}
                   </p>
                 </div>
-              </GlassCard>
+              </div>
               {/* Program & Progres */}
               {progInfo ? (
-                <GlassCard className="p-5 flex flex-col justify-between gap-4 border border-white/80 shadow-sm">
+                <div className="p-5 flex flex-col justify-between gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
@@ -396,23 +396,23 @@ export default function DashboardWaliPage() {
                       ></div>
                     </div>
                   </div>
-                </GlassCard>
+                </div>
               ) : (
-                <GlassCard className="p-5 flex items-center justify-center text-center text-gray-500 border border-white/80 shadow-sm">
+                <div className="p-5 flex items-center justify-center text-center text-gray-500 bg-app-white border border-app-border rounded-2xl shadow-md">
                   Belum terdaftar di program aktif apa pun.
-                </GlassCard>
+                </div>
               )}
             </div>
           </section>
 
           {/* Block B: Laporan Harian Terakhir */}
           <section className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 border-b border-white/40 pb-2">
+            <div className="flex items-center gap-3 border-b border-app-border/40 pb-2">
               <FileText className="text-[#4a70a9]" size={24} />
               <h3 className="text-lg font-bold text-gray-800">Laporan Sesi Terakhir</h3>
             </div>
             {latestDailyReport ? (
-              <GlassCard className="p-6 flex flex-col gap-4 border border-white/80 shadow-sm">
+              <div className="p-6 flex flex-col gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                 <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
                   <Clock size={14} />
                   <span>
@@ -435,14 +435,14 @@ export default function DashboardWaliPage() {
                     &quot;{latestDailyReport.notes || "Tidak ada catatan sesi ini."}&quot;
                   </p>
                 </div>
-              </GlassCard>
+              </div>
             ) : (
-              <GlassCard className="p-6 text-center text-gray-500 border border-white/80 shadow-sm">
+              <div className="p-6 text-center text-gray-500 bg-app-white border border-app-border rounded-2xl shadow-md">
                 Belum ada riwayat laporan sesi.
-              </GlassCard>
+              </div>
             )}
             <Link href="/app/laporan" className="w-full">
-              <Button variant="ghost" className="w-full justify-center text-sm border-dashed border-[#4a70a9]/30 text-[#4a70a9] hover:bg-[#4a70a9]/5 py-3">
+              <Button variant="ghost" className="w-full justify-center text-sm border border-app-primary/30 text-[#4a70a9] hover:bg-[#4a70a9]/5 py-3 rounded-[6px]">
                 Lihat Riwayat Laporan Harian Lengkap
               </Button>
             </Link>
@@ -450,12 +450,12 @@ export default function DashboardWaliPage() {
 
           {/* Block C: Rapor Perkembangan */}
           <section className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 border-b border-white/40 pb-2">
+            <div className="flex items-center gap-3 border-b border-app-border/40 pb-2">
               <TrendingUp className="text-[#4a70a9]" size={24} />
               <h3 className="text-lg font-bold text-gray-800">Rapor Perkembangan Belajar</h3>
             </div>
             {latestProgressReport ? (
-              <GlassCard className="p-6 flex flex-col gap-4 border border-white/80 shadow-sm">
+              <div className="p-6 flex flex-col gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                 <span className="self-start px-3 py-1 bg-indigo-50 border border-indigo-100 text-[#4a70a9] text-xs font-bold rounded-lg shadow-sm">
                   Periode: Blok {latestProgressReport.blockNumber} ({progInfo?.program.sessionsPerBlock || 12} Sesi)
                 </span>
@@ -487,14 +487,14 @@ export default function DashboardWaliPage() {
                   <p className="text-xs font-semibold text-gray-500 uppercase">Saran Guru:</p>
                   <p className="text-xs sm:text-sm text-gray-600 italic mt-1">&quot;{latestProgressReport.notes || "Tidak ada saran khusus."}&quot;</p>
                 </div>
-              </GlassCard>
+              </div>
             ) : (
-              <GlassCard className="p-6 text-center text-gray-500 border border-white/80 shadow-sm">
+              <div className="p-6 text-center text-gray-500 bg-app-white border border-app-border rounded-2xl shadow-md">
                 Rapor perkembangan akan terbit setelah menyelesaikan blok pertemuan belajar anak.
-              </GlassCard>
+              </div>
             )}
             <Link href="/app/laporan" className="w-full">
-              <Button variant="ghost" className="w-full justify-center text-sm border-dashed border-[#4a70a9]/30 text-[#4a70a9] hover:bg-[#4a70a9]/5 py-3">
+              <Button variant="ghost" className="w-full justify-center text-sm border border-app-primary/30 text-[#4a70a9] hover:bg-[#4a70a9]/5 py-3 rounded-[6px]">
                 Buka Laporan Perkembangan Lengkap
               </Button>
             </Link>
@@ -509,7 +509,7 @@ export default function DashboardWaliPage() {
 
         </div>
       ) : (
-        <div className="text-center py-12 bg-white/40 border border-white/60 rounded-2xl text-gray-500">
+        <div className="text-center py-12 bg-app-white border border-app-border rounded-2xl text-gray-500 shadow-md">
           Tidak ada data anak ditemukan. Hubungi admin untuk mendaftarkan anak Anda.
         </div>
       )}

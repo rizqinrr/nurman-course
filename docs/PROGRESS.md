@@ -33,9 +33,41 @@
 
 | Tanggal | Keputusan | Alasan |
 |---------|-----------|--------|
+| 2026-08-24 | Penyeragaman Desain Tombol & Selector Anak di Portal Wali | Menghilangkan border dashed yang membingungkan, menyatukan bentuk selector anak menjadi rounded-[6px], dan mengubah tombol WhatsApp menjadi hijau solid agar konsisten dan menonjol sesuai fungsinya. |
+| 2026-08-24 | Peningkatan Kontras UI Portal Wali Murid Lengkap | Seluruh halaman portal wali murid (`/app/dashboard`, `/app/jadwal`, `/app/profile`, `/app/laporan`, `/app/tagihan`) diperbarui dengan card putih solid (`bg-app-white`) & garis border tan (`border-app-border`), serta mempertahankan efek timbul (`shadow-md`). |
+| 2026-08-24 | Peningkatan Kontras UI Portal Wali Murid | Card utama diganti dari `#edeae3` (`bg-app-surface`) ke `#fdfcfa` (`bg-app-white`) untuk meningkatkan keterbacaan dan batas kontras visual di atas canvas `#f7f4ef` (`bg-app-bg`). |
+| 2026-08-24 | Redesign Halaman Portal Wali Murid ke AppVerse.id Design System | Menyelaraskan visual portal LMS wali murid dengan style landing page baru agar konsisten. |
 | 2026-08-20 | Implementasi NC Debugger Widget (Dev Mode) | Mempermudah penelusuran request API, cache hit/miss/invalidated, dan SQL Query timing layaknya Laravel Debugbar. |
 | 2026-08-20 | Implementasi In-Memory Cache di `apiFetch` | Mengurangi request berulang & loading screen berputar saat navigasi antar menu portal. |
 | YYYY-MM-DD | <keputusan> | <alasan> |
+
+---
+
+### 2026-08-24 — Penyeragaman Desain Tombol & Selector Anak di Portal Wali
+
+**Fase:** UI/UX / LMS Wali Murid (branch `dev`)
+**Status sesi:** selesai — Inkonsistensi tombol pada portal wali murid telah dirapikan. Seluruh selector anak dan tombol sortir diseragamkan dengan bentuk rounded-[6px], tombol WhatsApp pada langkah roadmap diubah menjadi hijau solid, dan border dashed pada tombol riwayat diganti menjadi border outline solid.
+
+**Request user:** "di halaman milik wali, bnyk tombol yg tidak konsisten, tentunya diluar tombol kembali dan pada footbar ya, menurutmu diubah gimana? aku sih maunya ditonjolin kalo ini tombol, dan disesuaikan sama fungsi tombolnya"
+
+**Keputusan (klarifikasi):**
+1. Mengubah selector murid tab pill dari rounded-full ke rounded-[6px] agar selaras dengan desain button lainnya.
+2. Mengubah tombol WhatsApp (Tanya Guru) di roadmap langkah belajar menjadi hijau solid agar fungsinya sebagai tombol WA langsung menonjol.
+3. Mengganti border dashed pada tombol sekunder seperti "Lihat Riwayat Laporan" menjadi outline solid.
+4. Menyeragamkan tombol sortir di halaman tagihan menjadi rounded-[6px].
+
+**Dikerjakan:**
+- **Dashboard** `frontend/app/app/(wali)/dashboard/page.tsx`: Ganti border selector anak ke `rounded-[6px]`, perpanjang padding tombol "Detail Jadwal", dan ubah border dashed tombol riwayat harian/perkembangan ke outline solid.
+- **Jadwal** `frontend/app/app/(wali)/jadwal/page.tsx`: Ubah selector anak ke `rounded-[6px]` dan tombol floating rescheduling ke `rounded-[6px]`.
+- **Roadmap** `frontend/app/app/(wali)/program/[slug]/page.tsx`: Ubah tombol "Tanya Guru (WhatsApp)" menjadi solid hijau WA (`bg-[#25D366] hover:bg-[#1fb858] font-bold text-white shadow-md border-none`) dan ubah border tombol riwayat sesi ke outline solid.
+- **Laporan** `frontend/app/app/(wali)/laporan/page.tsx`: Ubah selector anak ke `rounded-[6px]`.
+- **Tagihan** `frontend/app/app/(wali)/tagihan/page.tsx`: Ubah selector anak ke `rounded-[6px]`, tombol lihat semua riwayat ke outline solid, dan tombol sortir ke `rounded-[6px]`.
+
+**Verifikasi:**
+- `npm run build` di workspace `frontend` sukses tanpa error.
+
+**Residual:**
+- (none)
 
 ---
 

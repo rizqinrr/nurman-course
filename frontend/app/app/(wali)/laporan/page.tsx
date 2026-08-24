@@ -142,21 +142,21 @@ export default function LaporanPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-6 pb-28 animate-[fadeIn_0.5s_ease-out]">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-6 pb-28 animate-[fadeIn_0.5s_ease-out] font-dm text-app-text-mid">
       
       {/* Page Header */}
-      <header className="flex flex-col gap-1 bg-white/40 backdrop-blur-xl border border-white/60 shadow-sm rounded-2xl p-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight font-sans">
+      <header className="flex flex-col gap-1 bg-app-white border border-app-border shadow-md rounded-2xl p-6">
+        <h1 className="text-xl sm:text-2xl font-normal text-app-text tracking-tight font-playfair">
           Laporan Belajar
         </h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-app-text-muted">
           Pantau ringkasan kegiatan harian dan laporan capaian perkembangan belajar anak
         </p>
       </header>
 
       {/* Child selector */}
       {murids.length > 1 && (
-        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-white/30 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-app-white border border-app-border p-4 rounded-2xl shadow-md">
           <span className="text-xs font-semibold text-gray-500 shrink-0">Siswa:</span>
           <div className="flex gap-2">
             {murids.map((m) => {
@@ -165,10 +165,10 @@ export default function LaporanPage() {
                 <button
                   key={m.id}
                   onClick={() => setSelectedMuridId(m.id)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
+                  className={`px-4 py-1.5 rounded-[6px] text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
                     isSelected
                       ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-md shadow-[#4a70a9]/30"
-                      : "bg-white/50 border-white/70 text-gray-600 hover:bg-white/85"
+                      : "bg-white border-app-border text-gray-600 hover:bg-app-surface"
                   }`}
                 >
                   {m.name}
@@ -187,14 +187,14 @@ export default function LaporanPage() {
           className={`flex flex-col gap-1 p-3 sm:p-4 rounded-2xl border text-left transition-colors duration-200 active:scale-[0.98] min-h-[72px] ${
             activeTab === "harian"
               ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-lg shadow-[#4a70a9]/20"
-              : "bg-white/40 border-white/60 text-gray-700 hover:bg-white/60"
+              : "bg-app-white border-app-border text-gray-700 hover:bg-app-surface"
           }`}
         >
           <div className="flex items-center gap-2">
             <ClipboardList size={18} className={activeTab === "harian" ? "text-white" : "text-[#4a70a9]"} />
             <span className="font-bold text-sm sm:text-base">Laporan Harian</span>
           </div>
-          <span className={`text-[10px] sm:text-xs leading-relaxed hidden sm:block ${activeTab === "harian" ? "text-indigo-100" : "text-gray-500"}`}>
+          <span className={`text-[10px] sm:text-xs leading-relaxed hidden sm:block ${activeTab === "harian" ? "text-indigo-100" : "text-app-text-muted"}`}>
             Per sesi pertemuan • Diperbarui tiap sesi selesai dilaksanakan
           </span>
         </button>
@@ -205,14 +205,14 @@ export default function LaporanPage() {
           className={`flex flex-col gap-1 p-3 sm:p-4 rounded-2xl border text-left transition-colors duration-200 active:scale-[0.98] min-h-[72px] ${
             activeTab === "perkembangan"
               ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-lg shadow-[#4a70a9]/20"
-              : "bg-white/40 border-white/60 text-gray-700 hover:bg-white/60"
+              : "bg-app-white border-app-border text-gray-700 hover:bg-app-surface"
           }`}
         >
           <div className="flex items-center gap-2">
             <Award size={18} className={activeTab === "perkembangan" ? "text-white" : "text-[#4a70a9]"} />
             <span className="font-bold text-sm sm:text-base">Laporan Perkembangan</span>
           </div>
-          <span className={`text-[10px] sm:text-xs leading-relaxed hidden sm:block ${activeTab === "perkembangan" ? "text-indigo-100" : "text-gray-500"}`}>
+          <span className={`text-[10px] sm:text-xs leading-relaxed hidden sm:block ${activeTab === "perkembangan" ? "text-indigo-100" : "text-app-text-muted"}`}>
             Per blok pertemuan • Diperbarui tiap akhir siklus (10x / 12x sesi)
           </span>
         </button>
@@ -233,9 +233,9 @@ export default function LaporanPage() {
               {filteredDailyReports.length > 0 ? (
                 <div className="flex flex-col gap-6">
                   {filteredDailyReports.map((report) => (
-                    <GlassCard key={report.id} className="p-6 flex flex-col gap-4">
+                    <div key={report.id} className="p-6 flex flex-col gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                       {/* Top Badge & Date Time */}
-                      <div className="flex flex-wrap justify-between items-start gap-2 border-b border-gray-200/50 pb-3">
+                      <div className="flex flex-wrap justify-between items-start gap-2 border-b border-app-border/40 pb-3">
                         <div className="flex flex-col gap-1">
                           <span className="self-start px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 text-[#4a70a9] rounded-full text-[10px] font-bold uppercase tracking-wider">
                             {report.programName}
@@ -245,7 +245,7 @@ export default function LaporanPage() {
                             <span className="font-semibold text-gray-700">{report.date}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-gray-500 bg-white/40 border border-white/60 px-3 py-1 rounded-lg">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 bg-app-white border border-app-border px-3 py-1 rounded-lg">
                           <Clock size={14} className="text-[#4a70a9]" />
                           <span>{report.startTime} - {report.endTime} WIB</span>
                         </div>
@@ -290,16 +290,16 @@ export default function LaporanPage() {
                           onClick={() => handleContactTutorWA(report)}
                           title="Diskusi via WhatsApp"
                           aria-label="Diskusi via WhatsApp"
-                          className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all"
+                          className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all border border-[#25D366]/40"
                         >
                           <WhatsAppIcon size={18} />
                         </button>
                       </div>
-                    </GlassCard>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6 bg-white/40 border border-white/60 rounded-2xl text-gray-600">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6 bg-app-white border border-app-border rounded-2xl text-gray-600 shadow-md">
                   <ClipboardList size={32} className="text-[#4a70a9] shrink-0" />
                   <div className="flex-grow text-left">
                     <p className="font-bold text-sm">Belum Ada Laporan Harian</p>
@@ -311,7 +311,7 @@ export default function LaporanPage() {
                     rel="noopener noreferrer"
                     title="Hubungi Admin via WhatsApp"
                     aria-label="Hubungi Admin via WhatsApp"
-                    className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all shrink-0 mt-2 sm:mt-0"
+                    className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all shrink-0 mt-2 sm:mt-0 border border-[#25D366]/40"
                   >
                     <WhatsAppIcon size={18} />
                   </a>
@@ -328,9 +328,9 @@ export default function LaporanPage() {
               {filteredProgressReports.length > 0 ? (
                 <div className="flex flex-col gap-6">
                   {filteredProgressReports.map((report) => (
-                    <GlassCard key={report.id} className="p-6 flex flex-col gap-4">
+                    <div key={report.id} className="p-6 flex flex-col gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                       {/* Header */}
-                      <div className="flex flex-wrap justify-between items-start gap-2 border-b border-gray-200/50 pb-3">
+                      <div className="flex flex-wrap justify-between items-start gap-2 border-b border-app-border/40 pb-3">
                         <div className="flex flex-col gap-1">
                           <span className="self-start px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 text-[#4a70a9] rounded-full text-[10px] font-bold uppercase tracking-wider">
                             {report.programName}
@@ -413,16 +413,16 @@ export default function LaporanPage() {
                           onClick={() => handleContactAdminProgressWA(report)}
                           title="Konsultasi Perkembangan Anak"
                           aria-label="Konsultasi Perkembangan Anak"
-                          className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all"
+                          className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all border border-[#25D366]/40"
                         >
                           <WhatsAppIcon size={18} />
                         </button>
                       </div>
-                    </GlassCard>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6 bg-white/40 border border-white/60 rounded-2xl text-gray-600">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6 bg-app-white border border-app-border rounded-2xl text-gray-600 shadow-md">
                   <Award size={32} className="text-[#4a70a9] shrink-0" />
                   <div className="flex-grow text-left">
                     <p className="font-bold text-sm">Belum Ada Laporan Perkembangan</p>
@@ -436,7 +436,7 @@ export default function LaporanPage() {
                     rel="noopener noreferrer"
                     title="Hubungi Admin via WhatsApp"
                     aria-label="Hubungi Admin via WhatsApp"
-                    className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all shrink-0 mt-2 sm:mt-0"
+                    className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all shrink-0 mt-2 sm:mt-0 border border-[#25D366]/40"
                   >
                     <WhatsAppIcon size={18} />
                   </a>

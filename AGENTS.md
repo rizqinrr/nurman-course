@@ -4,8 +4,8 @@
 - Tujuan saat ini: user pilih program → konfigurasi → WhatsApp dengan cepat.
 - Arah masa depan: **LMS sederhana** (katalog + roadmap belajar + jadwal + materi teks + tagihan) — lihat docs, **jangan coding LMS tanpa task aktif**.
 - Tech stack (sekarang): Next.js (App Router), React, Tailwind CSS.
-- UI style: glassmorphism ringan, modern, mobile-first.
-- Backend saat ini: **tidak ada** (data statis, output ke WhatsApp).
+- UI style: modern editorial, warm off-white canvas (AppVerse.id Design System).
+- Backend saat ini: API Server Express dengan Prisma ORM & PostgreSQL Supabase.
 
 ---
 

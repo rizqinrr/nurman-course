@@ -95,20 +95,20 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#6d8fc4] text-gray-800 font-sans flex flex-col md:flex-row relative">
+    <div className="min-h-screen bg-app-bg text-app-text-mid font-dm flex flex-col md:flex-row relative">
 
       {/* SideNavBar (Desktop) */}
-      <nav className="hidden md:flex h-screen w-64 fixed left-0 top-0 border-r border-white/60 shadow-xl flex-col gap-6 p-6 bg-white/30 backdrop-blur-2xl z-50 pt-16">
+      <nav className="hidden md:flex h-screen w-64 fixed left-0 top-0 border-r border-app-border shadow-sm flex-col gap-6 p-6 bg-app-surface z-50 pt-16">
         <div className="mb-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-[#2e4b7a] shadow-[0_8px_18px_rgba(74,112,169,0.5)]">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-app-border bg-[#2e4b7a]">
               <Image src="/Nlogo.png" alt="Logo Nurman Course" width={500} height={500} priority className="h-10 w-10 rounded-full object-cover" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#4a70a9] to-indigo-600 bg-clip-text text-transparent">
-              Nurman Course
+            <h1 className="text-2xl font-normal text-app-text font-playfair">
+              Nurman <span className="italic text-app-primary">Course</span>
             </h1>
           </div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">
+          <p className="text-xs font-semibold text-app-text-muted uppercase tracking-wider mt-1">
             Parent Portal
           </p>
         </div>
@@ -121,10 +121,10 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-[6px] transition-colors duration-200 ${
                   isActive
-                    ? "bg-[#4a70a9] text-white font-bold shadow-lg shadow-[#4a70a9]/30"
-                    : "text-gray-600 hover:bg-white/50 hover:text-gray-900 active:scale-[0.98]"
+                    ? "bg-app-primary text-app-white font-semibold shadow-sm"
+                    : "text-app-text-mid hover:bg-app-white hover:text-app-text active:scale-[0.98]"
                 }`}
               >
                 <Icon size={20} />
@@ -139,13 +139,13 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
           })}
         </div>
 
-        <div className="border-t border-gray-200/50 pt-4 flex flex-col gap-1">
+        <div className="border-t border-app-border/40 pt-4 flex flex-col gap-1">
           <Link
             href="/app/profile"
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-[6px] transition-colors duration-200 ${
               pathname === "/app/profile"
-                ? "bg-[#4a70a9] text-white font-bold shadow-lg shadow-[#4a70a9]/30"
-                : "text-gray-600 hover:bg-white/50 hover:text-gray-900 active:scale-[0.98]"
+                ? "bg-app-primary text-app-white font-semibold shadow-sm"
+                : "text-app-text-mid hover:bg-app-white hover:text-app-text active:scale-[0.98]"
             }`}
           >
             <User size={20} />
@@ -157,18 +157,18 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
       {/* Main Content Canvas */}
       <main className="flex-grow md:ml-64 flex flex-col min-h-screen relative z-10 pb-20 md:pb-8">
         {/* Mobile TopBar: brand + Profile Avatar */}
-        <div className="md:hidden sticky z-40 flex items-center justify-between gap-2 px-4 py-2 bg-white/70 backdrop-blur-xl border-b border-white/60 top-0">
+        <div className="md:hidden sticky z-40 flex items-center justify-between gap-2 px-4 py-2 bg-app-surface/95 backdrop-blur-sm border-b border-app-border top-0">
           <span className="flex items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-[#2e4b7a] shadow-[0_5px_12px_rgba(74,112,169,0.5)]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-app-border bg-[#2e4b7a]">
               <Image src="/Nlogo.png" alt="Logo Nurman Course" width={500} height={500} priority className="h-7 w-7 rounded-full object-cover" />
             </span>
-            <span className="text-base font-bold bg-gradient-to-r from-[#4a70a9] to-indigo-600 bg-clip-text text-transparent whitespace-nowrap">
-              Nurman Course
+            <span className="text-base font-normal text-app-text font-playfair">
+              Nurman <span className="italic text-app-primary">Course</span>
             </span>
           </span>
           <Link
             href="/app/profile"
-            className="w-10 h-10 rounded-full bg-[#4a70a9]/10 border border-[#4a70a9]/20 flex items-center justify-center text-[#4a70a9] hover:bg-[#4a70a9]/20 active:scale-95 transition-all"
+            className="w-10 h-10 rounded-[6px] bg-app-white border border-app-border flex items-center justify-center text-app-primary hover:bg-app-surface active:scale-95 transition-all"
           >
             <User size={20} />
           </Link>
@@ -180,7 +180,7 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
       </main>
 
       {/* Mobile BottomNavBar (Dashboard in center, raised 3D effect, icons only) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center px-2 bg-white/85 backdrop-blur-lg border-t border-white/60 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-2xl pb-[env(safe-area-inset-bottom)] h-[calc(52px+env(safe-area-inset-bottom))]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center px-2 bg-app-surface border-t border-app-border shadow-sm rounded-t-2xl pb-[env(safe-area-inset-bottom)] h-[calc(52px+env(safe-area-inset-bottom))]">
         {mobileNavLinks.map((link) => {
           const Icon = link.icon;
           const isActive = pathname.startsWith(link.href);
@@ -190,15 +190,13 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 -translate-y-4 shadow-[0_6px_16px_rgba(74,112,169,0.35)] border-2 active:scale-95 ${
+                className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 -translate-y-4 shadow-sm border-2 active:scale-95 ${
                   isActive
-                    ? "bg-[#4a70a9] border-white text-white shadow-[0_8px_20px_rgba(74,112,169,0.45)] ring-4 ring-[#4a70a9]/10"
-                    : "bg-[#e8f0fe] border-[#4a70a9]/30 text-[#4a70a9] hover:bg-[#d0e1fd]"
+                    ? "bg-app-primary border-app-white text-app-white"
+                    : "bg-app-white border-app-border text-app-primary hover:bg-app-surface"
                 }`}
               >
-                {/* 3D Inner Shadow / Glossy Reflection */}
-                <div className="absolute inset-0.5 rounded-full bg-gradient-to-tr from-white/0 to-white/20 pointer-events-none" />
-                <Icon size={24} className="drop-shadow-[0_2px_3px_rgba(0,0,0,0.15)]" />
+                <Icon size={24} />
               </Link>
             );
           }
@@ -207,10 +205,10 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
             <Link
               key={link.href}
               href={link.href}
-              className={`relative flex items-center justify-center w-12 h-10 rounded-xl transition-all duration-150 active:scale-90 ${
+              className={`relative flex items-center justify-center w-12 h-10 rounded-[6px] transition-all duration-150 active:scale-90 ${
                 isActive
-                  ? "text-[#4a70a9] bg-[#4a70a9]/10"
-                  : "text-gray-400 hover:text-gray-700"
+                  ? "text-app-primary bg-app-primary/10"
+                  : "text-app-text-muted hover:text-app-text"
               }`}
             >
               <Icon size={25} />

@@ -8,7 +8,6 @@ import {
   Enrollment,
 } from "@/data/lms";
 import { apiFetch } from "@/lib/api";
-import GlassCard from "@/components/ui/GlassCard";
 import {
   Search,
   ChevronDown,
@@ -105,21 +104,21 @@ export default function ProgramKatalogPage() {
     });
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col gap-6 pb-28">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col gap-6 pb-28 font-dm text-app-text-mid">
       {/* Page Header */}
-      <header className="flex flex-col gap-1 bg-white/40 backdrop-blur-xl border border-white/60 shadow-sm rounded-2xl p-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight font-sans">
+      <header className="flex flex-col gap-1 bg-app-white border border-app-border shadow-sm rounded-2xl p-6">
+        <h1 className="text-xl sm:text-2xl font-normal text-app-text tracking-tight font-playfair">
           Program Belajar Anak
         </h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-app-text-muted">
           Pilih program, lihat detail, lalu daftarkan buah hati Anda.
         </p>
       </header>
 
       {/* Child selector */}
       {murids.length > 1 && (
-        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-white/30 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-sm">
-          <span className="text-xs font-semibold text-gray-500 shrink-0">Siswa:</span>
+        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-app-white border border-app-border p-4 rounded-2xl shadow-sm">
+          <span className="text-xs font-semibold text-app-text-muted shrink-0">Siswa:</span>
           <div className="flex gap-2">
             {murids.map((m) => {
               const isSelected = m.id === selectedMuridId;
@@ -127,10 +126,10 @@ export default function ProgramKatalogPage() {
                 <button
                   key={m.id}
                   onClick={() => setSelectedMuridId(m.id)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
+                  className={`px-4 py-1.5 rounded-[6px] text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
                     isSelected
-                      ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-md shadow-[#4a70a9]/30"
-                      : "bg-white/50 border-white/70 text-gray-600 hover:bg-white/85"
+                      ? "bg-app-primary text-app-white border-app-primary shadow-sm"
+                      : "bg-app-white border-app-border text-app-text-mid hover:bg-app-surface"
                   }`}
                 >
                   {m.name}
@@ -142,12 +141,12 @@ export default function ProgramKatalogPage() {
       )}
 
       {/* Tools: search + category filter */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between bg-white/30 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-sm">
-        <div className="relative w-full lg:w-56">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-app-white border border-app-border p-4 rounded-2xl shadow-sm">
+        <div className="relative w-full sm:w-56">
           <select
             value={activeCategory}
             onChange={(e) => setActiveCategory(e.target.value)}
-            className="w-full pl-4 pr-9 py-2 text-sm bg-white/70 border border-white/80 rounded-xl focus:outline-none focus:border-[#4a70a9] focus:ring-1 focus:ring-[#4a70a9] text-gray-900 appearance-none cursor-pointer"
+            className="w-full pl-4 pr-9 py-2.5 text-sm bg-app-white border border-app-border rounded-[6px] focus:outline-none focus:border-app-primary focus:ring-1 focus:ring-app-primary text-app-text appearance-none cursor-pointer"
             aria-label="Filter kategori program"
           >
             {CATEGORY_FILTERS.map((cat) => (
@@ -156,17 +155,17 @@ export default function ProgramKatalogPage() {
               </option>
             ))}
           </select>
-          <ChevronDown size={16} className="pointer-events-none absolute right-3 top-2.5 text-gray-400" />
+          <ChevronDown size={16} className="pointer-events-none absolute right-3 top-3.5 text-app-text-muted" />
         </div>
-        <div className="relative w-full lg:w-64">
+        <div className="relative w-full sm:w-64">
           <input
             type="text"
             placeholder="Cari program belajar..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-white/70 border border-white/80 rounded-xl focus:outline-none focus:border-[#4a70a9] focus:ring-1 focus:ring-[#4a70a9] text-gray-900 placeholder:text-gray-400"
+            className="w-full pl-9 pr-4 py-2.5 text-sm bg-app-white border border-app-border rounded-[6px] focus:outline-none focus:border-app-primary focus:ring-1 focus:ring-app-primary text-app-text placeholder:text-app-text-muted/60"
           />
-          <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+          <Search size={16} className="absolute left-3 top-3.5 text-app-text-muted" />
         </div>
       </div>
 
@@ -185,22 +184,22 @@ export default function ProgramKatalogPage() {
 
               return (
                 <Link key={program.id} href={`/app/program/${program.slug}`} className="block h-full">
-                  <GlassCard
-                    className={`p-5 flex flex-col gap-4 h-full transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:border-[#4a70a9]/30 ${
+                  <div
+                    className={`p-5 flex flex-col gap-4 h-full transition-all duration-300 rounded-2xl border border-app-border bg-app-white shadow-sm hover:shadow-md ${
                       isComingSoon ? "opacity-80" : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 text-[#4a70a9] rounded-full text-[10px] font-bold uppercase tracking-wide truncate">
+                      <span className="px-2.5 py-0.5 bg-app-primary/10 border border-app-primary/20 text-app-primary rounded-[4px] text-[10px] font-bold uppercase tracking-wide truncate">
                         {CATEGORY_LABELS[program.category] || program.category}
                       </span>
                       <span
-                        className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                        className={`shrink-0 px-2.5 py-0.5 rounded-[4px] text-[10px] font-bold flex items-center gap-1 ${
                           isRegistered
-                            ? "bg-emerald-100 text-emerald-800"
+                            ? "bg-emerald-50 text-emerald-800 border border-emerald-100"
                             : isComingSoon
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-blue-100 text-blue-800"
+                              ? "bg-amber-50 text-amber-800 border border-amber-100"
+                              : "bg-blue-50 text-blue-800 border border-blue-100"
                         }`}
                       >
                         {isRegistered && (
@@ -215,42 +214,42 @@ export default function ProgramKatalogPage() {
                     </div>
 
                     <div className="flex flex-col gap-1 flex-1">
-                      <h2 className="text-base font-bold text-gray-800">{program.name}</h2>
-                      <p className="text-xs sm:text-sm text-gray-500 line-clamp-2">
+                      <h2 className="text-base font-bold text-app-text leading-snug">{program.name}</h2>
+                      <p className="text-xs sm:text-sm text-app-text-muted line-clamp-2 leading-relaxed">
                         {program.description}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-gray-200/50 pt-3 mt-auto">
-                      <div className="text-xs text-gray-500">
+                    <div className="flex items-center justify-between border-t border-app-border/40 pt-3 mt-auto">
+                      <div className="text-xs text-app-text-muted">
                         {program.basePrice ? (
                           <>
-                            <span className="text-gray-400">Mulai dari </span>
-                            <span className="font-bold text-gray-800">
+                            <span>Mulai dari </span>
+                            <span className="font-bold text-app-text">
                               Rp {program.basePrice.toLocaleString("id-ID")}/sesi
                             </span>
                           </>
                         ) : (
-                          <span className="italic text-gray-400">Harga menyesuaikan</span>
+                          <span className="italic">Harga menyesuaikan</span>
                         )}
                       </div>
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-[#4a70a9]">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-app-primary">
                         {isRegistered ? "Buka Peta Jalan" : "Lihat Detail"}
                         <ArrowRight size={13} />
                       </span>
                     </div>
-                  </GlassCard>
+                  </div>
                 </Link>
               );
             })}
           </div>
         ) : (
-          <div className="text-center py-12 bg-white/40 border border-white/60 rounded-2xl text-gray-500">
+          <div className="text-center py-12 bg-app-white border border-app-border rounded-2xl text-app-text-muted">
             Tidak ada program yang cocok dengan filter pencarian.
           </div>
         )
       ) : (
-        <div className="text-center py-12 bg-white/40 border border-white/60 rounded-2xl text-gray-500">
+        <div className="text-center py-12 bg-app-white border border-app-border rounded-2xl text-app-text-muted">
           Tidak ada data anak ditemukan. Hubungi admin untuk mendaftarkan anak Anda.
         </div>
       )}

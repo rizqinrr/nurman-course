@@ -429,21 +429,21 @@ export default function TagihanWaliPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-6 animate-[fadeIn_0.5s_ease-out]">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-6 animate-[fadeIn_0.5s_ease-out] font-dm text-app-text-mid">
       
       {/* Page Header */}
-      <header className="flex flex-col gap-1 bg-white/40 backdrop-blur-xl border border-white/60 shadow-sm rounded-2xl p-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight font-sans">
+      <header className="flex flex-col gap-1 bg-app-white border border-app-border shadow-md rounded-2xl p-6">
+        <h1 className="text-xl sm:text-2xl font-normal text-app-text tracking-tight font-playfair">
           Tagihan Saya
         </h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-app-text-muted">
           Lacak tagihan belajar anak Anda dan lakukan konfirmasi pembayaran dengan mudah.
         </p>
       </header>
 
       {/* Child selector */}
       {murids.length > 1 && (
-        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-white/30 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-app-white border border-app-border p-4 rounded-2xl shadow-md">
           <span className="text-xs font-semibold text-gray-500 shrink-0">Siswa:</span>
           <div className="flex gap-2">
             {murids.map((m) => {
@@ -452,10 +452,10 @@ export default function TagihanWaliPage() {
                 <button
                   key={m.id}
                   onClick={() => setSelectedMuridId(m.id)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
+                  className={`px-4 py-1.5 rounded-[6px] text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
                     isSelected
                       ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-md shadow-[#4a70a9]/30"
-                      : "bg-white/50 border-white/70 text-gray-600 hover:bg-white/85"
+                      : "bg-white border-app-border text-gray-600 hover:bg-app-surface"
                   }`}
                 >
                   {m.name}
@@ -476,12 +476,12 @@ export default function TagihanWaliPage() {
             </h2>
             
             {latestUnpaid ? (
-              <GlassCard className="p-6 sm:p-8 flex flex-col gap-6 relative overflow-hidden group border border-white/80 shadow-xl">
+              <div className="p-6 sm:p-8 flex flex-col gap-6 relative overflow-hidden group bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                 {/* Glow decor */}
                 <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#4a70a9]/10 rounded-full blur-[50px] pointer-events-none group-hover:scale-110 duration-700"></div>
 
                 {/* Card Title & Status */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-200/50 pb-4 relative z-10">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-app-border/40 pb-4 relative z-10">
                   <div>
                     <span className="text-[10px] text-gray-400 font-bold uppercase">Invoice</span>
                     <h3 className="text-base sm:text-lg font-bold text-gray-800">#{latestUnpaid.id}</h3>
@@ -521,8 +521,8 @@ export default function TagihanWaliPage() {
                   </div>
 
                   {/* Pricing Breakdown */}
-                  <div className="flex flex-col justify-center gap-3 bg-white/20 border border-white/40 p-4 sm:p-5 rounded-xl">
-                    <div className="flex flex-col gap-1.5 text-xs text-gray-500 border-b border-gray-200/50 pb-2">
+                  <div className="flex flex-col justify-center gap-3 bg-app-surface border border-app-border p-4 sm:p-5 rounded-xl">
+                    <div className="flex flex-col gap-1.5 text-xs text-gray-500 border-b border-app-border/40 pb-2">
                       {getInvoiceBreakdown(latestUnpaid).map((item, idx) => (
                         <div key={idx} className="flex justify-between">
                           <span>{item.label}</span>
@@ -540,7 +540,7 @@ export default function TagihanWaliPage() {
                 </div>
 
                 {/* Bank Account Information */}
-                <div className="border-t border-gray-200/30 pt-4 flex gap-4 items-start relative z-10">
+                <div className="border-t border-app-border/40 pt-4 flex gap-4 items-start relative z-10">
                   <div className="w-10 h-10 rounded-full bg-[#4a70a9]/10 flex items-center justify-center shrink-0 text-[#4a70a9]">
                     <Building size={20} />
                   </div>
@@ -571,7 +571,7 @@ export default function TagihanWaliPage() {
                     {/* Upload Bukti Transfer */}
                     <div 
                       onClick={handleUploadAreaClick}
-                      className="border-2 border-dashed border-gray-300 hover:border-[#4a70a9]/50 rounded-xl p-5 text-center cursor-pointer hover:bg-[#4a70a9]/5 transition-colors duration-200 group relative z-10 flex flex-col items-center justify-center gap-1.5"
+                      className="border-2 border-dashed border-app-border hover:border-[#4a70a9]/50 rounded-xl p-5 text-center cursor-pointer hover:bg-app-surface transition-colors duration-200 group relative z-10 flex flex-col items-center justify-center gap-1.5"
                     >
                       <input 
                         type="file" 
@@ -607,7 +607,7 @@ export default function TagihanWaliPage() {
                         onChange={(e) => setPaymentNote(e.target.value)}
                         placeholder="Contoh: Pembayaran bulan September, sudah konfirmasi via WA"
                         rows={2}
-                        className="w-full rounded-xl border border-gray-200 bg-white/80 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9] resize-none"
+                        className="w-full rounded-xl border border-app-border bg-app-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9] resize-none"
                       />
                     </div>
 
@@ -616,14 +616,14 @@ export default function TagihanWaliPage() {
                       <Button
                         onClick={() => handleSubmitPayment(latestUnpaid)}
                         disabled={submitting}
-                        className="w-full text-sm sm:text-base justify-center py-3.5 shadow-md shadow-[#4a70a9]/20 flex items-center gap-2"
+                        className="w-full text-sm sm:text-base justify-center py-3.5 shadow-md shadow-[#4a70a9]/20 flex items-center gap-2 rounded-[6px]"
                       >
                         {submitting ? "Mengirim..." : "Kirim Data Pembayaran"}
                       </Button>
                       <button
                         type="button"
                         onClick={() => handleWAConfirm(latestUnpaid.id, latestUnpaid.amount)}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95 border border-[#25D366]/40"
                       >
                         <WhatsAppIcon size={16} />
                         <span>Konfirmasi Pembayaran</span>
@@ -641,15 +641,15 @@ export default function TagihanWaliPage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className="bg-white/40 border border-white/60 rounded-xl p-3">
+                      <div className="bg-app-white border border-app-border rounded-xl p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Dibayar</p>
                         <p className="font-bold text-gray-800 mt-0.5">Rp {(latestUnpaid.paidAmount ?? latestUnpaid.amount).toLocaleString("id-ID")}</p>
                       </div>
-                      <div className="bg-white/40 border border-white/60 rounded-xl p-3">
+                      <div className="bg-app-white border border-app-border rounded-xl p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Terkirim</p>
                         <p className="font-bold text-gray-800 mt-0.5">{latestUnpaid.submittedAt ? formatSessionDateTime(latestUnpaid.submittedAt).split(" • ")[0] : "-"}</p>
                       </div>
-                      <div className="bg-white/40 border border-white/60 rounded-xl p-3">
+                      <div className="bg-app-white border border-app-border rounded-xl p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">File</p>
                         <p className="font-bold text-gray-800 mt-0.5 truncate">{latestUnpaid.paymentProofName || "Bukti terkirim"}</p>
                       </div>
@@ -657,17 +657,17 @@ export default function TagihanWaliPage() {
                     <button
                       type="button"
                       onClick={() => handleWAConfirm(latestUnpaid.id, latestUnpaid.amount)}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95"
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95 border border-[#25D366]/40"
                     >
                       <WhatsAppIcon size={16} />
                       <span>Konfirmasi Pembayaran</span>
                     </button>
                   </div>
                 )}
-              </GlassCard>
+              </div>
             ) : (
               <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-3 p-6 bg-white/40 border border-white/60 rounded-2xl text-gray-600">
+                <div className="flex items-center gap-3 p-6 bg-app-white border border-app-border rounded-2xl text-gray-600 shadow-md">
                   <CheckCircle2 className="text-emerald-500 shrink-0" size={24} />
                   <div>
                     <p className="font-bold text-sm">Semua Tagihan Lunas</p>
@@ -676,10 +676,10 @@ export default function TagihanWaliPage() {
                 </div>
 
                 {/* Prepayment / Manual Payment Card */}
-                <GlassCard className="p-6 sm:p-8 flex flex-col gap-6 relative overflow-hidden group border border-white/80 shadow-xl">
+                <div className="p-6 sm:p-8 flex flex-col gap-6 relative overflow-hidden group bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                   <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#4a70a9]/10 rounded-full blur-[50px] pointer-events-none group-hover:scale-110 duration-700"></div>
 
-                  <div className="border-b border-gray-200/50 pb-4 relative z-10">
+                  <div className="border-b border-app-border/40 pb-4 relative z-10">
                     <h3 className="text-base sm:text-lg font-bold text-gray-800">Pembayaran Mandiri / Prabayar</h3>
                     <p className="text-xs text-gray-500 mt-1">Anda dapat mengirimkan pembayaran/prabayar tanpa tagihan aktif melalui form ini.</p>
                   </div>
@@ -704,12 +704,12 @@ export default function TagihanWaliPage() {
                             setCustomAmount(val);
                           }}
                           placeholder="Contoh: 150000"
-                          className="w-full rounded-xl border border-gray-200 bg-white/80 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9]"
+                          className="w-full rounded-xl border border-app-border bg-app-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9]"
                         />
                       </div>
                       
                       {/* Bank Account Information */}
-                      <div className="border-t border-gray-200/30 pt-4 flex gap-4 items-start">
+                      <div className="border-t border-app-border/40 pt-4 flex gap-4 items-start">
                         <div className="w-10 h-10 rounded-full bg-[#4a70a9]/10 flex items-center justify-center shrink-0 text-[#4a70a9]">
                           <Building size={20} />
                         </div>
@@ -734,7 +734,7 @@ export default function TagihanWaliPage() {
                     <div className="flex flex-col gap-4 justify-between">
                       <div 
                         onClick={handleUploadAreaClick}
-                        className="border-2 border-dashed border-gray-300 hover:border-[#4a70a9]/50 rounded-xl p-5 text-center cursor-pointer hover:bg-[#4a70a9]/5 transition-colors duration-200 group flex flex-col items-center justify-center gap-1.5"
+                        className="border-2 border-dashed border-app-border hover:border-[#4a70a9]/50 rounded-xl p-5 text-center cursor-pointer hover:bg-app-surface transition-colors duration-200 group flex flex-col items-center justify-center gap-1.5"
                       >
                         <input 
                           type="file" 
@@ -770,14 +770,14 @@ export default function TagihanWaliPage() {
                           onChange={(e) => setPaymentNote(e.target.value)}
                           placeholder="Contoh: Prabayar biaya blok berikutnya, atau untuk program baru"
                           rows={2}
-                          className="w-full rounded-xl border border-gray-200 bg-white/80 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9] resize-none"
+                          className="w-full rounded-xl border border-app-border bg-app-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9] resize-none"
                         />
                       </div>
 
                       <Button
                         onClick={() => void handleSubmitPrepayment()}
                         disabled={submitting}
-                        className="w-full text-sm sm:text-base justify-center py-3.5 shadow-md flex items-center gap-2"
+                        className="w-full text-sm sm:text-base justify-center py-3.5 shadow-md flex items-center gap-2 rounded-[6px]"
                       >
                         {submitting ? "Mengirim..." : "Kirim Data Pembayaran"}
                       </Button>
@@ -794,14 +794,14 @@ export default function TagihanWaliPage() {
                           );
                           window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
                         }}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95 border border-[#25D366]/40"
                       >
                         <WhatsAppIcon size={16} />
                         <span>Konfirmasi Pembayaran via WhatsApp</span>
                       </button>
                     </div>
                   </div>
-                </GlassCard>
+                </div>
               </div>
             )}
           </div>
@@ -816,7 +816,7 @@ export default function TagihanWaliPage() {
               <Button 
                 variant="ghost" 
                 onClick={() => setShowAllHistory(!showAllHistory)}
-                className="text-xs border border-gray-200/50 px-3 py-1.5 hover:bg-white/40 shadow-sm"
+                className="text-xs border border-app-primary/30 text-app-primary px-3 py-1.5 hover:bg-white/40 shadow-sm rounded-[6px]"
               >
                 {showAllHistory ? "Sembunyikan Riwayat" : "Lihat Semua Riwayat"}
               </Button>
@@ -830,10 +830,10 @@ export default function TagihanWaliPage() {
                   <button
                     type="button"
                     onClick={() => setHistorySort("terbaru")}
-                    className={`px-3 py-1.5 rounded-full border font-semibold transition-colors ${
+                    className={`px-3 py-1.5 rounded-[6px] border font-semibold transition-colors ${
                       historySort === "terbaru"
                         ? "bg-[#4a70a9] text-white border-transparent shadow-sm"
-                        : "bg-white/40 text-gray-600 border-white/60 hover:bg-white/60"
+                        : "bg-app-white text-gray-600 border-app-border hover:bg-app-surface"
                     }`}
                   >
                     Terbaru
@@ -841,10 +841,10 @@ export default function TagihanWaliPage() {
                   <button
                     type="button"
                     onClick={() => setHistorySort("terlama")}
-                    className={`px-3 py-1.5 rounded-full border font-semibold transition-colors ${
+                    className={`px-3 py-1.5 rounded-[6px] border font-semibold transition-colors ${
                       historySort === "terlama"
                         ? "bg-[#4a70a9] text-white border-transparent shadow-sm"
-                        : "bg-white/40 text-gray-600 border-white/60 hover:bg-white/60"
+                        : "bg-app-white text-gray-600 border-app-border hover:bg-app-surface"
                     }`}
                   >
                     Terlama
@@ -857,7 +857,7 @@ export default function TagihanWaliPage() {
                     <div className="flex flex-col gap-3 md:hidden">
                       {historyItems.map((entry) =>
                         entry.type === "invoice" ? (
-                          <div key={entry.item.id} className="bg-white/40 border border-white/60 rounded-2xl p-4 shadow-sm flex flex-col gap-2.5">
+                          <div key={entry.item.id} className="bg-app-white border border-app-border rounded-2xl p-4 shadow-md flex flex-col gap-2.5">
                             <div className="flex items-start justify-between gap-2">
                               <span className="font-mono font-bold text-gray-700 text-xs mt-0.5">#{entry.item.id}</span>
                               {renderStatusBadge(entry.item.status)}
@@ -870,7 +870,7 @@ export default function TagihanWaliPage() {
                                 {getInvoicePeriod(entry.item)}
                               </div>
                             </div>
-                            <div className="flex items-end justify-between border-t border-gray-200/30 pt-2.5">
+                            <div className="flex items-end justify-between border-t border-app-border/40 pt-2.5">
                               <div>
                                 <p className="text-[10px] text-gray-400 font-bold uppercase">Jumlah</p>
                                 <p className="font-bold text-gray-800 text-base">
@@ -890,7 +890,7 @@ export default function TagihanWaliPage() {
                             </button>
                           </div>
                         ) : (
-                          <div key={entry.item.id} className="bg-white/40 border border-white/60 rounded-2xl p-4 shadow-sm flex flex-col gap-2.5">
+                          <div key={entry.item.id} className="bg-app-white border border-app-border rounded-2xl p-4 shadow-md flex flex-col gap-2.5">
                             <div className="flex items-start justify-between gap-2">
                               <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-100 text-indigo-700 px-2 py-0.5 text-[9px] font-bold uppercase border border-indigo-200 mt-0.5">
                                 Prabayar
@@ -903,7 +903,7 @@ export default function TagihanWaliPage() {
                                 <div className="text-[10px] text-gray-400 mt-0.5 truncate">{entry.item.note}</div>
                               )}
                             </div>
-                            <div className="flex items-end justify-between border-t border-gray-200/30 pt-2.5">
+                            <div className="flex items-end justify-between border-t border-app-border/40 pt-2.5">
                               <div>
                                 <p className="text-[10px] text-gray-400 font-bold uppercase">Jumlah</p>
                                 <p className="font-bold text-gray-800 text-base">
@@ -927,10 +927,10 @@ export default function TagihanWaliPage() {
                     </div>
 
                     {/* Desktop: Table */}
-                    <div className="hidden md:block overflow-x-auto bg-white/40 border border-white/60 rounded-2xl shadow-sm">
+                    <div className="hidden md:block overflow-x-auto bg-app-white border border-app-border rounded-2xl shadow-md">
                       <table className="w-full text-left border-collapse text-xs sm:text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200/50 bg-white/20 text-gray-500 font-semibold">
+                          <tr className="border-b border-app-border/40 bg-app-surface text-gray-500 font-semibold">
                             <th className="p-4">Invoice / Jenis</th>
                             <th className="p-4">Program / Periode</th>
                             <th className="p-4 text-right">Jumlah</th>
@@ -939,10 +939,10 @@ export default function TagihanWaliPage() {
                             <th className="p-4 text-center">Aksi</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200/30">
+                        <tbody className="divide-y divide-app-border/30">
                           {historyItems.map((entry) =>
                             entry.type === "invoice" ? (
-                              <tr key={entry.item.id} className="hover:bg-white/30 transition-colors">
+                              <tr key={entry.item.id} className="hover:bg-app-surface transition-colors">
                                 <td className="p-4 font-mono font-bold text-gray-700">#{entry.item.id}</td>
                                 <td className="p-4">
                                   <div className="font-semibold text-gray-800">
@@ -972,7 +972,7 @@ export default function TagihanWaliPage() {
                                 </td>
                               </tr>
                             ) : (
-                              <tr key={entry.item.id} className="hover:bg-white/30 transition-colors">
+                              <tr key={entry.item.id} className="hover:bg-app-surface transition-colors">
                                 <td className="p-4">
                                   <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-100 text-indigo-700 px-2 py-0.5 text-[9px] font-bold uppercase border border-indigo-200">
                                     Prabayar
@@ -1010,7 +1010,7 @@ export default function TagihanWaliPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-8 text-gray-500 text-sm">
+                  <div className="text-center py-8 text-gray-500 text-sm bg-app-white border border-app-border rounded-2xl shadow-md">
                     Belum ada data tagihan.
                   </div>
                 )}

@@ -105,10 +105,10 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto w-full flex-grow flex flex-col gap-6">
-        <GlassCard className="p-8 text-center text-gray-600 border border-white/85 shadow-sm">
+        <div className="p-8 text-center text-gray-600 bg-app-white border border-app-border rounded-2xl shadow-md">
           <p className="font-bold">Gagal memuat profil</p>
           <p className="text-sm text-gray-500 mt-1">Silakan coba beberapa saat lagi.</p>
-        </GlassCard>
+        </div>
       </div>
     );
   }
@@ -116,29 +116,29 @@ export default function ProfilePage() {
   const child = profile.murids[0];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto w-full flex-grow flex flex-col gap-6 animate-[fadeIn_0.5s_ease-out]">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto w-full flex-grow flex flex-col gap-6 animate-[fadeIn_0.5s_ease-out] font-dm text-app-text-mid">
       {/* Header */}
-      <header className="flex items-center gap-4 bg-white/40 backdrop-blur-xl border border-white/60 shadow-sm rounded-2xl p-6 relative">
+      <header className="flex items-center gap-4 bg-app-white border border-app-border shadow-md rounded-2xl p-6 relative">
         <Link 
           href="/app/dashboard"
-          className="p-2.5 rounded-xl hover:bg-white/50 text-gray-600 transition-colors border border-transparent hover:border-white/50 active:scale-95"
+          className="p-2.5 rounded-xl hover:bg-app-surface text-gray-600 transition-colors border border-transparent hover:border-app-border active:scale-95"
         >
           <ChevronLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight font-sans">
+          <h1 className="text-xl sm:text-2xl font-normal text-app-text tracking-tight font-playfair">
             Profil Saya
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-app-text-muted">
             Detail akun wali murid Nurman Course
           </p>
         </div>
       </header>
 
       {/* Profile Details */}
-      <GlassCard className="p-6 sm:p-8 flex flex-col gap-6 border border-white/80 shadow-xl">
+      <div className="p-6 sm:p-8 flex flex-col gap-6 bg-app-white border border-app-border shadow-md rounded-2xl hover:shadow-lg transition-all duration-300">
         {/* Avatar Placeholder (Child) */}
-        <div className="flex flex-col items-center gap-3 border-b border-gray-200/50 pb-6">
+        <div className="flex flex-col items-center gap-3 border-b border-app-border/40 pb-6">
           {child && (child.photoPath || child.avatarUrl) ? (
             <img 
               src={child.photoPath || child.avatarUrl || ""} 
@@ -174,7 +174,7 @@ export default function ProfilePage() {
                     type="text"
                     readOnly
                     value={child.name}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
+                    className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
                   />
                 </div>
                 <div>
@@ -185,7 +185,7 @@ export default function ProfilePage() {
                     type="text"
                     readOnly
                     value={child.schoolLevel || "-"}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
+                    className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
                   />
                 </div>
               </div>
@@ -193,7 +193,7 @@ export default function ProfilePage() {
           )}
 
           {/* Section: Informasi Wali (Sekarang di Bawah) */}
-          <div className="border-t border-gray-200/50 pt-4 mt-2">
+          <div className="border-t border-app-border/40 pt-4 mt-2">
             <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
               <User size={18} className="text-[#4a70a9]" />
               Informasi Wali
@@ -207,7 +207,7 @@ export default function ProfilePage() {
                   type="text"
                   readOnly
                   value={profile.name}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
+                  className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
                 />
               </div>
 
@@ -220,7 +220,7 @@ export default function ProfilePage() {
                     type="text"
                     readOnly
                     value={profile.phone}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
+                    className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
                   />
                 </div>
 
@@ -232,7 +232,7 @@ export default function ProfilePage() {
                     type="text"
                     readOnly
                     value={profile.email || "-"}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
+                    className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
                   />
                 </div>
               </div>
@@ -241,7 +241,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Ubah Kata Sandi */}
-        <div className="border-t border-gray-200/50 pt-5">
+        <div className="border-t border-app-border/40 pt-5">
           <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
             <KeyRound size={18} className="text-[#4a70a9]" />
             Ubah Kata Sandi
@@ -267,7 +267,7 @@ export default function ProfilePage() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
                 minLength={6}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-[#4a70a9]"
+                className="w-full rounded-xl border border-gray-200 bg-app-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-[#4a70a9]"
               />
               <button
                 type="button"
@@ -288,26 +288,26 @@ export default function ProfilePage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
                 minLength={6}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-[#4a70a9]"
+                className="w-full rounded-xl border border-gray-200 bg-app-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-[#4a70a9]"
               />
             </div>
-            <Button type="submit" disabled={updating} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#4a70a9] hover:bg-[#3a5a99] text-white text-sm px-4 py-2.5">
+            <Button type="submit" disabled={updating} className="inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#4a70a9] hover:bg-[#3a5a99] text-white text-sm px-4 py-2.5 border-none">
               <KeyRound size={15} /> {updating ? "Menyimpan..." : "Simpan Kata Sandi"}
             </Button>
           </form>
         </div>
 
         {/* Action Button */}
-        <div className="border-t border-gray-200/50 pt-6 flex justify-center">
+        <div className="border-t border-app-border/40 pt-6 flex justify-center">
           <Button
             onClick={askLogout}
-            className="inline-flex items-center gap-2 rounded-xl bg-red-500 hover:bg-red-600 text-white border-red-500 shadow-sm px-4 py-2 text-sm"
+            className="inline-flex items-center gap-2 rounded-[6px] bg-red-500 hover:bg-red-600 text-white border-none shadow-sm px-4 py-2 text-sm"
           >
             <LogOut size={16} />
             <span>Keluar dari Akun</span>
           </Button>
         </div>
-      </GlassCard>
+      </div>
       {logoutDialog}
     </div>
   );
