@@ -188,6 +188,13 @@ backend/src/index.ts
 backend/src/middleware/auth.ts
 - Role: `requireAuth` (verifikasi JWT Supabase), `requireAdmin`.
 
+## Landing Marketing
+frontend/app/landing/page.tsx
+- Role: Landing page utama marketing menggunakan layout AppVerse.id.
+
+frontend/components/landing/LandingTutors.tsx
+- Role: Tutor carousel dengan style editorial AppVerse.id, melacak scroll & snap index secara dinamis.
+
 ## Flow Funnel Pendaftaran
 frontend/app/course/page.tsx
 - Role: Hero landing funnel. Navigates to: /course/program.

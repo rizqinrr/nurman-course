@@ -39,28 +39,34 @@
 
 ---
 
-### 2026-08-24 — Redesign besar landing page /landing dengan AppVerse.id Design System
+### 2026-08-24 — Redesign besar landing page /landing dengan AppVerse.id Design System & Integrasi Tutor Carousel
 
 **Fase:** UI/UX / Funnel polish (branch `dev`)
-**Status sesi:** selesai — halaman `/landing` beserta semua komponennya diredesign total mengikuti AppVerse.id Design System (Playfair Display + DM Sans, warm background `#f7f4ef`, border `#c8b99a`, text `#1a1a18`, card/surface `#edeae3`, rounded-[6px] buttons, rounded-2xl cards) dengan tetap mempertahankan warna utama `#4a70a9` (biru).
+**Status sesi:** selesai — halaman `/landing` beserta semua komponennya diredesign total mengikuti AppVerse.id Design System (Playfair Display + DM Sans, warm background `#f7f4ef`, border `#c8b99a`, text `#1a1a18`, card/surface `#edeae3`, rounded-[6px] buttons, rounded-2xl cards) dengan tetap mempertahankan warna utama `#4a70a9` (biru). Komponen `LandingTutors` ditambahkan sebagai carousel dengan style terbaru.
 
-**Request user:** "yg landing aja dulu, aku mau redesign besar2an bisa dibuat kaya gini ga? # Design System Inspired by AppVerse.id ... warna utamanya samain kayak saat ini, sisanya seuaikan kyk yg aku kasih"
+**Request user:**
+1. "yg landing aja dulu, aku mau redesign besar2an bisa dibuat kaya gini ga? # Design System Inspired by AppVerse.id ... warna utamanya samain kayak saat ini, sisanya seuaikan kyk yg aku kasih"
+2. "dibagian course adasection tentor, itukan semacam carousel, aku mau biar ada di halaman landing, dengan style terbaru"
 
 **Keputusan (klarifikasi):**
 1. Warna utama sistem tetap **`#4a70a9`** (biru medium) dan sekunder tetap **`#3a5a99`** untuk branding.
 2. Canvas berganti dari gradasi biru-putih ke warm off-white (`#f7f4ef`).
 3. Card/surface berganti dari glassmorphism ke solid warm grey (`#edeae3`) dengan outline tan (`#c8b99a`).
 4. Font diubah: Heading memakai **Playfair Display** (weight 400), Body memakai **DM Sans** (weight 400/500/600), di-load via `next/font/google` di `RootLayout`.
+5. Data tutors disentralisasi ke `frontend/data/landing.ts` (menyelesaikan task P5).
 
 **Dikerjakan:**
 - **Layout** `frontend/app/layout.tsx`: import `Playfair_Display` dan `DM_Sans` dari `next/font/google`, declare css variables `--font-playfair` & `--font-dm-sans`, pasang di root html.
 - **Global Theme** `frontend/app/globals.css`: configure Tailwind v4 custom theme tokens (`--color-app-*`, `--font-playfair`, `--font-dm`) sinkron dengan palette AppVerse.id.
-- **Landing Page** `frontend/app/landing/page.tsx`: ganti background gradient class ke `bg-app-bg font-dm text-app-text-mid antialiased`.
+- **Landing Page** `frontend/app/landing/page.tsx`: ganti background gradient class ke `bg-app-bg font-dm text-app-text-mid antialiased`, import & render `<LandingTutors />` di antara program dan testimoni.
 - **Navigasi** `frontend/components/landing/LandingNav.tsx`: update warna background header, border tan, rounded-[6px] button, dan Playfair font untuk nama brand.
 - **Hero** `frontend/components/landing/LandingHero.tsx`: hapus gradient blobs latar belakang, set heading Playfair Display (normal, 400), search bar & button rounded-[6px], update style card kanan menjadi flat warm card dengan rounded-2xl, update border floating chips.
 - **Stats** `frontend/components/landing/LandingStats.tsx`: ganti GlassCard dengan warm card border tan, ubah overlap `-mt-10` menjadi layout normal dengan padding `py-8`, warna angka tetap `#4a70a9` (warna utama).
 - **About** `frontend/components/landing/LandingAbout.tsx`: h2 Playfair Display, info banner & Discord button rounded-[6px], point card diubah ke warm card border tan. Fix duplicate `);` syntax error di akhir file.
 - **Categories** `frontend/components/landing/LandingCategories.tsx` & **Testimonials** `frontend/components/landing/LandingTestimonials.tsx`: h2/h3 Playfair, card diubah dari GlassCard ke solid warm grey card.
+- **Tutor Carousel (Landing)** `frontend/components/landing/LandingTutors.tsx`: buat komponen carousel baru yang diredesign mengikuti AppVerse.id style (Playfair heading, rounded-[6px] buttons & dot indicators, rounded-2xl warm cards).
+- **Tutor Data (P5)** `frontend/data/landing.ts`: sentralisasi data array `tutors` untuk dipakai bersama di `/course` dan `/landing`.
+- **Course Page** `frontend/app/course/page.tsx`: ubah import tutors lokal ke `@/data/landing`.
 - **CTA** `frontend/components/landing/LandingCta.tsx`: ganti gradasi biru ke solid warm surface card, text primary, h2 Playfair, button rounded-[6px] (pilih program bg-primary, tanya admin border-tan bg-white).
 - **Footer** `frontend/components/landing/LandingFooter.tsx`: border-top tan, bg-app-surface, text muted.
 

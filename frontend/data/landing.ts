@@ -20,6 +20,38 @@ export interface Testimonial {
   role: string;
 }
 
+export interface Tutor {
+  nickname: string;
+  university: string;
+  major: string;
+  focus: string;
+  photo: string;
+}
+
+export const tutors: Tutor[] = [
+  {
+    nickname: "Kak Aisyah",
+    university: "Universitas Negeri Yogyakarta",
+    major: "S1 Pendidikan Matematika",
+    focus: "Matematika SD-SMP, logika dasar, dan persiapan ujian",
+    photo: "/tutors/kak-aisyah.svg",
+  },
+  {
+    nickname: "Kak Kiki",
+    university: "Politeknik Negeri Cilacap",
+    major: "D3 Informatika",
+    focus: "Komputer dasar, coding pemula, dan produktivitas digital",
+    photo: "/tutors/kak-fikri.svg",
+  },
+  {
+    nickname: "Kak Nadine",
+    university: "Universitas Pendidikan Indonesia",
+    major: "S1 Pendidikan Bahasa Inggris",
+    focus: "English conversation, grammar practical, dan speaking confidence",
+    photo: "/tutors/kak-nadine.svg",
+  },
+];
+
 export const socialStats: SocialStat[] = [
   {
     id: "siswa",
