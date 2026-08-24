@@ -17,13 +17,13 @@ export default function LandingTestimonials() {
     >
       <Reveal>
         <div className="text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#4a70a9]/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-primary">
             Kata Mereka
           </p>
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">
+          <h2 className="mt-2 font-playfair text-3xl font-normal tracking-tight text-app-text sm:text-4xl">
             Dipercaya orang tua &amp; siswa
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-gray-600 sm:text-base">
+          <p className="mx-auto mt-3 max-w-xl text-sm text-app-text-muted sm:text-base">
             Cuplikan pengalaman keluarga yang sudah belajar bersama Nurman Course.
           </p>
         </div>
@@ -42,33 +42,32 @@ export default function LandingTestimonials() {
               delay: reduceMotion ? 0 : index * 0.08,
             }}
           >
-            <GlassCard className="flex h-full flex-col p-6">
+            <div className="flex h-full flex-col p-6 rounded-2xl border border-app-border bg-app-surface shadow-sm">
               <Quote
                 size={20}
                 strokeWidth={2.25}
-                className="text-[#4a70a9]/70"
+                className="text-app-primary/70"
                 aria-hidden="true"
               />
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-gray-700 sm:text-base">
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-app-text-mid sm:text-base">
                 “{item.quote}”
               </p>
-              <div className="mt-4 border-t border-white/60 pt-4">
+              <div className="mt-4 border-t border-app-border pt-4">
                 <div className="flex items-center gap-0.5" aria-label="Rating 5 dari 5">
                   {Array.from({ length: 5 }, (_, star) => (
                     <Star
                       key={star}
                       size={14}
                       strokeWidth={2.25}
-                      fill="currentColor"
-                      className="text-amber-400"
+                      className="text-amber-400 fill-amber-400"
                       aria-hidden="true"
                     />
                   ))}
                 </div>
-                <p className="mt-2 text-sm font-bold text-gray-900">{item.name}</p>
-                <p className="text-xs text-gray-500 sm:text-sm">{item.role}</p>
+                <p className="mt-2 font-playfair text-sm font-normal text-app-text">{item.name}</p>
+                <p className="text-xs text-app-text-muted sm:text-sm">{item.role}</p>
               </div>
-            </GlassCard>
+            </div>
           </motion.div>
         ))}
       </div>

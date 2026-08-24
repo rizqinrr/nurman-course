@@ -10,7 +10,7 @@ export default function LandingStats() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <Reveal className="relative z-20 mx-auto -mt-10 max-w-6xl px-4 sm:px-6">
+    <Reveal className="relative z-20 mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {landingStats.map((stat, index) => (
           <motion.div
@@ -24,14 +24,14 @@ export default function LandingStats() {
               delay: reduceMotion ? 0 : index * 0.08,
             }}
           >
-            <GlassCard className="p-5 text-center sm:p-6">
-              <p className="text-3xl font-black text-[#4a70a9] sm:text-4xl">
+            <div className="rounded-2xl border border-app-border bg-app-surface p-5 text-center sm:p-6 shadow-sm">
+              <p className="font-playfair text-3xl font-normal text-app-primary sm:text-4xl">
                 <CountUp value={stat.value} suffix={stat.suffix ?? ""} />
               </p>
-              <p className="mt-2 text-xs font-medium text-gray-600 sm:text-sm">
+              <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-app-text-muted sm:text-sm">
                 {stat.label}
               </p>
-            </GlassCard>
+            </div>
           </motion.div>
         ))}
       </div>

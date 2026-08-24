@@ -118,7 +118,7 @@ export default function LandingNav() {
   }, [reduceMotion, x, y]);
 
   return (
-    <nav className="fixed top-0 z-50 w-full border-b border-white/60 bg-white/70 backdrop-blur-xl">
+    <nav className="fixed top-0 z-50 w-full border-b border-app-border bg-app-white/95 backdrop-blur-sm">
       <div className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
         <a
           href="#beranda"
@@ -128,7 +128,7 @@ export default function LandingNav() {
         >
           <motion.span
             style={{ x: springX, y: springY }}
-            className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-white/80 bg-[#2e4b7a] shadow-[0_14px_30px_rgba(74,112,169,0.55)]"
+            className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-app-border bg-[#2e4b7a] shadow-sm"
           >
             <Image
               src="/Nlogo.png"
@@ -140,9 +140,9 @@ export default function LandingNav() {
           </motion.span>
         </a>
 
-        <span className="ml-20 text-lg font-black tracking-tight text-gray-900">
+        <span className="ml-20 font-playfair text-xl tracking-tight text-app-text">
           Nurman{" "}
-          <span className="bg-gradient-to-r from-[#4a70a9] to-indigo-600 bg-clip-text text-transparent">
+          <span className="font-playfair italic text-app-primary">
             Course
           </span>
         </span>
@@ -153,7 +153,7 @@ export default function LandingNav() {
               key={link.label}
               href={link.href}
               onClick={handleAnchorClick(reduceMotion ?? false)}
-              className="text-sm font-semibold text-gray-600 transition-colors hover:text-[#4a70a9]"
+              className="text-sm font-semibold text-app-text-mid transition-colors hover:text-app-primary"
             >
               {link.label}
             </a>
@@ -164,7 +164,7 @@ export default function LandingNav() {
           <button
             type="button"
             onClick={() => router.push("/course/program")}
-            className="inline-flex items-center gap-2 rounded-full bg-[#4a70a9] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#4a70a9]/30 transition-all hover:-translate-y-0.5 hover:bg-[#3a5a99] hover:shadow-xl"
+            className="inline-flex items-center gap-2 rounded-[6px] bg-app-primary px-5 py-2.5 text-sm font-semibold text-app-white transition-all hover:bg-app-secondary border border-app-primary/10 shadow-sm"
           >
             Mulai Belajar
           </button>
@@ -173,7 +173,7 @@ export default function LandingNav() {
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/70 text-[#4a70a9] md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-[6px] border border-app-border bg-app-white text-app-primary md:hidden"
           aria-label={open ? "Tutup menu" : "Buka menu"}
           aria-expanded={open}
         >
@@ -182,14 +182,14 @@ export default function LandingNav() {
       </div>
 
       {open && (
-        <div className="border-t border-white/60 bg-white/85 px-4 py-3 backdrop-blur-xl md:hidden">
+        <div className="border-t border-app-border bg-app-white/95 px-4 py-3 backdrop-blur-md md:hidden">
           <div className="flex flex-col gap-1">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-white/80 hover:text-[#4a70a9]"
+                className="rounded-[6px] px-3 py-2.5 text-sm font-semibold text-app-text-mid transition-colors hover:bg-app-surface hover:text-app-primary"
               >
                 {link.label}
               </a>
@@ -200,7 +200,7 @@ export default function LandingNav() {
                 setOpen(false);
                 router.push("/course/program");
               }}
-              className="mt-2 inline-flex items-center justify-center rounded-full bg-[#4a70a9] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#4a70a9]/30"
+              className="mt-2 inline-flex items-center justify-center rounded-[6px] bg-app-primary px-5 py-3 text-sm font-semibold text-app-white shadow-sm hover:bg-app-secondary"
             >
               Mulai Belajar
             </button>

@@ -10,6 +10,19 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-playfair: var(--font-playfair);
+  --font-dm: var(--font-dm-sans);
+
+  /* AppVerse Palette (Warna utama tetap #4a70a9) */
+  --color-app-bg: #f7f4ef;
+  --color-app-surface: #edeae3;
+  --color-app-border: #c8b99a;
+  --color-app-text: #1a1a18;
+  --color-app-text-mid: #3d3d3a;
+  --color-app-text-muted: #6b7b6c;
+  --color-app-white: #fdfcfa;
+  --color-app-primary: #4a70a9;
+  --color-app-secondary: #3a5a99;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#4a70a9]/40 via-white to-white">
+    <main className="min-h-screen bg-app-bg font-dm text-app-text-mid antialiased">
       <LandingNav />
       <LandingHero />
       <LandingStats />

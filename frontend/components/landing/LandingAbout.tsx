@@ -25,26 +25,26 @@ export default function LandingAbout() {
   return (
     <section
       id="tentang"
-      className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 sm:py-20"
+      className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 sm:py-20 animate-fade-in"
       aria-label="Tentang Nurman Course"
     >
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14">
         <Reveal>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#4a70a9]/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-primary">
               Tentang Kami
             </p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">
+            <h2 className="mt-2 font-playfair text-3xl font-normal tracking-tight text-app-text sm:text-4xl">
               Les privat yang dekat dengan keluarga
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-gray-600 sm:text-lg">
+            <p className="mt-4 text-base leading-relaxed text-app-text-mid sm:text-lg">
               Nurman Course hadir untuk menemani anak belajar dengan pendekatan
               personal, bukan kelas ramai. Pendampingan yang menyesuaikan
               kecepatan dan kebutuhan tiap siswa. Orang tua tetap terhubung
               lewat laporan progres berkala.
             </p>
 
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-semibold text-[#4a70a9] shadow-sm backdrop-blur-md">
+            <div className="mt-6 inline-flex items-center gap-2 rounded-[6px] border border-app-border bg-app-white px-4 py-2 text-sm font-semibold text-app-primary shadow-sm">
               <MessagesSquare size={16} strokeWidth={2.25} aria-hidden="true" />
               Online &amp; offline, di rumah tentor atau siswa
             </div>
@@ -54,12 +54,11 @@ export default function LandingAbout() {
                 href="https://discord.gg/ydZx8h5Uj"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-full border border-white/70 bg-white/70 px-5 py-2.5 text-sm font-semibold text-[#5865F2] shadow-sm backdrop-blur-md hover:bg-white/90 hover:shadow-md transition-colors"
+                className="inline-flex items-center gap-2.5 rounded-[6px] border border-app-border bg-app-white px-5 py-2.5 text-sm font-semibold text-[#5865F2] shadow-sm hover:bg-app-surface transition-colors"
                 whileHover={reduceMotion ? undefined : { 
-                  scale: 1.05, 
-                  rotate: [0, -3, 3, -3, 3, 0] 
+                  scale: 1.03,
                 }}
-                transition={{ duration: 0.4 }}
+                transition={{ duration: 0.2 }}
               >
                 <svg
                   viewBox="0 0 127.14 96.36"
@@ -89,20 +88,20 @@ export default function LandingAbout() {
                   delay: reduceMotion ? 0 : index * 0.08,
                 }}
               >
-                <GlassCard className="h-full p-5">
-                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4a70a9]/10">
+                <div className="rounded-2xl border border-app-border bg-app-surface p-5 shadow-sm h-full">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-[6px] bg-app-primary/10">
                     <Icon
                       size={22}
                       strokeWidth={2.25}
-                      className="text-[#4a70a9]"
+                      className="text-app-primary"
                       aria-hidden="true"
                     />
                   </div>
-                  <h3 className="text-base font-bold text-gray-900">{point.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-gray-600">
+                  <h3 className="font-playfair text-base font-normal text-app-text">{point.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-app-text-mid">
                     {point.description}
                   </p>
-                </GlassCard>
+                </div>
               </motion.div>
             );
           })}

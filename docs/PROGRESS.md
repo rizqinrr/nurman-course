@@ -39,6 +39,40 @@
 
 ---
 
+### 2026-08-24 — Redesign besar landing page /landing dengan AppVerse.id Design System
+
+**Fase:** UI/UX / Funnel polish (branch `dev`)
+**Status sesi:** selesai — halaman `/landing` beserta semua komponennya diredesign total mengikuti AppVerse.id Design System (Playfair Display + DM Sans, warm background `#f7f4ef`, border `#c8b99a`, text `#1a1a18`, card/surface `#edeae3`, rounded-[6px] buttons, rounded-2xl cards) dengan tetap mempertahankan warna utama `#4a70a9` (biru).
+
+**Request user:** "yg landing aja dulu, aku mau redesign besar2an bisa dibuat kaya gini ga? # Design System Inspired by AppVerse.id ... warna utamanya samain kayak saat ini, sisanya seuaikan kyk yg aku kasih"
+
+**Keputusan (klarifikasi):**
+1. Warna utama sistem tetap **`#4a70a9`** (biru medium) dan sekunder tetap **`#3a5a99`** untuk branding.
+2. Canvas berganti dari gradasi biru-putih ke warm off-white (`#f7f4ef`).
+3. Card/surface berganti dari glassmorphism ke solid warm grey (`#edeae3`) dengan outline tan (`#c8b99a`).
+4. Font diubah: Heading memakai **Playfair Display** (weight 400), Body memakai **DM Sans** (weight 400/500/600), di-load via `next/font/google` di `RootLayout`.
+
+**Dikerjakan:**
+- **Layout** `frontend/app/layout.tsx`: import `Playfair_Display` dan `DM_Sans` dari `next/font/google`, declare css variables `--font-playfair` & `--font-dm-sans`, pasang di root html.
+- **Global Theme** `frontend/app/globals.css`: configure Tailwind v4 custom theme tokens (`--color-app-*`, `--font-playfair`, `--font-dm`) sinkron dengan palette AppVerse.id.
+- **Landing Page** `frontend/app/landing/page.tsx`: ganti background gradient class ke `bg-app-bg font-dm text-app-text-mid antialiased`.
+- **Navigasi** `frontend/components/landing/LandingNav.tsx`: update warna background header, border tan, rounded-[6px] button, dan Playfair font untuk nama brand.
+- **Hero** `frontend/components/landing/LandingHero.tsx`: hapus gradient blobs latar belakang, set heading Playfair Display (normal, 400), search bar & button rounded-[6px], update style card kanan menjadi flat warm card dengan rounded-2xl, update border floating chips.
+- **Stats** `frontend/components/landing/LandingStats.tsx`: ganti GlassCard dengan warm card border tan, ubah overlap `-mt-10` menjadi layout normal dengan padding `py-8`, warna angka tetap `#4a70a9` (warna utama).
+- **About** `frontend/components/landing/LandingAbout.tsx`: h2 Playfair Display, info banner & Discord button rounded-[6px], point card diubah ke warm card border tan. Fix duplicate `);` syntax error di akhir file.
+- **Categories** `frontend/components/landing/LandingCategories.tsx` & **Testimonials** `frontend/components/landing/LandingTestimonials.tsx`: h2/h3 Playfair, card diubah dari GlassCard ke solid warm grey card.
+- **CTA** `frontend/components/landing/LandingCta.tsx`: ganti gradasi biru ke solid warm surface card, text primary, h2 Playfair, button rounded-[6px] (pilih program bg-primary, tanya admin border-tan bg-white).
+- **Footer** `frontend/components/landing/LandingFooter.tsx`: border-top tan, bg-app-surface, text muted.
+
+**Verifikasi:**
+- Perbaikan syntax error pada `LandingAbout.tsx` (line 112 duplicate `);`).
+- `npm run build --workspace=frontend` exit 0, compile sukses, 35 routes berhasil digenerate, tsc pass 0 error.
+
+**Residual:**
+- Halaman funnel `/course/*` (landing funnel, program, materi, config) belum diredesign ke style ini — masih memakai glassmorphism asli. Perubahan ini dibatasi hanya untuk `/landing` saja sesuai instruksi.
+
+---
+
 ### 2026-08-23 — Sinkronisasi SYSTEM_MAP.md dengan kode (P1 sebagian)
 
 **Fase:** Meta / dokumentasi (P1) (branch `dev`)
