@@ -1,8 +1,9 @@
-/* Hallmark · genre: playful-glassmorphism · design-system: design.md · designed-as-app */
+/* Hallmark · genre: warm-editorial · design-system: google-stitch · designed-as-mobile-app */
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
+import Link from "next/link";
+import {
   DailyReportDetailed,
   ProgressReportDetailed,
   DailyReport,
@@ -11,30 +12,31 @@ import {
 } from "@/data/lms";
 import { apiFetch } from "@/lib/api";
 import { formatSessionDateTime } from "@/lib/format";
-import GlassCard from "@/components/ui/GlassCard";
-import { 
-  FileText, 
-  Calendar, 
-  Clock, 
-  BookOpen, 
+import { WHATSAPP_NUMBER } from "@/lib/constants";
+import {
+  ArrowLeft,
+  Bell,
+  SlidersHorizontal,
+  Calendar,
+  Clock,
   ClipboardList,
   Award,
   CheckCircle2,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  MessageCircle,
+  Quote,
+  Check,
+  Download,
+  ChevronDown,
+  Sparkles,
+  Archive
 } from "lucide-react";
-import { WHATSAPP_NUMBER } from "@/lib/constants";
 
 interface DbMurid {
   id: string;
   name: string;
 }
-
-const WhatsAppIcon = ({ size = 18, className }: { size?: number; className?: string }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className} aria-hidden="true">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-  </svg>
-);
 
 interface DbDailyReport extends DailyReport {
   session?: {
@@ -53,6 +55,7 @@ export default function LaporanPage() {
   const [murids, setMurids] = useState<DbMurid[]>([]);
   const [selectedMuridId, setSelectedMuridId] = useState("");
   const [activeTab, setActiveTab] = useState<"harian" | "perkembangan">("harian");
+  const [dailyDisplayLimit, setDailyDisplayLimit] = useState(3);
 
   const [dailyReports, setDailyReports] = useState<DbDailyReport[]>([]);
   const [progressReports, setProgressReports] = useState<DbProgressReport[]>([]);
@@ -60,7 +63,6 @@ export default function LaporanPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Live mode
         const meRes = await apiFetch<{ user: { name: string; murids: DbMurid[] } }>("/api/users/me");
         setMurids(meRes.user.murids || []);
         if (meRes.user.murids?.length > 0) {
@@ -69,11 +71,11 @@ export default function LaporanPage() {
 
         const [dailyRes, progressRes] = await Promise.all([
           apiFetch<{ reports: DbDailyReport[] }>("/api/me/daily-reports"),
-          apiFetch<{ reports: DbProgressReport[] }>("/api/me/progress-reports")
+          apiFetch<{ reports: DbProgressReport[] }>("/api/me/progress-reports"),
         ]);
 
-        setDailyReports(dailyRes.reports);
-        setProgressReports(progressRes.reports);
+        setDailyReports(dailyRes.reports || []);
+        setProgressReports(progressRes.reports || []);
         setLoading(false);
       } catch (err) {
         console.error("Failed to load reports:", err);
@@ -89,33 +91,40 @@ export default function LaporanPage() {
 
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-6 items-center justify-center min-h-[50vh]">
-        <div className="w-12 h-12 rounded-full border-4 border-white/20 border-t-[#4a70a9] animate-spin"></div>
-        <p className="text-sm font-semibold text-gray-600">Memuat laporan belajar...</p>
+      <div className="p-6 w-full flex-grow flex flex-col gap-4 items-center justify-center min-h-[50vh]">
+        <div className="w-10 h-10 rounded-full border-3 border-[#4a70a9]/20 border-t-[#4a70a9] animate-spin"></div>
+        <p className="text-xs font-semibold text-[#737781]">Memuat laporan belajar...</p>
       </div>
     );
   }
 
   const selectedMurid = murids.find((m) => m.id === selectedMuridId);
 
-  // Filter & format daily reports
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
   const getFilteredDailyReports = (): DailyReportDetailed[] => {
-    const filtered = dailyReports.filter(r => r.muridId === selectedMuridId);
-    return filtered.map(r => ({
+    const filtered = dailyReports.filter((r) => r.muridId === selectedMuridId);
+    return filtered.map((r) => ({
       ...r,
       date: formatSessionDateTime(r.date).split(" • ")[0],
-      programName: r.session?.program?.name || "Program General",
-      tentorName: r.session?.tentor?.name || "Kak Kiki"
+      programName: r.session?.program?.name || "Program Bimbingan",
+      tentorName: r.session?.tentor?.name || "Tentor",
     }));
   };
 
-  // Filter & format progress reports
   const getFilteredProgressReports = (): ProgressReportDetailed[] => {
-    const filtered = progressReports.filter(r => r.muridId === selectedMuridId);
-    return filtered.map(r => ({
+    const filtered = progressReports.filter((r) => r.muridId === selectedMuridId);
+    return filtered.map((r) => ({
       ...r,
-      programName: r.program?.name || "Program General",
-      sessionsPerBlock: r.program?.sessionsPerBlock || 12
+      programName: r.program?.name || "Program Bimbingan",
+      sessionsPerBlock: r.program?.sessionsPerBlock || 12,
     }));
   };
 
@@ -142,315 +151,348 @@ export default function LaporanPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-6 pb-28 animate-[fadeIn_0.5s_ease-out] font-dm text-app-text-mid">
-      
-      {/* Page Header */}
-      <header className="flex flex-col gap-1 bg-app-white border border-app-border shadow-md rounded-2xl p-6">
-        <h1 className="text-xl sm:text-2xl font-normal text-app-text tracking-tight font-playfair">
-          Laporan Belajar
-        </h1>
-        <p className="text-sm text-app-text-muted">
-          Pantau ringkasan kegiatan harian dan laporan capaian perkembangan belajar anak
-        </p>
+    <div className="px-4 pt-2 pb-10 space-y-4 animate-[fadeIn_0.3s_ease-out] font-dm text-[#1a1a2e]">
+      {/* 1. Top Bar Navigation (100% Stitch Mobile Header) */}
+      <header className="flex items-center justify-between pt-1 pb-1">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/app/dashboard"
+            aria-label="Kembali ke Dashboard"
+            className="w-9 h-9 rounded-full bg-white border border-[#e5ddd0] flex items-center justify-center text-[#1a1a2e] hover:bg-[#eaf0f8] hover:text-[#4a70a9] transition-colors shadow-xs active:scale-95"
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <h1 className="text-xl font-bold font-playfair text-[#1a1a2e] tracking-tight">
+            Laporan Belajar
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            aria-label="Notifikasi"
+            className="w-9 h-9 rounded-full bg-white border border-[#e5ddd0] flex items-center justify-center text-[#434750] hover:text-[#4a70a9] transition-colors shadow-xs active:scale-95"
+          >
+            <Bell size={17} />
+          </button>
+          <button
+            type="button"
+            aria-label="Filter"
+            className="w-9 h-9 rounded-full bg-white border border-[#e5ddd0] flex items-center justify-center text-[#434750] hover:text-[#4a70a9] transition-colors shadow-xs active:scale-95"
+          >
+            <SlidersHorizontal size={16} />
+          </button>
+        </div>
       </header>
 
-      {/* Child selector */}
-      {murids.length > 1 && (
-        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-app-white border border-app-border p-4 rounded-2xl shadow-md">
-          <span className="text-xs font-semibold text-gray-500 shrink-0">Siswa:</span>
-          <div className="flex gap-2">
-            {murids.map((m) => {
-              const isSelected = m.id === selectedMuridId;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setSelectedMuridId(m.id)}
-                  className={`px-4 py-1.5 rounded-[6px] text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
-                    isSelected
-                      ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-md shadow-[#4a70a9]/30"
-                      : "bg-white border-app-border text-gray-600 hover:bg-app-surface"
-                  }`}
+      {/* 2. Child Selector (Avatar Inisial Bulat - Persis Stitch Screen cdfc63d) */}
+      {murids.length > 0 && (
+        <section aria-label="Pilih Profil Anak" className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
+          {murids.map((m, idx) => {
+            const isSelected = m.id === selectedMuridId;
+            const avatarBg = idx === 0 ? "bg-[#4a70a9]" : "bg-[#c8b99a]";
+
+            return (
+              <button
+                key={m.id}
+                onClick={() => setSelectedMuridId(m.id)}
+                type="button"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all active:scale-95 shrink-0 ${
+                  isSelected
+                    ? "bg-white border-2 border-[#4a70a9] shadow-xs"
+                    : "bg-white border border-[#e5ddd0] hover:border-[#4a70a9]/60 opacity-80"
+                }`}
+              >
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-xs ${avatarBg}`}
                 >
-                  {m.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                  {getInitials(m.name)}
+                </div>
+                <div className="text-left flex items-center gap-1.5">
+                  <span className={`text-xs block ${isSelected ? "font-bold text-[#1a1a2e]" : "font-medium text-[#434750]"}`}>
+                    {m.name}
+                  </span>
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-[#4a70a9] text-white flex items-center justify-center">
+                      <Check size={10} strokeWidth={3} />
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </section>
       )}
 
-      {/* Toggle Tabs (Harian vs Perkembangan) */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        {/* Harian Tab */}
+      {/* 3. Segmented Tab Switcher (Stitch 2-Column Grid: Harian vs Perkembangan) */}
+      <section className="bg-[#f0ebe3] p-1 rounded-xl flex items-stretch gap-1">
+        {/* Tab 1: Laporan Harian */}
         <button
           onClick={() => setActiveTab("harian")}
-          className={`flex flex-col gap-1 p-3 sm:p-4 rounded-2xl border text-left transition-colors duration-200 active:scale-[0.98] min-h-[72px] ${
+          type="button"
+          className={`flex-1 rounded-lg py-2.5 px-3 text-left transition-all flex flex-col justify-center ${
             activeTab === "harian"
-              ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-lg shadow-[#4a70a9]/20"
-              : "bg-app-white border-app-border text-gray-700 hover:bg-app-surface"
+              ? "bg-white shadow-[0_1px_4px_rgba(26,26,46,0.06)] border border-[#e5ddd0]/80 text-[#4a70a9]"
+              : "hover:bg-white/40 text-[#737781]"
           }`}
         >
-          <div className="flex items-center gap-2">
-            <ClipboardList size={18} className={activeTab === "harian" ? "text-white" : "text-[#4a70a9]"} />
-            <span className="font-bold text-sm sm:text-base">Laporan Harian</span>
+          <div className="flex items-center gap-1.5 font-semibold">
+            <ClipboardList size={16} />
+            <span className="text-xs">Laporan Harian</span>
           </div>
-          <span className={`text-[10px] sm:text-xs leading-relaxed hidden sm:block ${activeTab === "harian" ? "text-indigo-100" : "text-app-text-muted"}`}>
-            Per sesi pertemuan • Diperbarui tiap sesi selesai dilaksanakan
-          </span>
+          <p className="text-[10px] text-[#737781] mt-0.5 leading-tight">Per sesi pertemuan</p>
         </button>
 
-        {/* Perkembangan Tab */}
+        {/* Tab 2: Laporan Perkembangan */}
         <button
           onClick={() => setActiveTab("perkembangan")}
-          className={`flex flex-col gap-1 p-3 sm:p-4 rounded-2xl border text-left transition-colors duration-200 active:scale-[0.98] min-h-[72px] ${
+          type="button"
+          className={`flex-1 rounded-lg py-2.5 px-3 text-left transition-all flex flex-col justify-center ${
             activeTab === "perkembangan"
-              ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-lg shadow-[#4a70a9]/20"
-              : "bg-app-white border-app-border text-gray-700 hover:bg-app-surface"
+              ? "bg-white shadow-[0_1px_4px_rgba(26,26,46,0.06)] border border-[#e5ddd0]/80 text-[#4a70a9]"
+              : "hover:bg-white/40 text-[#737781]"
           }`}
         >
-          <div className="flex items-center gap-2">
-            <Award size={18} className={activeTab === "perkembangan" ? "text-white" : "text-[#4a70a9]"} />
-            <span className="font-bold text-sm sm:text-base">Laporan Perkembangan</span>
+          <div className="flex items-center gap-1.5 font-semibold">
+            <Award size={16} />
+            <span className="text-xs">Laporan Perkembangan</span>
           </div>
-          <span className={`text-[10px] sm:text-xs leading-relaxed hidden sm:block ${activeTab === "perkembangan" ? "text-indigo-100" : "text-app-text-muted"}`}>
-            Per blok pertemuan • Diperbarui tiap akhir siklus (10x / 12x sesi)
-          </span>
+          <p className="text-[10px] text-[#737781] mt-0.5 leading-tight">Per blok pertemuan</p>
         </button>
-      </div>
+      </section>
 
-
-
-      {/* Reports List */}
+      {/* 4. Tab Content Area */}
       {selectedMurid ? (
-        <section className="flex flex-col gap-4">
-          {activeTab === "harian" ? (
-            <>
-              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 border-b border-gray-200/50 pb-2">
-                <ClipboardList size={20} className="text-[#4a70a9]" />
-                <span>Daftar Laporan Harian</span>
-              </h3>
-
-              {filteredDailyReports.length > 0 ? (
-                <div className="flex flex-col gap-6">
-                  {filteredDailyReports.map((report) => (
-                    <div key={report.id} className="p-6 flex flex-col gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
-                      {/* Top Badge & Date Time */}
-                      <div className="flex flex-wrap justify-between items-start gap-2 border-b border-app-border/40 pb-3">
-                        <div className="flex flex-col gap-1">
-                          <span className="self-start px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 text-[#4a70a9] rounded-full text-[10px] font-bold uppercase tracking-wider">
-                            {report.programName}
-                          </span>
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                            <Calendar size={14} className="text-gray-400" />
-                            <span className="font-semibold text-gray-700">{report.date}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-gray-500 bg-app-white border border-app-border px-3 py-1 rounded-lg">
-                          <Clock size={14} className="text-[#4a70a9]" />
-                          <span>{report.startTime} - {report.endTime} WIB</span>
-                        </div>
-                      </div>
-
-                      {/* Material Taught */}
-                      <div className="flex flex-col gap-1.5 text-left">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                          <BookOpen size={12} />
-                          Materi / Kegiatan yang Diajarkan
-                        </span>
-                        <p className="text-sm sm:text-base font-bold text-gray-800 leading-snug">
-                          {report.activity}
-                        </p>
-                      </div>
-
-                      {/* Tutor Info */}
-                      <div className="flex items-center gap-2.5 py-1 self-start">
-                        <div className="w-8 h-8 rounded-full bg-[#4a70a9]/10 border border-[#4a70a9]/20 flex items-center justify-center text-sm font-bold text-[#4a70a9]">
-                          {report.tentorName.charAt(0)}
-                        </div>
-                        <div className="flex flex-col text-left">
-                        <span className="text-xs font-bold text-gray-800">{report.tentorName}</span>
-                        <span className="text-[10px] text-gray-500 font-medium">Tentor</span>
-                        </div>
-                      </div>
-
-                      {/* Notes box */}
-                      <div className="mt-2 border-l-2 border-[#4a70a9]/30 pl-4 py-1 flex flex-col gap-1 text-left">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                          <FileText size={12} className="text-gray-400" />
-                          Catatan Perkembangan Sesi Ini
-                        </span>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                          {report.notes || "Tidak ada catatan sesi."}
-                        </p>
-                      </div>
-
-                      {/* Contact WA */}
-                      <div className="flex justify-end mt-2">
-                        <button
-                          onClick={() => handleContactTutorWA(report)}
-                          title="Diskusi via WhatsApp"
-                          aria-label="Diskusi via WhatsApp"
-                          className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all border border-[#25D366]/40"
-                        >
-                          <WhatsAppIcon size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6 bg-app-white border border-app-border rounded-2xl text-gray-600 shadow-md">
-                  <ClipboardList size={32} className="text-[#4a70a9] shrink-0" />
-                  <div className="flex-grow text-left">
-                    <p className="font-bold text-sm">Belum Ada Laporan Harian</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Laporan harian akan terbit setelah sesi belajar diselesaikan.</p>
-                  </div>
-                  <a 
-                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Halo Admin Nurman Course, saya wali murid dari ${selectedMurid.name}. Ingin menanyakan perihal update laporan belajar anak saya. Terima kasih.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Hubungi Admin via WhatsApp"
-                    aria-label="Hubungi Admin via WhatsApp"
-                    className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all shrink-0 mt-2 sm:mt-0 border border-[#25D366]/40"
+        activeTab === "harian" ? (
+          /* TAB LAPORAN HARIAN */
+          <section className="space-y-3.5">
+            {filteredDailyReports.length > 0 ? (
+              <>
+                {filteredDailyReports.slice(0, dailyDisplayLimit).map((report) => (
+                  <article
+                    key={report.id}
+                    className="bg-white rounded-xl border border-[#e5ddd0] p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)] relative overflow-hidden space-y-3"
                   >
-                    <WhatsAppIcon size={18} />
-                  </a>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 border-b border-gray-200/50 pb-2">
-                <Award size={20} className="text-[#4a70a9]" />
-                <span>Daftar Laporan Perkembangan</span>
-              </h3>
+                    {/* Top Row: Badge Program & WhatsApp Tutor Button */}
+                    <div className="flex items-center justify-between pb-2.5 border-b border-[#e5ddd0]/50">
+                      <span className="inline-flex items-center gap-1.5 bg-[#eaf0f8] text-[#30578f] px-2.5 py-1 rounded-full text-[11px] font-bold tracking-normal">
+                        <span className="w-2 h-2 rounded-full bg-[#4a70a9]" />
+                        {report.programName}
+                      </span>
+                      <button
+                        onClick={() => handleContactTutorWA(report)}
+                        title={`Hubungi ${report.tentorName} di WhatsApp`}
+                        aria-label={`Hubungi ${report.tentorName} di WhatsApp`}
+                        className="w-8 h-8 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:scale-95 text-white flex items-center justify-center shadow-xs transition-transform"
+                      >
+                        <MessageCircle size={16} />
+                      </button>
+                    </div>
 
-              {filteredProgressReports.length > 0 ? (
-                <div className="flex flex-col gap-6">
-                  {filteredProgressReports.map((report) => (
-                    <div key={report.id} className="p-6 flex flex-col gap-4 bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
-                      {/* Header */}
-                      <div className="flex flex-wrap justify-between items-start gap-2 border-b border-app-border/40 pb-3">
-                        <div className="flex flex-col gap-1">
-                          <span className="self-start px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 text-[#4a70a9] rounded-full text-[10px] font-bold uppercase tracking-wider">
-                            {report.programName}
-                          </span>
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                            <Award size={14} className="text-emerald-500" />
-                            <span className="font-bold text-gray-700">Laporan Perkembangan Blok {report.blockNumber}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-lg">
-                          <span>Siklus: {report.sessionsPerBlock} Sesi Selesai</span>
-                        </div>
+                    {/* Date & Time 2 Columns (Persis Stitch) */}
+                    <div className="grid grid-cols-2 gap-2 text-[#737781]">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar size={14} className="text-[#737781] shrink-0" />
+                        <span className="text-xs font-medium text-[#1a1a2e]">{report.date}</span>
                       </div>
-
-                      {/* Achievements */}
-                      <div className="flex flex-col gap-2 text-left">
-                        <span className="text-[10px] font-bold text-[#4a70a9] uppercase tracking-wide flex items-center gap-1">
-                          <CheckCircle2 size={12} />
-                          Capaian Hasil Belajar
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={14} className="text-[#737781] shrink-0" />
+                        <span className="text-xs font-medium text-[#1a1a2e]">
+                          {report.startTime} - {report.endTime} WIB
                         </span>
-                        <ul className="space-y-1.5">
-                          {report.achievements.map((ach, idx) => (
-                            <li key={idx} className="text-xs sm:text-sm text-gray-700 flex items-start gap-2">
-                              <span className="text-emerald-500 text-base leading-none select-none">•</span>
-                              <span>{ach}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                       {/* Mastered & Weak Materials */}
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
-                         {/* Mastered */}
-                         <div className="border-l-2 border-emerald-500/40 pl-4 py-1 flex flex-col gap-1 text-left">
-                           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide flex items-center gap-1">
-                             <TrendingUp size={12} />
-                             Materi yang Dikuasai
-                           </span>
-                           <ul className="space-y-1">
-                             {report.masteredMaterials.map((item, idx) => (
-                               <li key={idx} className="text-xs sm:text-sm text-gray-700 flex items-start gap-2">
-                                 <span className="text-emerald-500 text-base leading-none select-none">•</span>
-                                 <span>{item}</span>
-                               </li>
-                             ))}
-                           </ul>
-                         </div>
-
-                         {/* Weak */}
-                         <div className="border-l-2 border-amber-500/40 pl-4 py-1 flex flex-col gap-1 text-left">
-                           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide flex items-center gap-1">
-                             <AlertTriangle size={12} />
-                             Perlu Latihan Tambahan
-                           </span>
-                           <ul className="space-y-1">
-                             {report.weakMaterials.map((item, idx) => (
-                               <li key={idx} className="text-xs sm:text-sm text-gray-700 flex items-start gap-2">
-                                 <span className="text-amber-500 text-base leading-none select-none">•</span>
-                                 <span>{item}</span>
-                               </li>
-                             ))}
-                           </ul>
-                         </div>
-                       </div>
-
-                      {/* Notes/Saran box */}
-                      <div className="border-l-2 border-gray-400/40 pl-4 py-1 flex flex-col gap-1 text-left">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1 border-b border-gray-200/50 pb-1">
-                          <FileText size={12} className="text-gray-400" />
-                      Catatan & Saran Tentor
-                        </span>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                          {report.notes || "Tidak ada saran khusus."}
-                        </p>
-                      </div>
-
-                      {/* Contact Admin */}
-                      <div className="flex justify-end mt-2">
-                        <button
-                          onClick={() => handleContactAdminProgressWA(report)}
-                          title="Konsultasi Perkembangan Anak"
-                          aria-label="Konsultasi Perkembangan Anak"
-                          className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all border border-[#25D366]/40"
-                        >
-                          <WhatsAppIcon size={18} />
-                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6 bg-app-white border border-app-border rounded-2xl text-gray-600 shadow-md">
-                  <Award size={32} className="text-[#4a70a9] shrink-0" />
-                  <div className="flex-grow text-left">
-                    <p className="font-bold text-sm">Belum Ada Laporan Perkembangan</p>
-                    <p className="text-xs text-gray-400 mt-1.5 max-w-md leading-relaxed">
-                      Laporan dikeluarkan secara berkala setiap akhir 1 blok pertemuan (10 atau 12 sesi belajar).
+
+                    {/* Materi / Kegiatan Section */}
+                    <div className="pt-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#737781] block mb-1">
+                        Materi / Kegiatan
+                      </span>
+                      <p className="text-sm font-semibold text-[#1a1a2e] leading-snug">
+                        {report.activity}
+                      </p>
+                    </div>
+
+                    {/* Tentor Row (Avatar Inisial Bulat + Jabatan) */}
+                    <div className="flex items-center gap-2.5 pt-1">
+                      <div className="w-8 h-8 rounded-full bg-[#eaf0f8] text-[#4a70a9] border border-[#4a70a9]/20 flex items-center justify-center text-[11px] font-bold">
+                        {getInitials(report.tentorName)}
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs font-semibold text-[#1a1a2e] block leading-tight">
+                          {report.tentorName}
+                        </span>
+                        <span className="text-[10px] text-[#737781] block">Tentor Akademik Utama</span>
+                      </div>
+                    </div>
+
+                    {/* Catatan Tentor Quote Box (Warm Sand Accent Border #c8b99a) */}
+                    <div className="bg-[#f7f4ef] border-l-[3px] border-[#c8b99a] rounded-r-lg p-3 text-[#1a1a2e]">
+                      <div className="flex items-center gap-1 text-[#705200] mb-1">
+                        <Quote size={13} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Catatan Tentor</span>
+                      </div>
+                      <p className="text-xs text-[#1a1a2e]/90 italic leading-relaxed">
+                        &quot;{report.notes || "Sesi berjalan lancar dan murid aktif menyimak materi."}&quot;
+                      </p>
+                    </div>
+                  </article>
+                ))}
+
+                {/* Tombol Tampilkan Lebih Banyak (Sesuai Stitch) */}
+                {filteredDailyReports.length > dailyDisplayLimit && (
+                  <button
+                    type="button"
+                    onClick={() => setDailyDisplayLimit((prev) => prev + 5)}
+                    className="w-full py-2.5 rounded-xl border border-[#e5ddd0] bg-white text-xs font-semibold text-[#4a70a9] hover:bg-[#eaf0f8] flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                  >
+                    <span>Tampilkan Lebih Banyak</span>
+                    <ChevronDown size={15} />
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="bg-white border border-[#e5ddd0] rounded-xl p-8 text-center text-xs text-[#737781] shadow-xs">
+                Belum ada data laporan harian untuk {selectedMurid.name}.
+              </div>
+            )}
+          </section>
+        ) : (
+          /* TAB LAPORAN PERKEMBANGAN (PER BLOK) */
+          <section className="space-y-4">
+            {/* Header Evaluasi Blok Pertemuan (Stitch Section Header) */}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-[#4a70a9]" />
+                <h2 className="text-base font-bold font-playfair text-[#1a1a2e]">
+                  Evaluasi Blok Pertemuan
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="text-xs font-semibold text-[#4a70a9] hover:underline flex items-center gap-1"
+              >
+                <Archive size={13} />
+                <span>Lihat Arsip</span>
+              </button>
+            </div>
+
+            {filteredProgressReports.length > 0 ? (
+              filteredProgressReports.map((report) => (
+                <article
+                  key={report.id}
+                  className="bg-white rounded-xl border border-[#e5ddd0] p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)] space-y-3.5"
+                >
+                  {/* Card Header & Badge Sesi Selesai */}
+                  <div className="flex items-start justify-between gap-2 pb-2 border-b border-[#e5ddd0]/50">
+                    <div>
+                      <span className="text-[10px] font-bold text-[#737781] uppercase tracking-wider block">
+                        Evaluasi Berkala
+                      </span>
+                      <h3 className="text-base font-bold text-[#1a1a2e] font-playfair mt-0.5">
+                        Laporan Perkembangan Blok {report.blockNumber}
+                      </h3>
+                    </div>
+                    <div className="inline-flex items-center gap-1 bg-[#dcfce7] text-[#16a34a] px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0">
+                      <CheckCircle2 size={13} />
+                      <span>{report.sessionsPerBlock} sesi selesai</span>
+                    </div>
+                  </div>
+
+                  {/* Capaian Hasil Belajar (Checklist Hijau) */}
+                  <div className="space-y-1.5 pt-0.5">
+                    <span className="text-xs font-bold text-[#434750] block">
+                      Capaian Hasil Belajar:
+                    </span>
+                    <ul className="space-y-1.5">
+                      {report.achievements.map((ach, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs text-[#1a1a2e]">
+                          <div className="w-4 h-4 rounded-full bg-[#dcfce7] text-[#16a34a] flex items-center justify-center shrink-0 mt-0.5">
+                            <Check size={11} strokeWidth={3} />
+                          </div>
+                          <span className="leading-snug">{ach}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Bento Grid 2 Kolom: Materi Dikuasai vs Perlu Latihan */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    {/* Kotak Hijau: Materi Dikuasai */}
+                    <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 text-[#16a34a] mb-2">
+                        <TrendingUp size={15} />
+                        <span className="text-xs font-bold">Materi Dikuasai</span>
+                      </div>
+                      <ul className="text-xs text-[#1a1a2e]/90 space-y-1.5 pl-4 list-disc marker:text-[#16a34a]">
+                        {report.masteredMaterials.map((item, idx) => (
+                          <li key={idx} className="leading-snug">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Kotak Amber: Perlu Latihan */}
+                    <div className="bg-[#fffbeb] border border-[#fde68a] rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 text-[#d97706] mb-2">
+                        <AlertTriangle size={15} />
+                        <span className="text-xs font-bold">Perlu Latihan</span>
+                      </div>
+                      <ul className="text-xs text-[#1a1a2e]/90 space-y-1.5 pl-4 list-disc marker:text-[#d97706]">
+                        {report.weakMaterials.map((item, idx) => (
+                          <li key={idx} className="leading-snug">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Catatan & Rekomendasi (Quote Box Emas/Sand #c8b99a) */}
+                  <div className="bg-[#f7f4ef] border-l-[3px] border-[#c8b99a] rounded-r-lg p-3">
+                    <div className="flex items-center gap-1.5 text-[#705200] mb-1">
+                      <Award size={14} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">
+                        Catatan &amp; Rekomendasi
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#1a1a2e] leading-relaxed">
+                      {report.notes || "Direkomendasikan sesi pengayaan dan latihan soal berkala sebelum ujian."}
                     </p>
                   </div>
-                  <a 
-                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Halo Admin Nurman Course, saya wali murid dari ${selectedMurid.name}. Ingin menanyakan perihal laporan perkembangan belajar berkala anak saya. Terima kasih.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Hubungi Admin via WhatsApp"
-                    aria-label="Hubungi Admin via WhatsApp"
-                    className="w-10 h-10 rounded-full bg-[#25D366] hover:bg-[#1fb858] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all shrink-0 mt-2 sm:mt-0 border border-[#25D366]/40"
-                  >
-                    <WhatsAppIcon size={18} />
-                  </a>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+
+                  {/* Action Buttons: Unduh Rapor PDF (Primary Stitch) & Konsultasi WA */}
+                  <div className="pt-2 space-y-2">
+                    <button
+                      onClick={() => window.print()}
+                      type="button"
+                      className="w-full py-2.5 rounded-xl bg-[#4a70a9] hover:bg-[#3d5d8c] active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all"
+                    >
+                      <Download size={15} />
+                      <span>Unduh Rapor PDF</span>
+                    </button>
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => handleContactAdminProgressWA(report)}
+                        type="button"
+                        className="inline-flex items-center gap-1.5 text-[#16a34a] hover:text-[#15803d] text-xs font-bold py-1 px-3 hover:bg-[#f0fdf4] rounded-lg transition-colors"
+                      >
+                        <MessageCircle size={15} />
+                        <span>Konsultasi Rapor via WhatsApp</span>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="bg-white border border-[#e5ddd0] rounded-xl p-8 text-center text-xs text-[#737781] shadow-xs">
+                Belum ada laporan perkembangan blok bimbingan untuk {selectedMurid.name}.
+              </div>
+            )}
+          </section>
+        )
       ) : (
-        <div className="text-center py-12 bg-white/40 border border-white/60 rounded-2xl text-gray-500">
+        <div className="text-center py-12 bg-white border border-[#e5ddd0] rounded-xl text-xs text-[#737781]">
           Tidak ada data anak ditemukan. Hubungi admin untuk mendaftarkan anak Anda.
         </div>
       )}
-
     </div>
   );
 }

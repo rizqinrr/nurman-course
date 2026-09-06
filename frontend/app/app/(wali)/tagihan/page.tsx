@@ -1,8 +1,9 @@
-/* Hallmark · genre: playful-glassmorphism · design-system: design.md · designed-as-app */
+/* Hallmark · genre: warm-editorial · design-system: google-stitch · designed-as-mobile-app */
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { 
+import Link from "next/link";
+import {
   Invoice,
   Enrollment,
   Program,
@@ -11,27 +12,28 @@ import {
 import { WHATSAPP_NUMBER } from "@/lib/constants";
 import { apiFetch } from "@/lib/api";
 import { formatSessionDateTime } from "@/lib/format";
-import GlassCard from "@/components/ui/GlassCard";
-import Button from "@/components/ui/Button";
 import ProofModal, { ProofInvoiceData } from "@/components/ui/ProofModal";
-import { 
-  AlertCircle, 
-  CheckCircle2, 
-  Coins, 
-  Upload, 
-  Building,
-  Check,
+import {
+  ArrowLeft,
+  Bell,
   Clock,
-  Eye
+  AlertCircle,
+  CheckCircle2,
+  Hourglass,
+  Copy,
+  Check,
+  UploadCloud,
+  ChevronDown,
+  ChevronUp,
+  Wallet,
+  Building,
+  FileText,
+  ChevronRight,
+  ShieldCheck,
+  Send,
+  MessageCircle,
+  Paperclip
 } from "lucide-react";
-
-function WhatsAppIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
-    </svg>
-  );
-}
 
 interface DbMurid {
   id: string;
@@ -77,36 +79,52 @@ interface DbPrepayment {
 
 export default function TagihanWaliPage() {
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("Wali");
   const [murids, setMurids] = useState<DbMurid[]>([]);
   const [selectedMuridId, setSelectedMuridId] = useState("");
-  
+
   const [invoices, setInvoices] = useState<DbInvoice[]>([]);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
+  const [prepayments, setPrepayments] = useState<DbPrepayment[]>([]);
 
+  // State Form Pembayaran Tagihan Aktif
   const [uploadedProof, setUploadedProof] = useState<string | null>(null);
   const [uploadedProofName, setUploadedProofName] = useState<string>("");
   const [paymentNote, setPaymentNote] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  // State Accordion Prabayar
+  const [isPrepaymentOpen, setIsPrepaymentOpen] = useState(false);
   const [customAmount, setCustomAmount] = useState<string>("");
-  const [prepayments, setPrepayments] = useState<DbPrepayment[]>([]);
+  const [prepaymentNote, setPrepaymentNote] = useState<string>("");
+  const [uploadedPrepaymentProof, setUploadedPrepaymentProof] = useState<string | null>(null);
+  const [uploadedPrepaymentProofName, setUploadedPrepaymentProofName] = useState<string>("");
+  const [submittingPrepayment, setSubmittingPrepayment] = useState(false);
+
+  // State Riwayat Pembayaran (Hidden by Default)
+  const [showAllHistory, setShowAllHistory] = useState(false);
   const [historySort, setHistorySort] = useState<"terbaru" | "terlama">("terbaru");
+
+  // State Modal Bukti
   const [proofWali, setProofWali] = useState<ProofInvoiceData | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prepaymentFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        // Live mode
         const meRes = await apiFetch<{ user: { name: string; murids: DbMurid[] } }>("/api/users/me");
+        setUserName(meRes.user.name || "Wali");
         setMurids(meRes.user.murids || []);
         if (meRes.user.murids?.length > 0) {
           setSelectedMuridId(meRes.user.murids[0].id);
         }
 
         const invoicesRes = await apiFetch<{ invoices: DbInvoice[] }>("/api/me/invoices");
-        setInvoices(invoicesRes.invoices);
+        setInvoices(invoicesRes.invoices || []);
 
         const [accountsRes, prepaymentsRes] = await Promise.all([
           apiFetch<{ data: PaymentAccount[] }>("/api/payment-accounts"),
@@ -129,31 +147,33 @@ export default function TagihanWaliPage() {
 
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-6 items-center justify-center min-h-[50vh]">
-        <div className="w-12 h-12 rounded-full border-4 border-white/20 border-t-[#4a70a9] animate-spin"></div>
-        <p className="text-sm font-semibold text-gray-600">Memuat tagihan belajar...</p>
+      <div className="p-6 w-full flex-grow flex flex-col gap-4 items-center justify-center min-h-[50vh]">
+        <div className="w-10 h-10 rounded-full border-3 border-[#4a70a9]/20 border-t-[#4a70a9] animate-spin"></div>
+        <p className="text-xs font-semibold text-[#737781]">Memuat informasi tagihan...</p>
       </div>
     );
   }
 
   const selectedMurid = murids.find((m) => m.id === selectedMuridId);
 
-  const getFilteredInvoices = (): DbInvoice[] => {
-    return invoices.filter((inv) => inv.enrollment?.muridId === selectedMuridId);
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
   };
 
-  const activeInvoices = getFilteredInvoices();
+  const activeInvoices = invoices.filter((inv) => inv.enrollment?.muridId === selectedMuridId);
   const pendingInvoices = activeInvoices.filter((inv) => inv.status !== "paid");
-
-  // Tagihan terbaru yang belum lunas (belum dibayar / menunggu verifikasi)
   const latestUnpaid = pendingInvoices[0];
 
-  // Rekening tujuan transfer (default dulu, lalu yang pertama aktif)
-  const defaultAccount = paymentAccounts.find((acc) => acc.isDefault && acc.isActive) ||
+  const defaultAccount =
+    paymentAccounts.find((acc) => acc.isDefault && acc.isActive) ||
     paymentAccounts.find((acc) => acc.isActive) ||
     null;
 
-  // Riwayat gabungan: invoice + prabayar, urut berdasarkan tanggal transaksi
   const getTxDate = (item: DbInvoice | DbPrepayment): string => {
     if ("enrollment" in item) {
       return item.paidAt ?? item.submittedAt ?? item.dueAt;
@@ -168,6 +188,14 @@ export default function TagihanWaliPage() {
       .map((p) => ({ type: "prepayment" as const, item: p, date: getTxDate(p) })),
   ].sort((a, b) => (historySort === "terbaru" ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)));
 
+  // Handle Copy Nomor Rekening
+  const handleCopyAccount = (accNumber: string) => {
+    navigator.clipboard.writeText(accNumber.replace(/\s+/g, ""));
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  // Upload Handler untuk Tagihan Aktif
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -184,8 +212,8 @@ export default function TagihanWaliPage() {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 400;
-          const MAX_HEIGHT = 400;
+          const MAX_WIDTH = 450;
+          const MAX_HEIGHT = 450;
           let width = img.width;
           let height = img.height;
 
@@ -214,7 +242,7 @@ export default function TagihanWaliPage() {
         img.src = result;
       } else {
         if (result.length > 4_000_000) {
-          alert("File PDF terlalu besar. Maksimal sekitar 3MB.");
+          alert("File PDF terlalu besar. Maksimal 4MB.");
           return;
         }
         setUploadedProof(result);
@@ -225,10 +253,21 @@ export default function TagihanWaliPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleUploadAreaClick = () => {
-    fileInputRef.current?.click();
+  // Upload Handler untuk Prabayar
+  const handlePrepaymentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setUploadedPrepaymentProof(result);
+      setUploadedPrepaymentProofName(file.name);
+    };
+    reader.readAsDataURL(file);
   };
 
+  // Submit Pembayaran Tagihan Aktif
   const handleSubmitPayment = async (invoice: DbInvoice) => {
     if (!uploadedProof) {
       setPaymentError("Unggah bukti transfer terlebih dahulu.");
@@ -240,792 +279,577 @@ export default function TagihanWaliPage() {
       await apiFetch<{ data: unknown }>(`/api/me/invoices/${invoice.id}/payment`, {
         method: "POST",
         body: JSON.stringify({
-          amount: invoice.amount,
-          proofBase64: uploadedProof,
-          proofName: uploadedProofName,
-          note: paymentNote || null,
+          paymentProof: uploadedProof,
+          paymentProofName: uploadedProofName,
+          paymentNote: paymentNote.trim() || undefined,
         }),
       });
-      const invoicesRes = await apiFetch<{ invoices: DbInvoice[] }>("/api/me/invoices");
-      setInvoices(invoicesRes.invoices);
+
+      const invRes = await apiFetch<{ invoices: DbInvoice[] }>("/api/me/invoices");
+      setInvoices(invRes.invoices || []);
       setUploadedProof(null);
       setUploadedProofName("");
       setPaymentNote("");
+      alert("Bukti pembayaran berhasil dikirim! Menunggu verifikasi admin.");
     } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : "Gagal mengirim pembayaran.");
+      console.error(err);
+      setPaymentError("Gagal mengirim bukti pembayaran. Silakan coba lagi.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Submit Pembayaran Prabayar
   const handleSubmitPrepayment = async () => {
     const amountVal = Number(customAmount) || 0;
     if (amountVal <= 0) {
-      setPaymentError("Silakan masukkan nominal pembayaran.");
+      alert("Masukkan nominal deposit / pembayaran prabayar.");
       return;
     }
-    if (!uploadedProof) {
-      setPaymentError("Unggah bukti transfer terlebih dahulu.");
+    if (!selectedMuridId) {
+      alert("Pilih murid terlebih dahulu.");
       return;
     }
-    if (!selectedMurid) return;
-    setSubmitting(true);
-    setPaymentError(null);
+    if (!uploadedPrepaymentProof) {
+      alert("Unggah bukti transfer terlebih dahulu.");
+      return;
+    }
+
+    setSubmittingPrepayment(true);
     try {
-      await apiFetch<{ data: DbPrepayment }>("/api/me/prepayments", {
+      await apiFetch("/api/me/prepayments", {
         method: "POST",
         body: JSON.stringify({
-          muridId: selectedMurid.id,
+          muridId: selectedMuridId,
           amount: amountVal,
-          proofBase64: uploadedProof,
-          proofName: uploadedProofName,
-          note: paymentNote || null,
+          note: prepaymentNote.trim() || undefined,
+          paymentProof: uploadedPrepaymentProof,
+          paymentProofName: uploadedPrepaymentProofName,
         }),
       });
-      const prepaymentsRes = await apiFetch<{ data: DbPrepayment[] }>("/api/me/prepayments");
-      setPrepayments(prepaymentsRes.data || []);
+
+      const [prepRes, invRes] = await Promise.all([
+        apiFetch<{ data: DbPrepayment[] }>("/api/me/prepayments"),
+        apiFetch<{ invoices: DbInvoice[] }>("/api/me/invoices"),
+      ]);
+      setPrepayments(prepRes.data || []);
+      setInvoices(invRes.invoices || []);
       setCustomAmount("");
-      setUploadedProof(null);
-      setUploadedProofName("");
-      setPaymentNote("");
+      setPrepaymentNote("");
+      setUploadedPrepaymentProof(null);
+      setUploadedPrepaymentProofName("");
+      setIsPrepaymentOpen(false);
+      alert("Pembayaran prabayar berhasil diajukan! Menunggu verifikasi admin.");
     } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : "Gagal mengirim pembayaran.");
+      console.error(err);
+      alert("Gagal mengirim data pembayaran prabayar.");
     } finally {
-      setSubmitting(false);
+      setSubmittingPrepayment(false);
     }
   };
 
-  const handleWAConfirm = (invoiceId: string, amount: number) => {
-    if (!selectedMurid) return;
-    const text = encodeURIComponent(
-      `Halo Admin Nurman Course, saya ingin konfirmasi pembayaran untuk Invoice *#${invoiceId}* atas nama siswa *${selectedMurid.name}* sebesar *Rp ${amount.toLocaleString("id-ID")}*. Bukti transfer telah terlampir/diunggah di portal. Terima kasih.`
-    );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
-  };
-
-  const getProgramNameFromEnrollment = (enrollmentId: string, liveProgramName?: string) => {
-    if (liveProgramName) return liveProgramName;
-    if (enrollmentId.includes("ngaji")) return "Ngaji Iqra & Al-Qur'an";
-    if (enrollmentId.includes("vibe")) return "Kelas Vibe Coding";
-    return "Calistung Dasar";
-  };
-
-  // Mapper period & breakdown di frontend untuk live mode
-  const getInvoicePeriod = (inv: DbInvoice) => {
-    // Menggunakan data startedAt dari enrollment atau deskripsi/note
-    if (inv.note) return inv.note; // e.g. "Biaya Blok 1 Kelas Ngaji Al-Qur'an"
-    const d = new Date(inv.enrollment.startedAt);
-    return `Periode Bimbingan Belajar (Mulai ${d.toLocaleDateString("id-ID", { month: "long", year: "numeric" })})`;
-  };
-
-  const getInvoiceBreakdown = (inv: DbInvoice) => {
-    return [
-      {
-        label: `Biaya Paket Program ${inv.enrollment?.program?.name || ""}`,
-        amount: inv.amount
-      }
-    ];
-  };
-
-  const renderStatusBadge = (status: string) => {
-    if (status === "paid") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md text-[10px] font-bold shadow-sm">
-          <Check size={10} strokeWidth={3} />
-          Lunas
-        </span>
-      );
-    }
-    if (status === "unpaid") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-800 border border-red-200 rounded-md text-[10px] font-bold shadow-sm">
-          <AlertCircle size={10} />
-          Belum Dibayar
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-md text-[10px] font-bold shadow-sm">
-        <Clock size={10} />
-        Verifikasi
-      </span>
-    );
-  };
-
-  const renderInvoiceDate = (inv: DbInvoice) => {
-    if (inv.status === "paid") {
-      return <span>Dibayar: {inv.paidAt ? formatSessionDateTime(inv.paidAt).split(" • ")[0] : "-"}</span>;
-    }
-    return <span>Tempo: {formatSessionDateTime(inv.dueAt).split(" • ")[0]}</span>;
-  };
-
-  const renderPrepaymentBadge = (status: DbPrepayment["status"]) => {
-    if (status === "paid") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md text-[10px] font-bold shadow-sm">
-          <Check size={10} strokeWidth={3} />
-          Lunas
-        </span>
-      );
-    }
-    if (status === "cancelled") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-md text-[10px] font-bold shadow-sm">
-          <AlertCircle size={10} />
-          Dibatalkan
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-md text-[10px] font-bold shadow-sm">
-        <Clock size={10} />
-        Menunggu Verifikasi
-      </span>
-    );
-  };
-
-  const renderPrepaymentDate = (p: DbPrepayment) => {
-    if (p.status === "paid") {
-      return <span>Dibayar: {p.paidAt ? formatSessionDateTime(p.paidAt).split(" • ")[0] : "-"}</span>;
-    }
-    if (p.status === "cancelled") {
-      return <span>Dikirim: {p.submittedAt ? formatSessionDateTime(p.submittedAt).split(" • ")[0] : "-"}</span>;
-    }
-    return <span>Dikirim: {p.submittedAt ? formatSessionDateTime(p.submittedAt).split(" • ")[0] : formatSessionDateTime(p.createdAt).split(" • ")[0]}</span>;
-  };
-
-  const openWaliInvoiceDetail = (inv: DbInvoice) => {
+  const openInvoiceDetail = (inv: DbInvoice) => {
     setProofWali({
       id: inv.id,
       amount: inv.amount,
       status: inv.status,
+      submittedAt: inv.submittedAt,
       paymentProof: inv.paymentProof,
       paymentProofName: inv.paymentProofName,
-      paidAmount: inv.paidAmount,
-      submittedAt: inv.submittedAt,
       note: inv.paymentNote,
-      enrollment: inv.enrollment
-        ? {
-            murid: inv.enrollment.murid ? { id: inv.enrollment.murid.id, name: inv.enrollment.murid.name } : null,
-            program: inv.enrollment.program ? { id: inv.enrollment.program.id, name: inv.enrollment.program.name } : null,
-          }
-        : null,
+      enrollment: {
+        murid: selectedMurid ? { id: selectedMurid.id, name: selectedMurid.name } : null,
+        program: inv.enrollment?.program ? { id: inv.enrollment.program.id, name: inv.enrollment.program.name } : null,
+      },
     });
   };
 
-  const openWaliPrepaymentDetail = (p: DbPrepayment) => {
+  const openPrepaymentDetail = (prep: DbPrepayment) => {
     setProofWali({
-      id: p.id,
-      amount: p.amount,
-      status: p.status === "paid" ? "paid" : "waiting",
-      paymentProof: p.paymentProof,
-      paymentProofName: p.paymentProofName,
-      paidAmount: p.amount,
-      submittedAt: p.submittedAt,
-      note: p.note,
+      id: prep.id,
+      amount: prep.amount,
+      status: prep.status === "cancelled" ? "unpaid" : prep.status,
+      submittedAt: prep.submittedAt,
+      paymentProof: prep.paymentProof,
+      paymentProofName: prep.paymentProofName,
+      note: prep.note,
       isPrepayment: true,
       murid: selectedMurid ? { id: selectedMurid.id, name: selectedMurid.name } : null,
     });
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-6 animate-[fadeIn_0.5s_ease-out] font-dm text-app-text-mid">
-      
-      {/* Page Header */}
-      <header className="flex flex-col gap-1 bg-app-white border border-app-border shadow-md rounded-2xl p-6">
-        <h1 className="text-xl sm:text-2xl font-normal text-app-text tracking-tight font-playfair">
-          Tagihan Saya
-        </h1>
-        <p className="text-sm text-app-text-muted">
-          Lacak tagihan belajar anak Anda dan lakukan konfirmasi pembayaran dengan mudah.
-        </p>
-      </header>
-
-      {/* Child selector */}
-      {murids.length > 1 && (
-        <div className="flex items-center gap-3 overflow-x-auto py-1 bg-app-white border border-app-border p-4 rounded-2xl shadow-md">
-          <span className="text-xs font-semibold text-gray-500 shrink-0">Siswa:</span>
-          <div className="flex gap-2">
-            {murids.map((m) => {
-              const isSelected = m.id === selectedMuridId;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setSelectedMuridId(m.id)}
-                  className={`px-4 py-1.5 rounded-[6px] text-xs font-semibold transition-all duration-300 active:scale-95 whitespace-nowrap border flex items-center gap-1.5 ${
-                    isSelected
-                      ? "bg-[#4a70a9] text-white border-[#4a70a9] shadow-md shadow-[#4a70a9]/30"
-                      : "bg-white border-app-border text-gray-600 hover:bg-app-surface"
-                  }`}
-                >
-                  {m.name}
-                </button>
-              );
-            })}
+    <div className="px-4 pt-2 pb-24 space-y-4 animate-[fadeIn_0.3s_ease-out] font-dm text-[#1a1a2e]">
+      {/* 1. Top Bar Navigation (Stitch Screen 61df6c7) */}
+      <header className="flex items-center justify-between pt-1 pb-1">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/app/dashboard"
+            aria-label="Kembali ke Dashboard"
+            className="w-9 h-9 rounded-full bg-white border border-[#e5ddd0] flex items-center justify-center text-[#1a1a2e] hover:bg-[#eaf0f8] hover:text-[#4a70a9] transition-colors shadow-xs active:scale-95"
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold font-playfair text-[#1a1a2e] tracking-tight leading-tight">
+              Tagihan
+            </h1>
+            <p className="text-[11px] text-[#737781] leading-none mt-0.5">
+              Kelola &amp; Pembayaran Belajar
+            </p>
           </div>
         </div>
+
+        <button
+          type="button"
+          aria-label="Notifikasi Tagihan"
+          className="w-9 h-9 rounded-full bg-white border border-[#e5ddd0] flex items-center justify-center text-[#434750] hover:text-[#4a70a9] transition-colors shadow-xs active:scale-95"
+        >
+          <Bell size={17} />
+        </button>
+      </header>
+
+      {/* 2. Child Selector (Avatar Inisial Bulat - Seragam Stitch) */}
+      {murids.length > 0 && (
+        <section aria-label="Pilih Profil Anak" className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-0.5">
+          {murids.map((m, idx) => {
+            const isSelected = m.id === selectedMuridId;
+            const avatarBg = idx === 0 ? "bg-[#4a70a9]" : "bg-[#c8b99a]";
+
+            return (
+              <button
+                key={m.id}
+                onClick={() => setSelectedMuridId(m.id)}
+                type="button"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all active:scale-95 shrink-0 ${
+                  isSelected
+                    ? "bg-white border-2 border-[#4a70a9] shadow-xs"
+                    : "bg-white border border-[#e5ddd0] hover:border-[#4a70a9]/60 opacity-80"
+                }`}
+              >
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-xs ${avatarBg}`}
+                >
+                  {getInitials(m.name)}
+                </div>
+                <div className="text-left flex items-center gap-1.5">
+                  <span className={`text-xs block ${isSelected ? "font-bold text-[#1a1a2e]" : "font-medium text-[#434750]"}`}>
+                    {m.name}
+                  </span>
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-[#4a70a9] text-white flex items-center justify-center">
+                      <Check size={10} strokeWidth={3} />
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </section>
       )}
 
       {selectedMurid ? (
         <>
-          {/* Latest Unpaid Invoice Section */}
-          <div className="flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Coins className="text-amber-500" size={20} />
-              <span>Tagihan Aktif</span>
-            </h2>
-            
-            {latestUnpaid ? (
-              <div className="p-6 sm:p-8 flex flex-col gap-6 relative overflow-hidden group bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
-                {/* Glow decor */}
-                <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#4a70a9]/10 rounded-full blur-[50px] pointer-events-none group-hover:scale-110 duration-700"></div>
+          {/* 3. Section Tagihan Aktif (Hero Card Stitch) */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-base font-bold font-playfair text-[#1a1a2e]">
+                Tagihan Aktif
+              </h2>
+              {pendingInvoices.length > 0 && (
+                <span className="inline-flex items-center gap-1 bg-[#fff3e0] text-[#d97706] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <Clock size={11} />
+                  <span>{pendingInvoices.length} Menunggu</span>
+                </span>
+              )}
+            </div>
 
-                {/* Card Title & Status */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-app-border/40 pb-4 relative z-10">
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase">Invoice</span>
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800">#{latestUnpaid.id}</h3>
-                  </div>
-                  {latestUnpaid.status === "unpaid" ? (
-                    <span className="px-3 py-1 bg-red-50 text-red-800 border border-red-100 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm animate-pulse">
-                      <AlertCircle size={14} className="text-red-500" />
-                      Belum Dibayar
+            {latestUnpaid ? (
+              <article className="bg-white rounded-xl border border-[#e5ddd0] p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)] space-y-3.5">
+                {/* Header Tagihan & Status Badge */}
+                <div className="flex items-center justify-between pb-2.5 border-b border-[#e5ddd0]/60">
+                  <span className="font-mono text-xs font-bold text-[#4a70a9]">
+                    #{latestUnpaid.id}
+                  </span>
+                  {latestUnpaid.status === "waiting" ? (
+                    <span className="inline-flex items-center gap-1 bg-[#fffbeb] border border-[#fde68a] text-[#d97706] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                      <Hourglass size={11} />
+                      <span>Menunggu Verifikasi</span>
                     </span>
                   ) : (
-                    <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-100 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                      <Clock size={14} className="text-amber-500" />
-                      Menunggu Verifikasi
+                    <span className="inline-flex items-center gap-1 bg-[#fef2f2] border border-[#fecaca] text-[#dc2626] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                      <AlertCircle size={11} />
+                      <span>Belum Dibayar</span>
                     </span>
                   )}
                 </div>
 
-                {/* Details Breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-                  <div className="flex flex-col gap-3 text-xs sm:text-sm text-gray-600">
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">Program</p>
-                      <p className="font-semibold text-gray-800">
-                        {getProgramNameFromEnrollment(latestUnpaid.enrollmentId, latestUnpaid.enrollment?.program?.name)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">Periode Sesi</p>
-                      <p className="font-semibold text-gray-800">{getInvoicePeriod(latestUnpaid)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-red-400 font-bold uppercase">Jatuh Tempo</p>
-                      <p className="font-semibold text-red-600">
-                        {formatSessionDateTime(latestUnpaid.dueAt).split(" • ")[0]}
-                      </p>
-                    </div>
-                  </div>
+                {/* Program & Periode */}
+                <div>
+                  <h3 className="text-base font-bold font-playfair text-[#1a1a2e] leading-snug">
+                    {latestUnpaid.enrollment?.program?.name || "Matematika & IPA Terpadu (Kelas 8)"}
+                  </h3>
+                  <p className="text-xs text-[#737781] mt-0.5">
+                    Paket {new Date(latestUnpaid.dueAt).toLocaleDateString("id-ID", { month: "long", year: "numeric" })} (16 Sesi Pembelajaran)
+                  </p>
+                </div>
 
-                  {/* Pricing Breakdown */}
-                  <div className="flex flex-col justify-center gap-3 bg-app-surface border border-app-border p-4 sm:p-5 rounded-xl">
-                    <div className="flex flex-col gap-1.5 text-xs text-gray-500 border-b border-app-border/40 pb-2">
-                      {getInvoiceBreakdown(latestUnpaid).map((item, idx) => (
-                        <div key={idx} className="flex justify-between">
-                          <span>{item.label}</span>
-                          <span className="font-semibold text-gray-700">Rp {item.amount.toLocaleString("id-ID")}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Total Tagihan</p>
-                      <p className="text-2xl font-bold text-[#4a70a9] leading-none">
-                        Rp {latestUnpaid.amount.toLocaleString("id-ID")}
-                      </p>
-                    </div>
+                {/* Ringkasan Nominal Tagihan */}
+                <div className="bg-[#f7f4ef] rounded-xl p-3 space-y-1.5 border border-[#e5ddd0]/60">
+                  <div className="flex justify-between text-xs text-[#737781]">
+                    <span>Biaya Paket:</span>
+                    <span className="font-semibold text-[#1a1a2e]">
+                      Rp {latestUnpaid.amount.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline border-t border-[#e5ddd0]/60 pt-1.5">
+                    <span className="text-xs font-bold text-[#1a1a2e]">Total Tagihan:</span>
+                    <span className="text-lg font-bold text-[#30578f] font-mono">
+                      Rp {latestUnpaid.amount.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#dc2626] pt-1">
+                    <Clock size={12} />
+                    <span>Jatuh tempo: {formatSessionDateTime(latestUnpaid.dueAt).split(" • ")[0]}</span>
                   </div>
                 </div>
 
-                {/* Bank Account Information */}
-                <div className="border-t border-app-border/40 pt-4 flex gap-4 items-start relative z-10">
-                  <div className="w-10 h-10 rounded-full bg-[#4a70a9]/10 flex items-center justify-center shrink-0 text-[#4a70a9]">
-                    <Building size={20} />
+                {/* Informasi Rekening Bank Transfer */}
+                <div className="border border-[#e5ddd0] rounded-xl p-3 bg-white space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#737781]">
+                      Transfer ke: Manual Verification
+                    </span>
+                    <ShieldCheck size={14} className="text-[#16a34a]" />
                   </div>
                   {defaultAccount ? (
                     <div>
-                      <p className="text-xs sm:text-sm font-semibold text-gray-800">Transfer {defaultAccount.bankName}</p>
-                      <p className="text-base sm:text-lg font-mono font-bold text-[#4a70a9] tracking-wider my-0.5">
-                        {defaultAccount.accountNumber}
-                      </p>
-                      <p className="text-xs text-gray-500">a/n {defaultAccount.accountName}</p>
+                      <p className="text-xs font-bold text-[#1a1a2e]">{defaultAccount.bankName}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="font-mono text-base font-bold text-[#30578f] tracking-wide">
+                          {defaultAccount.accountNumber}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyAccount(defaultAccount.accountNumber)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#eaf0f8] hover:bg-[#d9e6f6] active:scale-95 text-[#30578f] text-[11px] font-bold transition-all"
+                        >
+                          {copySuccess ? <Check size={13} className="text-[#16a34a]" /> : <Copy size={13} />}
+                          <span>{copySuccess ? "Tersalin!" : "Salin"}</span>
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-[#737781] mt-0.5">a.n. {defaultAccount.accountName}</p>
                     </div>
                   ) : (
-                    <div>
-                      <p className="text-xs sm:text-sm font-semibold text-gray-800">Info Rekening</p>
-                      <p className="text-sm text-gray-500">Rekening tujuan transfer akan segera ditambahkan.</p>
-                    </div>
+                    <p className="text-xs text-[#737781]">Info rekening transfer akan segera tersedia.</p>
                   )}
                 </div>
 
-                {paymentError && latestUnpaid.status === "unpaid" && (
-                  <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 relative z-10">
-                    {paymentError}
-                  </div>
-                )}
-
+                {/* Area Upload Bukti Pembayaran */}
                 {latestUnpaid.status === "unpaid" ? (
-                  <>
-                    {/* Upload Bukti Transfer */}
-                    <div 
-                      onClick={handleUploadAreaClick}
-                      className="border-2 border-dashed border-app-border hover:border-[#4a70a9]/50 rounded-xl p-5 text-center cursor-pointer hover:bg-app-surface transition-colors duration-200 group relative z-10 flex flex-col items-center justify-center gap-1.5"
+                  <div className="space-y-3 pt-1">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                    />
+
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-[#c8b99a] hover:border-[#4a70a9] rounded-xl p-4 text-center cursor-pointer bg-[#fdfcfa] hover:bg-[#f7f4ef] transition-colors flex flex-col items-center justify-center gap-1.5"
                     >
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileChange}
-                        className="hidden" 
-                        accept="image/*,application/pdf"
-                      />
-                      {uploadedProof ? (
-                        <>
-                          {uploadedProof.startsWith("data:image") ? (
-                            <img src={uploadedProof} alt="Pratinjau bukti transfer" className="max-h-24 rounded-lg border border-white shadow-sm mb-1 shrink-0" />
-                          ) : (
-                            <Check className="text-emerald-500 mb-1 shrink-0 animate-bounce" size={24} />
-                          )}
-                          <p className="text-xs font-semibold text-gray-800 truncate max-w-xs">{uploadedProofName}</p>
-                          <p className="text-[10px] text-emerald-600 font-bold uppercase">Berhasil Diunggah</p>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="text-gray-400 group-hover:scale-110 transition-transform mb-1 shrink-0" size={24} />
-                          <p className="text-xs font-semibold text-gray-700">Unggah Bukti Transfer</p>
-                          <p className="text-[10px] text-gray-400">Format JPG, PNG, atau PDF</p>
-                        </>
-                      )}
+                      <UploadCloud size={24} className="text-[#4a70a9]" />
+                      <p className="text-xs font-semibold text-[#1a1a2e]">
+                        {uploadedProofName ? uploadedProofName : "Ketuk untuk pilih file bukti bayar"}
+                      </p>
+                      <p className="text-[10px] text-[#737781]">
+                        {uploadedProofName ? "File siap diunggah" : "JPG, PNG, atau PDF (maks. 4MB)"}
+                      </p>
                     </div>
 
-                    {/* Catatan Pembayaran */}
-                    <div className="relative z-10">
-                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Catatan (Opsional)</label>
-                      <textarea
+                    {paymentError && (
+                      <p className="text-xs text-[#dc2626] font-semibold">{paymentError}</p>
+                    )}
+
+                    <div>
+                      <input
+                        type="text"
                         value={paymentNote}
                         onChange={(e) => setPaymentNote(e.target.value)}
-                        placeholder="Contoh: Pembayaran bulan September, sudah konfirmasi via WA"
-                        rows={2}
-                        className="w-full rounded-xl border border-app-border bg-app-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9] resize-none"
+                        placeholder="Catatan tambahan (opsional)"
+                        className="w-full text-xs rounded-xl border border-[#e5ddd0] bg-white px-3 py-2 text-[#1a1a2e] outline-none focus:border-[#4a70a9]"
                       />
                     </div>
 
-                    {/* Action buttons */}
-                    <div className="flex flex-col gap-2.5 relative z-10">
-                      <Button
-                        onClick={() => handleSubmitPayment(latestUnpaid)}
-                        disabled={submitting}
-                        className="w-full text-sm sm:text-base justify-center py-3.5 shadow-md shadow-[#4a70a9]/20 flex items-center gap-2 rounded-[6px]"
-                      >
-                        {submitting ? "Mengirim..." : "Kirim Data Pembayaran"}
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => handleWAConfirm(latestUnpaid.id, latestUnpaid.amount)}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95 border border-[#25D366]/40"
-                      >
-                        <WhatsAppIcon size={16} />
-                        <span>Konfirmasi Pembayaran</span>
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  /* Menunggu verifikasi admin */
-                  <div className="flex flex-col gap-4 relative z-10">
-                    <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
-                      <Clock size={20} className="shrink-0" />
-                      <div>
-                        <p className="font-bold text-sm">Bukti Pembayaran Terkirim</p>
-                        <p className="text-xs mt-0.5">Menunggu verifikasi admin. Status akan berubah setelah admin mengonfirmasi.</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className="bg-app-white border border-app-border rounded-xl p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Dibayar</p>
-                        <p className="font-bold text-gray-800 mt-0.5">Rp {(latestUnpaid.paidAmount ?? latestUnpaid.amount).toLocaleString("id-ID")}</p>
-                      </div>
-                      <div className="bg-app-white border border-app-border rounded-xl p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Terkirim</p>
-                        <p className="font-bold text-gray-800 mt-0.5">{latestUnpaid.submittedAt ? formatSessionDateTime(latestUnpaid.submittedAt).split(" • ")[0] : "-"}</p>
-                      </div>
-                      <div className="bg-app-white border border-app-border rounded-xl p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">File</p>
-                        <p className="font-bold text-gray-800 mt-0.5 truncate">{latestUnpaid.paymentProofName || "Bukti terkirim"}</p>
-                      </div>
-                    </div>
                     <button
                       type="button"
-                      onClick={() => handleWAConfirm(latestUnpaid.id, latestUnpaid.amount)}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95 border border-[#25D366]/40"
+                      disabled={submitting}
+                      onClick={() => handleSubmitPayment(latestUnpaid)}
+                      className="w-full py-2.5 rounded-xl bg-[#4a70a9] hover:bg-[#3d5d8c] active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50"
                     >
-                      <WhatsAppIcon size={16} />
-                      <span>Konfirmasi Pembayaran</span>
+                      <Send size={14} />
+                      <span>{submitting ? "Mengirim..." : "Kirim Bukti Pembayaran"}</span>
                     </button>
+                  </div>
+                ) : (
+                  <div className="bg-[#fffbeb] border border-[#fde68a] rounded-xl p-3 flex items-center gap-2 text-xs text-[#92400e]">
+                    <Hourglass size={16} className="text-[#d97706] shrink-0" />
+                    <span>Bukti pembayaran sedang diverifikasi oleh admin. Kami akan segera memperbarui status tagihan Anda.</span>
+                  </div>
+                )}
+              </article>
+            ) : (
+              <div className="bg-white border border-[#e5ddd0] rounded-xl p-6 text-center space-y-2 shadow-xs">
+                <CheckCircle2 size={32} className="text-[#16a34a] mx-auto" />
+                <h3 className="text-sm font-bold text-[#1a1a2e]">Tidak Ada Tagihan Menunggu</h3>
+                <p className="text-xs text-[#737781]">
+                  Seluruh kewajiban pembayaran untuk {selectedMurid.name} telah lunas.
+                </p>
+              </div>
+            )}
+          </section>
+
+          {/* 4. Accordion: Pembayaran Mandiri / Prabayar (Stitch Collapsible) */}
+          <section className="bg-white rounded-xl border border-[#e5ddd0] overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+            <button
+              type="button"
+              onClick={() => setIsPrepaymentOpen((prev) => !prev)}
+              className="w-full p-4 flex items-start justify-between text-left hover:bg-[#f7f4ef]/50 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#eaf0f8] text-[#4a70a9] flex items-center justify-center shrink-0 mt-0.5">
+                  <Wallet size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1a1a2e] font-playfair">
+                    Pembayaran Mandiri / Prabayar
+                  </h3>
+                  <p className="text-[11px] text-[#737781] mt-0.5 leading-snug">
+                    Bayar di muka untuk sesi atau deposit paket belajar berikutnya.
+                  </p>
+                </div>
+              </div>
+              <div className="text-[#737781] p-1">
+                {isPrepaymentOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </div>
+            </button>
+
+            {isPrepaymentOpen && (
+              <div className="p-4 pt-0 border-t border-[#e5ddd0]/60 space-y-3 animate-[fadeIn_0.2s_ease-out]">
+                <p className="text-[11px] text-[#737781] leading-relaxed">
+                  Gunakan opsi ini jika Anda ingin melakukan deposit mandiri atau top up kuota sesi ekstra sebelum invoice terbit otomatis.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#737781]">
+                    Nominal Transfer (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="Contoh: 500000"
+                    className="w-full text-xs rounded-xl border border-[#e5ddd0] bg-white px-3 py-2 text-[#1a1a2e] outline-none focus:border-[#4a70a9]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#737781]">
+                    Catatan (Opsional)
+                  </label>
+                  <textarea
+                    value={prepaymentNote}
+                    onChange={(e) => setPrepaymentNote(e.target.value)}
+                    placeholder="Contoh: Deposit penambahan 4 sesi persiapan ujian"
+                    rows={2}
+                    className="w-full text-xs rounded-xl border border-[#e5ddd0] bg-white px-3 py-2 text-[#1a1a2e] outline-none focus:border-[#4a70a9] resize-none"
+                  />
+                </div>
+
+                {/* Upload Bukti Prabayar */}
+                <input
+                  type="file"
+                  ref={prepaymentFileInputRef}
+                  onChange={handlePrepaymentFileChange}
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => prepaymentFileInputRef.current?.click()}
+                  className="w-full py-2.5 px-3 rounded-xl border border-[#e5ddd0] bg-[#f7f4ef] hover:bg-[#eaf0f8] text-xs font-semibold text-[#30578f] flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Paperclip size={14} />
+                  <span>
+                    {uploadedPrepaymentProofName ? uploadedPrepaymentProofName : "Pilih Struk / Bukti Transfer"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={submittingPrepayment}
+                  onClick={handleSubmitPrepayment}
+                  className="w-full py-2.5 rounded-xl bg-[#4a70a9] hover:bg-[#3d5d8c] active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50"
+                >
+                  <Wallet size={14} />
+                  <span>{submittingPrepayment ? "Mengirim..." : "Kirim Pembayaran Prabayar"}</span>
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* 5. Section Riwayat Pembayaran (Hidden by Default sesuai request) */}
+          <section className="space-y-3 pt-2">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-base font-bold font-playfair text-[#1a1a2e]">
+                Riwayat Pembayaran
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowAllHistory((prev) => !prev)}
+                className="text-xs font-semibold text-[#4a70a9] hover:underline flex items-center gap-1"
+              >
+                <span>{showAllHistory ? "Tutup Riwayat" : "Lihat Riwayat"}</span>
+                {showAllHistory ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+            </div>
+
+            {showAllHistory ? (
+              <div className="space-y-3 animate-[fadeIn_0.2s_ease-out]">
+                {/* Sortir Sederhana */}
+                <div className="flex items-center justify-between text-xs px-1">
+                  <span className="text-[#737781]">Total {historyItems.length} transaksi</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setHistorySort("terbaru")}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                        historySort === "terbaru" ? "bg-[#4a70a9] text-white" : "bg-white border border-[#e5ddd0] text-[#737781]"
+                      }`}
+                    >
+                      Terbaru
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHistorySort("terlama")}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                        historySort === "terlama" ? "bg-[#4a70a9] text-white" : "bg-white border border-[#e5ddd0] text-[#737781]"
+                      }`}
+                    >
+                      Terlama
+                    </button>
+                  </div>
+                </div>
+
+                {historyItems.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {historyItems.map((entry) => {
+                      const isInvoice = entry.type === "invoice";
+                      const item = entry.item;
+                      const isPaid = item.status === "paid";
+                      const isWaiting = item.status === "waiting";
+
+                      return (
+                        <article
+                          key={item.id}
+                          className="bg-white rounded-xl border border-[#e5ddd0] p-3.5 shadow-[0_1px_4px_rgba(0,0,0,0.08)] space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-xs font-bold text-[#737781]">
+                              #{item.id}
+                            </span>
+                            {isPaid ? (
+                              <span className="inline-flex items-center gap-1 bg-[#dcfce7] text-[#16a34a] px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                <CheckCircle2 size={11} />
+                                <span>Lunas</span>
+                              </span>
+                            ) : isWaiting ? (
+                              <span className="inline-flex items-center gap-1 bg-[#fffbeb] text-[#d97706] px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                <Hourglass size={11} />
+                                <span>Verifikasi</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-[#fef2f2] text-[#dc2626] px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                <AlertCircle size={11} />
+                                <span>Belum Dibayar</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-mono text-base font-bold text-[#1a1a2e]">
+                              Rp {item.amount.toLocaleString("id-ID")}
+                            </span>
+                            <span className="text-[11px] text-[#737781]">
+                              {formatSessionDateTime(entry.date).split(" • ")[0]}
+                            </span>
+                          </div>
+
+                          <div className="text-xs text-[#434750]">
+                            {isInvoice ? (
+                              <span className="font-medium">
+                                {(item as DbInvoice).enrollment?.program?.name || "Bimbingan Belajar"}
+                              </span>
+                            ) : (
+                              <span className="font-medium text-[#4a70a9]">
+                                Pembayaran Mandiri / Prabayar
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="border-t border-[#e5ddd0]/50 pt-2 flex items-center justify-between">
+                            <span className="text-[10px] text-[#737781]">
+                              Metode: Transfer Bank
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => (isInvoice ? openInvoiceDetail(item as DbInvoice) : openPrepaymentDetail(item as DbPrepayment))}
+                              className="inline-flex items-center gap-0.5 text-xs font-bold text-[#4a70a9] hover:underline"
+                            >
+                              <span>Detail</span>
+                              <ChevronRight size={13} />
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white border border-[#e5ddd0] rounded-xl p-6 text-center text-xs text-[#737781]">
+                    Belum ada riwayat transaksi pembayaran.
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-3 p-6 bg-app-white border border-app-border rounded-2xl text-gray-600 shadow-md">
-                  <CheckCircle2 className="text-emerald-500 shrink-0" size={24} />
-                  <div>
-                    <p className="font-bold text-sm">Semua Tagihan Lunas</p>
-                    <p className="text-xs text-gray-500">Tidak ada tagihan aktif yang perlu dibayar untuk {selectedMurid.name}. Terima kasih!</p>
-                  </div>
-                </div>
-
-                {/* Prepayment / Manual Payment Card */}
-                <div className="p-6 sm:p-8 flex flex-col gap-6 relative overflow-hidden group bg-app-white border border-app-border rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
-                  <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#4a70a9]/10 rounded-full blur-[50px] pointer-events-none group-hover:scale-110 duration-700"></div>
-
-                  <div className="border-b border-app-border/40 pb-4 relative z-10">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800">Pembayaran Mandiri / Prabayar</h3>
-                    <p className="text-xs text-gray-500 mt-1">Anda dapat mengirimkan pembayaran/prabayar tanpa tagihan aktif melalui form ini.</p>
-                  </div>
-
-                  {paymentError && (
-                    <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 relative z-10">
-                      {paymentError}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-                    <div className="flex flex-col gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Nominal Pembayaran (Rp)</label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={customAmount}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, "");
-                            setCustomAmount(val);
-                          }}
-                          placeholder="Contoh: 150000"
-                          className="w-full rounded-xl border border-app-border bg-app-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9]"
-                        />
-                      </div>
-                      
-                      {/* Bank Account Information */}
-                      <div className="border-t border-app-border/40 pt-4 flex gap-4 items-start">
-                        <div className="w-10 h-10 rounded-full bg-[#4a70a9]/10 flex items-center justify-center shrink-0 text-[#4a70a9]">
-                          <Building size={20} />
-                        </div>
-                        {defaultAccount ? (
-                          <div>
-                            <p className="text-xs sm:text-sm font-semibold text-gray-800">Transfer {defaultAccount.bankName}</p>
-                            <p className="text-base sm:text-lg font-mono font-bold text-[#4a70a9] tracking-wider my-0.5">
-                              {defaultAccount.accountNumber}
-                            </p>
-                            <p className="text-xs text-gray-500">a/n {defaultAccount.accountName}</p>
-                          </div>
-                        ) : (
-                          <div>
-                            <p className="text-xs sm:text-sm font-semibold text-gray-800">Info Rekening</p>
-                            <p className="text-sm text-gray-500">Rekening tujuan transfer akan segera ditambahkan.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Mock Upload Area & Confirm Button */}
-                    <div className="flex flex-col gap-4 justify-between">
-                      <div 
-                        onClick={handleUploadAreaClick}
-                        className="border-2 border-dashed border-app-border hover:border-[#4a70a9]/50 rounded-xl p-5 text-center cursor-pointer hover:bg-app-surface transition-colors duration-200 group flex flex-col items-center justify-center gap-1.5"
-                      >
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          onChange={handleFileChange}
-                          className="hidden" 
-                          accept="image/*,application/pdf"
-                        />
-                        {uploadedProof ? (
-                          <>
-                            {uploadedProof.startsWith("data:image") ? (
-                              <img src={uploadedProof} alt="Pratinjau bukti transfer" className="max-h-24 rounded-lg border border-white shadow-sm mb-1 shrink-0" />
-                            ) : (
-                              <Check className="text-emerald-500 text-3xl mb-1 shrink-0" size={24} />
-                            )}
-                            <p className="text-xs font-semibold text-gray-800 truncate max-w-xs">{uploadedProofName}</p>
-                            <p className="text-[10px] text-emerald-600 font-bold uppercase">Berhasil Diunggah</p>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="text-gray-400 group-hover:scale-110 transition-transform mb-1 shrink-0" size={24} />
-                            <p className="text-xs font-semibold text-gray-700">Unggah Bukti Transfer</p>
-                            <p className="text-[10px] text-gray-400">Format JPG, PNG, atau PDF (Max 5MB)</p>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Catatan Pembayaran Prabayar */}
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Catatan (Opsional)</label>
-                        <textarea
-                          value={paymentNote}
-                          onChange={(e) => setPaymentNote(e.target.value)}
-                          placeholder="Contoh: Prabayar biaya blok berikutnya, atau untuk program baru"
-                          rows={2}
-                          className="w-full rounded-xl border border-app-border bg-app-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9] resize-none"
-                        />
-                      </div>
-
-                      <Button
-                        onClick={() => void handleSubmitPrepayment()}
-                        disabled={submitting}
-                        className="w-full text-sm sm:text-base justify-center py-3.5 shadow-md flex items-center gap-2 rounded-[6px]"
-                      >
-                        {submitting ? "Mengirim..." : "Kirim Data Pembayaran"}
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const amountVal = Number(customAmount) || 0;
-                          if (amountVal <= 0) {
-                            alert("Silakan masukkan nominal pembayaran.");
-                            return;
-                          }
-                          const text = encodeURIComponent(
-                            `Halo Admin Nurman Course, saya ingin konfirmasi pembayaran mandiri/prabayar atas nama siswa *${selectedMurid.name}* sebesar *Rp ${amountVal.toLocaleString("id-ID")}*. Bukti transfer telah terlampir/diunggah di portal. Terima kasih.`
-                          );
-                          window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
-                        }}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#25D366] hover:bg-[#1fb858] text-white px-4 py-2.5 text-sm font-bold shadow-md transition-all active:scale-95 border border-[#25D366]/40"
-                      >
-                        <WhatsAppIcon size={16} />
-                        <span>Konfirmasi Pembayaran via WhatsApp</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* History Section: invoice + prabayar */}
-          <div className="flex flex-col gap-4 mt-4">
-            <div className="flex justify-between items-center border-b border-gray-200/50 pb-2">
-              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <CheckCircle2 className="text-emerald-500" size={20} />
-                <span>Riwayat Pembayaran</span>
-              </h2>
-              <Button 
-                variant="ghost" 
-                onClick={() => setShowAllHistory(!showAllHistory)}
-                className="text-xs border border-app-primary/30 text-app-primary px-3 py-1.5 hover:bg-white/40 shadow-sm rounded-[6px]"
+              <div
+                onClick={() => setShowAllHistory(true)}
+                className="bg-white border border-[#e5ddd0] rounded-xl p-4 text-center cursor-pointer hover:bg-[#f7f4ef]/50 transition-colors shadow-xs"
               >
-                {showAllHistory ? "Sembunyikan Riwayat" : "Lihat Semua Riwayat"}
-              </Button>
-            </div>
-
-            {showAllHistory && (
-              <div className="animate-[slideDown_0.3s_ease-out]">
-                {/* Sortir */}
-                <div className="flex items-center gap-2 mb-3 text-xs">
-                  <span className="font-semibold text-gray-500">Urutkan:</span>
-                  <button
-                    type="button"
-                    onClick={() => setHistorySort("terbaru")}
-                    className={`px-3 py-1.5 rounded-[6px] border font-semibold transition-colors ${
-                      historySort === "terbaru"
-                        ? "bg-[#4a70a9] text-white border-transparent shadow-sm"
-                        : "bg-app-white text-gray-600 border-app-border hover:bg-app-surface"
-                    }`}
-                  >
-                    Terbaru
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setHistorySort("terlama")}
-                    className={`px-3 py-1.5 rounded-[6px] border font-semibold transition-colors ${
-                      historySort === "terlama"
-                        ? "bg-[#4a70a9] text-white border-transparent shadow-sm"
-                        : "bg-app-white text-gray-600 border-app-border hover:bg-app-surface"
-                    }`}
-                  >
-                    Terlama
-                  </button>
-                </div>
-
-                {historyItems.length > 0 ? (
-                  <>
-                    {/* Mobile: Card list */}
-                    <div className="flex flex-col gap-3 md:hidden">
-                      {historyItems.map((entry) =>
-                        entry.type === "invoice" ? (
-                          <div key={entry.item.id} className="bg-app-white border border-app-border rounded-2xl p-4 shadow-md flex flex-col gap-2.5">
-                            <div className="flex items-start justify-between gap-2">
-                              <span className="font-mono font-bold text-gray-700 text-xs mt-0.5">#{entry.item.id}</span>
-                              {renderStatusBadge(entry.item.status)}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-800 text-sm">
-                                {getProgramNameFromEnrollment(entry.item.enrollmentId, entry.item.enrollment?.program?.name)}
-                              </div>
-                              <div className="text-[10px] text-gray-400 mt-0.5">
-                                {getInvoicePeriod(entry.item)}
-                              </div>
-                            </div>
-                            <div className="flex items-end justify-between border-t border-app-border/40 pt-2.5">
-                              <div>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase">Jumlah</p>
-                                <p className="font-bold text-gray-800 text-base">
-                                  Rp {entry.item.amount.toLocaleString("id-ID")}
-                                </p>
-                              </div>
-                              <div className="text-right text-xs text-gray-500 font-medium">
-                                {renderInvoiceDate(entry.item)}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => openWaliInvoiceDetail(entry.item)}
-                              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#4a70a9]/10 px-3 py-2 text-xs font-bold text-[#4a70a9] ring-1 ring-[#4a70a9]/30 hover:bg-[#4a70a9]/20"
-                            >
-                              <Eye size={14} /> Detail
-                            </button>
-                          </div>
-                        ) : (
-                          <div key={entry.item.id} className="bg-app-white border border-app-border rounded-2xl p-4 shadow-md flex flex-col gap-2.5">
-                            <div className="flex items-start justify-between gap-2">
-                              <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-100 text-indigo-700 px-2 py-0.5 text-[9px] font-bold uppercase border border-indigo-200 mt-0.5">
-                                Prabayar
-                              </span>
-                              {renderPrepaymentBadge(entry.item.status)}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-800 text-sm">Prabayar (tanpa tagihan)</div>
-                              {entry.item.note && (
-                                <div className="text-[10px] text-gray-400 mt-0.5 truncate">{entry.item.note}</div>
-                              )}
-                            </div>
-                            <div className="flex items-end justify-between border-t border-app-border/40 pt-2.5">
-                              <div>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase">Jumlah</p>
-                                <p className="font-bold text-gray-800 text-base">
-                                  Rp {entry.item.amount.toLocaleString("id-ID")}
-                                </p>
-                              </div>
-                              <div className="text-right text-xs text-gray-500 font-medium">
-                                {renderPrepaymentDate(entry.item)}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => openWaliPrepaymentDetail(entry.item)}
-                              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#4a70a9]/10 px-3 py-2 text-xs font-bold text-[#4a70a9] ring-1 ring-[#4a70a9]/30 hover:bg-[#4a70a9]/20"
-                            >
-                              <Eye size={14} /> Detail
-                            </button>
-                          </div>
-                        )
-                      )}
-                    </div>
-
-                    {/* Desktop: Table */}
-                    <div className="hidden md:block overflow-x-auto bg-app-white border border-app-border rounded-2xl shadow-md">
-                      <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                        <thead>
-                          <tr className="border-b border-app-border/40 bg-app-surface text-gray-500 font-semibold">
-                            <th className="p-4">Invoice / Jenis</th>
-                            <th className="p-4">Program / Periode</th>
-                            <th className="p-4 text-right">Jumlah</th>
-                            <th className="p-4 text-center">Status</th>
-                            <th className="p-4">Tanggal / Jatuh Tempo</th>
-                            <th className="p-4 text-center">Aksi</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-app-border/30">
-                          {historyItems.map((entry) =>
-                            entry.type === "invoice" ? (
-                              <tr key={entry.item.id} className="hover:bg-app-surface transition-colors">
-                                <td className="p-4 font-mono font-bold text-gray-700">#{entry.item.id}</td>
-                                <td className="p-4">
-                                  <div className="font-semibold text-gray-800">
-                                    {getProgramNameFromEnrollment(entry.item.enrollmentId, entry.item.enrollment?.program?.name)}
-                                  </div>
-                                  <div className="text-[10px] text-gray-400 mt-0.5">
-                                    {getInvoicePeriod(entry.item)}
-                                  </div>
-                                </td>
-                                <td className="p-4 text-right font-bold text-gray-800">
-                                  Rp {entry.item.amount.toLocaleString("id-ID")}
-                                </td>
-                                <td className="p-4 text-center">
-                                  {renderStatusBadge(entry.item.status)}
-                                </td>
-                                <td className="p-4 text-gray-500 font-medium">
-                                  {renderInvoiceDate(entry.item)}
-                                </td>
-                                <td className="p-4 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => openWaliInvoiceDetail(entry.item)}
-                                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#4a70a9]/10 px-3 py-2 text-xs font-bold text-[#4a70a9] ring-1 ring-[#4a70a9]/30 hover:bg-[#4a70a9]/20"
-                                  >
-                                    <Eye size={14} /> Detail
-                                  </button>
-                                </td>
-                              </tr>
-                            ) : (
-                              <tr key={entry.item.id} className="hover:bg-app-surface transition-colors">
-                                <td className="p-4">
-                                  <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-100 text-indigo-700 px-2 py-0.5 text-[9px] font-bold uppercase border border-indigo-200">
-                                    Prabayar
-                                  </span>
-                                </td>
-                                <td className="p-4">
-                                  <div className="font-semibold text-gray-800">Prabayar (tanpa tagihan)</div>
-                                  {entry.item.note && (
-                                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">{entry.item.note}</div>
-                                  )}
-                                </td>
-                                <td className="p-4 text-right font-bold text-gray-800">
-                                  Rp {entry.item.amount.toLocaleString("id-ID")}
-                                </td>
-                                <td className="p-4 text-center">
-                                  {renderPrepaymentBadge(entry.item.status)}
-                                </td>
-                                <td className="p-4 text-gray-500 font-medium">
-                                  {renderPrepaymentDate(entry.item)}
-                                </td>
-                                <td className="p-4 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => openWaliPrepaymentDetail(entry.item)}
-                                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#4a70a9]/10 px-3 py-2 text-xs font-bold text-[#4a70a9] ring-1 ring-[#4a70a9]/30 hover:bg-[#4a70a9]/20"
-                                  >
-                                    <Eye size={14} /> Detail
-                                  </button>
-                                </td>
-                              </tr>
-                            )
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8 text-gray-500 text-sm bg-app-white border border-app-border rounded-2xl shadow-md">
-                    Belum ada data tagihan.
-                  </div>
-                )}
+                <p className="text-xs font-semibold text-[#4a70a9]">
+                  Terdapat {historyItems.length} transaksi sebelumnya
+                </p>
+                <p className="text-[11px] text-[#737781] mt-0.5">
+                  Ketuk untuk membuka riwayat pembayaran
+                </p>
               </div>
             )}
-          </div>
+          </section>
+
+          {/* Modal Pratinjau Bukti Pembayaran */}
+          {proofWali && (
+            <ProofModal
+              invoice={proofWali}
+              onClose={() => setProofWali(null)}
+              hideLink={true}
+            />
+          )}
         </>
       ) : (
-        <div className="text-center py-12 bg-white/40 border border-white/60 rounded-2xl text-gray-500">
+        <div className="text-center py-12 bg-white border border-[#e5ddd0] rounded-xl text-xs text-[#737781]">
           Tidak ada data anak ditemukan. Hubungi admin untuk mendaftarkan anak Anda.
         </div>
-      )}
-
-      {proofWali && (
-        <ProofModal invoice={proofWali} hideLink onClose={() => setProofWali(null)} />
       )}
     </div>
   );

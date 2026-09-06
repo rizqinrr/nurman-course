@@ -47,6 +47,8 @@ backend/src/generated/
 
 # local test screenshots
 tasks/screenshots/
+.playwright-mcp/
+*.png
 
 # typescript
 *.tsbuildinfo

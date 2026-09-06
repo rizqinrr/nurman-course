@@ -1733,10 +1733,46 @@ app.patch('/api/admin/users/:id', requireAuth, requireAdmin, async (req: Authent
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { id: targetId }, select: { email: true, phone: true } });
+    const existing = await prisma.user.findUnique({
+      where: { id: targetId },
+      select: {
+        id: true,
+        role: true,
+        email: true,
+        phone: true,
+        _count: {
+          select: {
+            murids: true,
+            sessions: true,
+            enrollments: true,
+          },
+        },
+      },
+    });
     if (!existing) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
       return;
+    }
+
+    if (parsed.data.role !== undefined && parsed.data.role !== existing.role) {
+      if (existing.role === 'wali' && existing._count.murids > 0) {
+        res.status(400).json({
+          error: {
+            code: 'ROLE_CHANGE_RESTRICTED',
+            message: 'Role wali tidak bisa diubah karena masih memiliki data murid terhubung',
+          },
+        });
+        return;
+      }
+      if (existing.role === 'tentor' && (existing._count.sessions > 0 || existing._count.enrollments > 0)) {
+        res.status(400).json({
+          error: {
+            code: 'ROLE_CHANGE_RESTRICTED',
+            message: 'Role tentor tidak bisa diubah karena masih memiliki sesi atau enrollment mengajar',
+          },
+        });
+        return;
+      }
     }
 
     const updatePayload: Record<string, unknown> = {};
@@ -2665,6 +2701,22 @@ app.patch('/api/admin/invoices/:id/status', requireAuth, requireAdmin, async (re
       return;
     }
 
+    const allowedTransitions: Record<string, string[]> = {
+      unpaid: ['waiting', 'paid', 'unpaid'],
+      waiting: ['paid', 'unpaid', 'waiting'],
+      paid: ['unpaid', 'paid'],
+    };
+
+    if (!allowedTransitions[existing.status]?.includes(status)) {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_TRANSITION',
+          message: `Tidak dapat mengubah status invoice dari ${existing.status} ke ${status}`,
+        },
+      });
+      return;
+    }
+
     const invoice = await prisma.invoice.update({
       where: { id: req.params.id },
       data: {
@@ -2860,16 +2912,21 @@ app.post('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res)
 
     const overlapping = await prisma.session.findFirst({
       where: {
-        tentorId: user.id,
         status: { not: 'cancelled' },
         OR: [
-          { startsAt: { lt: endsAt }, endsAt: { gt: startsAt } },
+          { tentorId: user.id },
+          { muridId: enrollment.muridId },
         ],
+        startsAt: { lt: endsAt },
+        endsAt: { gt: startsAt },
       },
-      select: { id: true },
+      select: { id: true, tentorId: true, muridId: true },
     });
     if (overlapping) {
-      res.status(409).json({ error: { code: 'CONFLICT', message: 'Jadwal bentrok dengan sesi lain pada jam yang sama' } });
+      const msg = overlapping.muridId === enrollment.muridId
+        ? 'Jadwal bentrok: Murid sudah memiliki sesi belajar di jam ini'
+        : 'Jadwal bentrok: Tentor sudah memiliki sesi mengajar di jam ini';
+      res.status(409).json({ error: { code: 'CONFLICT', message: msg } });
       return;
     }
 
@@ -2907,7 +2964,7 @@ app.patch('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest,
       return;
     }
 
-    const existing = await prisma.session.findUnique({ where: { id: req.params.id! }, select: { id: true, tentorId: true, status: true, startsAt: true, endsAt: true } });
+    const existing = await prisma.session.findUnique({ where: { id: req.params.id! }, select: { id: true, tentorId: true, muridId: true, status: true, startsAt: true, endsAt: true } });
     if (!existing) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Sesi tidak ditemukan' } });
       return;
@@ -2950,15 +3007,21 @@ app.patch('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest,
       const overlapping = await prisma.session.findFirst({
         where: {
           id: { not: existing.id },
-          tentorId: user.id,
           status: { not: 'cancelled' },
+          OR: [
+            { tentorId: user.id },
+            { muridId: existing.muridId },
+          ],
           startsAt: { lt: eAt },
           endsAt: { gt: sAt },
         },
-        select: { id: true },
+        select: { id: true, tentorId: true, muridId: true },
       });
       if (overlapping) {
-        res.status(409).json({ error: { code: 'CONFLICT', message: 'Jadwal bentrok' } });
+        const msg = overlapping.muridId === existing.muridId
+          ? 'Jadwal bentrok: Murid sudah memiliki sesi belajar di jam ini'
+          : 'Jadwal bentrok: Tentor sudah memiliki sesi mengajar di jam ini';
+        res.status(409).json({ error: { code: 'CONFLICT', message: msg } });
         return;
       }
     }
@@ -3072,14 +3135,21 @@ app.post('/api/admin/sessions', requireAuth, requireAdmin, async (req: Authentic
 
     const overlapping = await prisma.session.findFirst({
       where: {
-        tentorId: enrollment.tentorId!,
         status: { not: 'cancelled' },
-        OR: [{ startsAt: { lt: endsAt }, endsAt: { gt: startsAt } }],
+        OR: [
+          { tentorId: enrollment.tentorId! },
+          { muridId: enrollment.muridId },
+        ],
+        startsAt: { lt: endsAt },
+        endsAt: { gt: startsAt },
       },
-      select: { id: true },
+      select: { id: true, tentorId: true, muridId: true },
     });
     if (overlapping) {
-      res.status(409).json({ error: { code: 'CONFLICT', message: 'Jadwal bentrok dengan sesi lain pada jam yang sama' } });
+      const msg = overlapping.muridId === enrollment.muridId
+        ? 'Jadwal bentrok: Murid sudah memiliki sesi belajar di jam ini'
+        : 'Jadwal bentrok: Tentor sudah memiliki sesi mengajar di jam ini';
+      res.status(409).json({ error: { code: 'CONFLICT', message: msg } });
       return;
     }
 
@@ -3111,7 +3181,7 @@ app.patch('/api/admin/sessions/:id', requireAuth, requireAdmin, async (req: Auth
       return;
     }
 
-    const existing = await prisma.session.findUnique({ where: { id: req.params.id! }, select: { id: true, tentorId: true, status: true, startsAt: true, endsAt: true } });
+    const existing = await prisma.session.findUnique({ where: { id: req.params.id! }, select: { id: true, tentorId: true, muridId: true, status: true, startsAt: true, endsAt: true } });
     if (!existing) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Sesi tidak ditemukan' } });
       return;
@@ -3150,15 +3220,21 @@ app.patch('/api/admin/sessions/:id', requireAuth, requireAdmin, async (req: Auth
       const overlapping = await prisma.session.findFirst({
         where: {
           id: { not: existing.id },
-          tentorId: existing.tentorId,
           status: { not: 'cancelled' },
+          OR: [
+            { tentorId: existing.tentorId },
+            { muridId: existing.muridId },
+          ],
           startsAt: { lt: eAt },
           endsAt: { gt: sAt },
         },
-        select: { id: true },
+        select: { id: true, tentorId: true, muridId: true },
       });
       if (overlapping) {
-        res.status(409).json({ error: { code: 'CONFLICT', message: 'Jadwal bentrok' } });
+        const msg = overlapping.muridId === existing.muridId
+          ? 'Jadwal bentrok: Murid sudah memiliki sesi belajar di jam ini'
+          : 'Jadwal bentrok: Tentor sudah memiliki sesi mengajar di jam ini';
+        res.status(409).json({ error: { code: 'CONFLICT', message: msg } });
         return;
       }
     }

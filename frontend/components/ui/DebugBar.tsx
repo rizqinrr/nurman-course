@@ -51,14 +51,20 @@ export default function DebugBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9999] font-mono text-[11px] select-text">
-      {/* Tab Trigger (Collapsed) */}
+      {/* Tab Trigger (Collapsed Mini Floating Icon) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 bg-gray-900/90 hover:bg-gray-900 text-white border border-gray-700/50 shadow-2xl rounded-full px-4 py-2 flex items-center gap-2 backdrop-blur-md cursor-pointer transition-all active:scale-95 z-[9999]"
+          title={`Nurman Course Debugger (${logs.length} Requests)`}
+          aria-label={`Buka Debugger (${logs.length} Requests)`}
+          className="fixed bottom-20 right-3 bg-gray-900/90 hover:bg-gray-900 text-white border border-gray-700/60 shadow-xl rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-md cursor-pointer transition-all hover:scale-110 active:scale-95 z-[9999]"
         >
-          <Terminal size={14} className="text-emerald-400 animate-pulse" />
-          <span>NC Debugger ({logs.length})</span>
+          <Terminal size={15} className="text-emerald-400" />
+          {logs.length > 0 && (
+            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[15px] h-[15px] px-1 rounded-full bg-emerald-600 text-[9px] font-bold text-white shadow-xs border border-gray-900">
+              {logs.length > 99 ? "99+" : logs.length}
+            </span>
+          )}
         </button>
       )}
 

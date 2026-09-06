@@ -32,7 +32,9 @@
 ## Tabel Keputusan (arsitektur / stack / A|B / aturan penting)
 
 | Tanggal | Keputusan | Alasan |
-|---------|-----------|--------|
+|---|---|---|
+| 2026-09-06 | Redesign Mobile-First Portal Wali (Universal Frame Centered) | Tampilan web desktop untuk portal wali ditiadakan; antarmuka difokuskan 100% pada pengalaman mobile phone container (`max-w-md`) yang terpusat di tengah layar desktop dengan latar canvas hangat (`#F0ECE1`) mengadopsi Google Stitch Warm Academic Portal. |
+| 2026-08-24 | Penguatan Validasi Bisnis Backend (Bentrok Murid, Lock Role Relasi, Status Invoice) | Mencegah murid dijadwalkan ganda pada jam yang sama, mengunci perubahan role bagi user dengan relasi aktif agar integritas data terjaga, dan mengatur state machine transisi status tagihan. |
 | 2026-08-24 | Penyeragaman Desain Tombol & Selector Anak di Portal Wali | Menghilangkan border dashed yang membingungkan, menyatukan bentuk selector anak menjadi rounded-[6px], dan mengubah tombol WhatsApp menjadi hijau solid agar konsisten dan menonjol sesuai fungsinya. |
 | 2026-08-24 | Peningkatan Kontras UI Portal Wali Murid Lengkap | Seluruh halaman portal wali murid (`/app/dashboard`, `/app/jadwal`, `/app/profile`, `/app/laporan`, `/app/tagihan`) diperbarui dengan card putih solid (`bg-app-white`) & garis border tan (`border-app-border`), serta mempertahankan efek timbul (`shadow-md`). |
 | 2026-08-24 | Peningkatan Kontras UI Portal Wali Murid | Card utama diganti dari `#edeae3` (`bg-app-surface`) ke `#fdfcfa` (`bg-app-white`) untuk meningkatkan keterbacaan dan batas kontras visual di atas canvas `#f7f4ef` (`bg-app-bg`). |
@@ -40,6 +42,194 @@
 | 2026-08-20 | Implementasi NC Debugger Widget (Dev Mode) | Mempermudah penelusuran request API, cache hit/miss/invalidated, dan SQL Query timing layaknya Laravel Debugbar. |
 | 2026-08-20 | Implementasi In-Memory Cache di `apiFetch` | Mengurangi request berulang & loading screen berputar saat navigasi antar menu portal. |
 | YYYY-MM-DD | <keputusan> | <alasan> |
+
+---
+
+### 2026-09-06 — E2E Testing Playwright: Flow Jadwal Tentor ke Laporan Belajar Wali
+
+**Fase:** Testing & Verifikasi Alur Bisnis LMS (Tentor → Wali)
+**Status sesi:** selesai — Pengujian Playwright E2E sukses 100% dari pembuatan jadwal hingga laporan terbit di portal wali.
+
+**Request user:** aku pengen kamu lakuin testing deh dari awal tentor bikin jadwal, isi yang perlu diisi, terus si wali lihat ada jadwal terdekat, terus tentor ngisi laporan karen jadwalnya lewat dan kelar, terus wali lihat laporan pake playwright -> gas
+
+**Keputusan (klarifikasi):** Menjalankan otomasi browser Playwright:
+1. Login Tentor (Mas Rizqi - `6281390012456`) -> buat jadwal baru bimbingan Budi Santoso di `/app/tentor/jadwal`.
+2. Login Wali Murid (Pak Supardi - `supardi@gmail.com`) -> periksa kartu Sesi Terdekat di `/app/dashboard` & sesi berstatus `Terjadwal` di `/app/jadwal`.
+3. Sesi disimulasikan selesai -> Tentor mengisi Laporan Harian di `/app/tentor/laporan-harian` (materi Hijaiyah/Iqra & catatan kemajuan murid).
+4. Login Wali Murid -> buka `/app/laporan`, verifikasi kartu Laporan Harian Stitch muncul lengkap dengan dot program, avatar tentor, dan kutipan catatan guru bergaris emas.
+
+**Dikerjakan:**
+- Otomasi Playwright seluruh alur live di browser.
+- Tangkapan layar bukti sukses tersimpan di `./laporan-wali-sukses.png`.
+
+**Verifikasi:** Semua assertions visual & data state lulus (screenshot `laporan-wali-sukses.png` terverifikasi).
+
+---
+
+### 2026-09-06 — Redesign Halaman Tagihan Belajar 100% Google Stitch Style
+
+**Fase:** Portal Wali UI/UX Mobile-First (Warm Academic Portal) — Fase 3
+**Status sesi:** selesai — Halaman Tagihan Belajar (`/app/tagihan`) di-rewrite 100% pixel-perfect mengikuti Stitch Screen `61df6c75df0f49d2898b3847048fdcb4` dengan riwayat pembayaran tersembunyi secara default sesuai preferensi user.
+
+**Request user:** oh aku mau defaultnya riwayat pembayaran itu hanya kelihatan dengan menekan tombol lihat riwayat ya, biar halaman utama awalnya ga terlalu penuh -> gas pake todo rinci
+
+**Keputusan (klarifikasi):** Mengadopsi 100% struktur screen Stitch 61df6c7: TopBar mobile dengan back button bulat ke dashboard, judul Playfair "Tagihan" & subtitle "Kelola & Pembayaran Belajar", tombol notifikasi, child selector avatar inisial bulat (`#4A70A9` / `#C8B99A`), Hero Card Tagihan Aktif dengan nomor invoice, status Belum Dibayar/Menunggu, total tagihan besar, warning jatuh tempo merah, info rekening BCA dengan tombol Salin 1-klik, area upload bukti transfer, accordion Pembayaran Mandiri/Prabayar, dan Riwayat Pembayaran (invoices + prepayments) tertutup secara default dan hanya terbuka saat tombol "Lihat Riwayat" ditekan, serta modal pratinjau bukti bayar (`ProofModal`).
+
+**Dikerjakan:**
+- **Frontend** `frontend/app/app/(wali)/tagihan/page.tsx`: Rewrite total mengadopsi 100% Google Stitch UI Screen `61df6c75df0f49d2898b3847048fdcb4`.
+- **Docs** `tasks/plan-wali-mobile.md`: Tandai penyelesaian Subtask 3.1.1 - 3.1.6.
+
+**Verifikasi:** `npx tsc --noEmit --project frontend/tsconfig.json` exit 0 (0 error).
+
+**Residual:** Fase 6 tersisa (Katalog Program & Profil Wali).
+
+---
+
+### 2026-09-06 — Redesign Halaman Jadwal Belajar 100% Google Stitch Style
+
+**Fase:** Portal Wali UI/UX Mobile-First (Warm Academic Portal) — Fase 4
+**Status sesi:** selesai — Halaman Jadwal Belajar (`/app/jadwal`) di-rewrite 100% pixel-perfect mengikuti Stitch Screen `0530b9bdb32b49af82c66f8e0700c771`.
+
+**Request user:** Opsi 1: Halaman Jadwal Belajar (/app/jadwal) — Rekomendasi -> gas pake todo
+
+**Keputusan (klarifikasi):** Mengadopsi 100% struktur screen Stitch 0530b9b: TopBar mobile dengan back button bulat ke dashboard, judul Playfair "Jadwal Belajar" & subtitle "Portal Wali Murid", tombol notifikasi, child selector avatar inisial bulat (`#4A70A9` / `#C8B99A`), single-column upcoming sessions card feed dengan tag tanggal, badge Terjadwal, detail waktu/tentor/lokasi dan tombol full-width Reschedule WA, riwayat pertemuan dengan status Hadir/Selesai dan link ke laporan, serta Floating Action Button "Ajukan Perubahan Jadwal" yang terkunci di dalam frame `max-w-md` di atas BottomBar.
+
+**Dikerjakan:**
+- **Frontend** `frontend/app/app/(wali)/jadwal/page.tsx`: Rewrite total mengadopsi 100% Google Stitch UI Screen `0530b9bdb32b49af82c66f8e0700c771`.
+- **Docs** `tasks/plan-wali-mobile.md`: Tandai penyelesaian Subtask 4.1.1 - 4.1.5.
+
+**Verifikasi:** `npx tsc --noEmit --project frontend/tsconfig.json` exit 0 (0 error).
+
+**Residual:** Menunggu pilihan user untuk melanjutkan ke Fase 3 (Tagihan `/app/tagihan`) atau Fase 6 (Program & Profil).
+
+---
+
+### 2026-09-06 — Redesign Halaman Laporan Belajar 100% Google Stitch Style
+
+**Fase:** Portal Wali UI/UX Mobile-First (Warm Academic Portal) — Fase 5
+**Status sesi:** selesai — Halaman Laporan Belajar (`/app/laporan`) di-rewrite 100% pixel-perfect mengikuti Stitch Screen `cdfc63d3c41e49babdd9ef98acacea0e`.
+
+**Request user:** sekarang halaman laporan, plan rincinya gimana, harus stitch 100% -> gas
+
+**Keputusan (klarifikasi):** Mengadopsi 100% struktur screen Stitch: top-bar dengan tombol kembali bulat + lonceng + filter, child selector avatar inisial bulat (`#4A70A9` & `#C8B99A`) dengan badge checkmark aktif, segmented tab switcher (Harian vs Perkembangan), card laporan harian dengan badge program ber-dot, grid waktu 2 kolom, avatar inisial tentor, quote box beraksen emas pasir `#c8b99a`, tombol WhatsApp hijau bulat, pagination "Tampilkan Lebih Banyak", dan card evaluasi blok perkembangan lengkap dengan bento grid 2 kolom & tombol utama Unduh Rapor PDF.
+
+**Dikerjakan:**
+- **Frontend** `frontend/app/app/(wali)/laporan/page.tsx`: Rewrite total mengadopsi 100% Google Stitch UI Screen `cdfc63d3c41e49babdd9ef98acacea0e`.
+- **Docs** `tasks/plan-wali-mobile.md`: Tandai penyelesaian Subtask 5.1.1 - 5.1.4.
+
+**Verifikasi:** `npx tsc --noEmit --project frontend/tsconfig.json` exit 0 (0 error).
+
+**Residual:** Menunggu pilihan user untuk melanjutkan ke Fase 3 (Tagihan `/app/tagihan`) atau Fase 4 (Jadwal `/app/jadwal`).
+
+---
+**Status sesi:** in_progress
+
+**Request user:**
+- "oke siapkan plan halaman laporan, 100% stitch"
+- "pake todo rinci"
+
+**Keputusan (klarifikasi):**
+- Halaman Laporan Belajar Wali (`frontend/app/app/(wali)/laporan/page.tsx`) dirombak 100% mengadopsi node visual screen Google Stitch (`cdfc63d3c41e49babdd9ef98acacea0e`).
+- Elemen Child Selector diubah ke model avatar inisial bulat (`AD`, `ND`) dengan checkmark aktif.
+- Switcher tab menggunakan Segmented Control 2 kolom (`bg-[#f0ebe3] p-1 rounded-xl`) dengan subteks frekuensi.
+- Kartu Laporan Harian: Baris atas badge program ber-dot + tombol bulat hijau WA chat tentor, waktu 2 kolom, avatar inisial tentor, quote box catatan guru beraksen garis kiri emas pasir (`#c8b99a`).
+- Kartu Laporan Perkembangan: Header blok + badge sesi selesai hijau, poin capaian ber-checklist hijau, Bento Grid 2 kolom (Materi Dikuasai hijau vs Perlu Latihan amber), quote box rekomendasi guru, serta tombol konsultasi WA & cetak PDF.
+
+**Dikerjakan:**
+- `frontend/app/app/(wali)/laporan/page.tsx`: Rewrite menyeluruh 100% mengikuti visual layout Stitch.
+- `tasks/plan-wali-mobile.md`: Check-off Task 5.1 (Fase 5).
+
+**Verifikasi:**
+- `npx tsc --noEmit --project frontend/tsconfig.json` sukses 0 error (typecheck clean).
+
+**Residual:**
+- Lanjut ke Fase berikutnya: Redesign Halaman Jadwal Belajar (`/app/jadwal`) atau Halaman Tagihan (`/app/tagihan`) sesuai screen Stitch.
+
+---
+
+### 2026-09-06 — Fase 2 Redesign Dashboard & BottomNavBar 100% Google Stitch Style
+
+**Fase:** Portal Wali UI/UX Mobile-First (Warm Academic Portal)
+**Status sesi:** in_progress
+
+**Request user:**
+- "gas"
+- "pastikan gunakan 100% view dari stitch untuk halaman ini ya, bottombarnya juga boleh sekalian di ganti, gunakan icon jangan emot"
+
+**Keputusan (klarifikasi):**
+- BottomNavBar di `layout.tsx` diubah 100% mengikuti node referensi HTML Stitch: 5 tab (`Beranda`, `Program`, `Jadwal`, `Tagihan`, `Laporan`), ikon Lucide murni (`Home`, `GraduationCap`, `CalendarDays`, `Receipt`, `ClipboardList`) dengan mini text label, tanpa emoji, tanpa tombol raised 3D tengah.
+- Halaman `dashboard/page.tsx` dirombak total 100% mengikuti screen Stitch (`195d728dc55a4fd196ce1a81ca170a8c`):
+  1. Top greeting Playfair Display `Halo, [Nama Wali]` + subteks `Selamat datang kembali`.
+  2. Child Selector horizontal scroll chip pill dengan dot aksen.
+  3. Alert Tagihan amber border kiri tebal `#D97706` + link Bayar Sekarang.
+  4. Card Program Aktif dengan badge hijau `● Aktif` + 2 kolom metrik (Paket Sesi & Progres Belajar).
+  5. Card Sesi Terdekat beraksen biru lembut `#EAF0F8` border `#B8CDE4` dengan badge countdown `Besok, 1 hari lagi`.
+  6. Card Rapor Capaian Terakhir dengan status kehadiran Hadir Tepat Waktu (100%), kutipan catatan guru berborder kiri, dan link `Lihat Semua Laporan →`.
+  7. Card Konsultasi Akademik dengan tombol Chat WhatsApp terpadu.
+
+**Dikerjakan:**
+- `frontend/app/app/(wali)/layout.tsx`: Ganti BottomNavBar ke gaya Stitch clean Lucide icons + text label.
+- `frontend/app/app/(wali)/dashboard/page.tsx`: Rewrite menyeluruh 100% mengadopsi view Stitch Parent Portal Mobile Dashboard.
+- `tasks/plan-wali-mobile.md`: Check-off Task 2.1 (Subtask 2.1.1 - 2.1.7).
+
+**Verifikasi:**
+- `npx tsc --noEmit --project frontend/tsconfig.json` sukses 0 error (typecheck clean).
+
+**Residual:**
+- Lanjut ke Fase 3: Redesign halaman Tagihan (`frontend/app/app/(wali)/tagihan/page.tsx`) 100% mobile Stitch screen `61df6c75df0f49d2898b3847048fdcb4`.
+
+---
+
+### 2026-09-06 — Fase 1 Redesign Mobile-First Portal Wali (Universal Frame Centered)
+
+**Fase:** Portal Wali UI/UX Mobile-First (Warm Academic Portal)
+**Status sesi:** in_progress
+
+**Request user:**
+- "aku pengen ubah tampilan view mobilenya, untuk web view milik wali, ga perlu ada, kalo buka di desktop web ya tampilannya tetep mobile first aja lah"
+- "bikin plan rinci dulu, fase, task, subtask, masukan ke dalam file md task"
+- "oke fase 1 dulu, bikin todo juga biar bisa ditraking"
+
+**Keputusan (klarifikasi):**
+- Layout desktop terpisah (sidebar samping) untuk portal wali ditiadakan.
+- Portal wali dibungkus ke dalam mobile phone container terpusat (`max-w-md mx-auto`) dengan canvas luar `#F0ECE1` dan canvas dalam `#F7F4EF`.
+- TopBar (brand + avatar) dan BottomNavBar (5 menu navigasi) aktif secara universal di semua viewport (mobile & desktop).
+
+**Dikerjakan:**
+- **Rencana & Tracking:** `tasks/plan-wali-mobile.md` dibuat rinci 7 fase; checklist didaftarkan di `tasks/todo.md`.
+- **Layout Wali** `frontend/app/app/(wali)/layout.tsx`: Hapus SideNavBar desktop, pasang centering canvas luar `#F0ECE1`, bungkus dalam frame `max-w-md min-h-screen shadow-2xl`, jadikan TopBar dan BottomNavBar universal di semua viewport.
+
+**Verifikasi:**
+- `npx tsc --noEmit --project frontend/tsconfig.json` sukses 0 error.
+
+**Residual:**
+- Eksekusi Fase 2: Redesign layout konten kartu di `frontend/app/app/(wali)/dashboard/page.tsx` sesuai visual screen Stitch (`195d728dc55a4fd196ce1a81ca170a8c`).
+
+---
+
+### 2026-08-24 — Penguatan Validasi Bisnis Backend: Bentrok Murid, Lock Role Relasi, dan Transisi Invoice
+
+**Fase:** Backend / Logika Bisnis (branch `dev`)
+**Status sesi:** selesai — Validasi bentrok murid pada penjadwalan sesi berhasil diintegrasikan, penguncian perubahan role bagi user dengan relasi aktif diterapkan, dan state machine transisi status invoice diperketat.
+
+**Request user:** "ah ga usah duulu dulu lah dark mode, fokus ke logic backend dulu" -> "gas"
+
+**Keputusan (klarifikasi):**
+1. Validasi jadwal sesi kini memeriksa bentrok untuk `tentorId` ATAU `muridId` di semua endpoint (`POST/PATCH` sesi tentor dan admin).
+2. Perubahan role user via `PATCH /api/admin/users/:id` ditolak jika wali memiliki data murid terhubung atau tentor memiliki sesi/enrollment aktif.
+3. Transisi status tagihan dibatasi melalui state machine matrix (`unpaid -> waiting/paid`, `waiting -> paid/unpaid`, `paid -> unpaid/paid`).
+
+**Dikerjakan:**
+- **Backend Sessions** `backend/src/index.ts`: Tambahkan kondisi pengecekan overlapping murid di `POST /api/me/sessions`, `PATCH /api/me/sessions/:id`, `POST /api/admin/sessions`, dan `PATCH /api/admin/sessions/:id` serta pesan error informatif pembeda bentrok murid vs tentor.
+- **Backend Users** `backend/src/index.ts`: Tambahkan relasi count check di `PATCH /api/admin/users/:id` untuk mencegah perubahan role jika memiliki relasi aktif.
+- **Backend Invoices** `backend/src/index.ts`: Tambahkan `allowedTransitions` matrix di `PATCH /api/admin/invoices/:id/status`.
+
+**Verifikasi:**
+- `npm --prefix backend run build` (tsc) sukses 0 error.
+- `npm --prefix frontend run build` sukses 35 routes tergenerate.
+
+**Residual:**
+- Restart server Express backend jika sedang berjalan di background development.
 
 ---
 

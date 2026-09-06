@@ -18,6 +18,7 @@
 
 ## Meta — dokumentasi & proses
 
+- [ ] 2026-09-06 WALI-MOB: Redesign Mobile-First Portal Wali Murid (Adopsi Google Stitch Warm Academic Portal, hapus SideNavBar desktop, layout universal frame max-w-md, sinkronisasi tampilan Dashboard, Jadwal, Laporan, Tagihan, Program, Profile) — lihat detail di `tasks/plan-wali-mobile.md` (in_progress)
 - [x] 2026-07-29 Tulis `docs/ROADMAP-LMS.md` (MVP, fase, opsi A/B)
 - [x] 2026-07-29 Buat `docs/PROGRESS.md` + template log
 - [x] 2026-07-29 Buat `tasks/todo.md` (file ini)
@@ -305,9 +306,9 @@ Prioritas rendah:
 - [x] 2026-08-06 ADM-4.C4 Checkpoint roadmap: order, cascade, invalid content, wali read regression
 
 ### Phase 5 — Session dan Jadwal
-- [ ] ADM-5.1 API Session: list/filter, detail, create, update, cancel, relation/time/conflict validation
-- [ ] ADM-5.2 UI Jadwal Sesi: calendar/list, filters, assignment form, detail, cancel
-- [ ] ADM-5.C5 Checkpoint session: invalid time, overlap, tentor/wali consumer regression, build/lint
+- [x] 2026-08-24 ADM-5.1 API Session: list/filter, detail, create, update, cancel, relation/time/conflict validation (termasuk bentrok murid & tentor)
+- [x] 2026-08-06 ADM-5.2 UI Jadwal Sesi: calendar/list, filters, assignment form, detail, cancel
+- [x] 2026-08-24 ADM-5.C5 Checkpoint session: invalid time, overlap murid/tentor, tentor/wali consumer regression, build/lint
 
 ### Phase 6 — Invoice dan Status Pembayaran
 - [x] 2026-08-01 ADM-6.1 API Invoice: list/filter, detail, create, status transition, paidAt consistency
@@ -323,9 +324,9 @@ Prioritas rendah:
 
 ### Keputusan Terbuka
 - [x] 2026-08-01 ADM-Q1 Putuskan aturan duplicate enrollment aktif untuk murid-program → ditolak `409`
-- [ ] ADM-Q2 Putuskan konflik jadwal: hard reject atau warning
+- [x] 2026-08-24 ADM-Q2 Putuskan konflik jadwal: hard reject 409 (baik untuk tentor maupun murid)
 - [ ] ADM-Q3 Putuskan flow password akun baru: temporary password atau invite/reset email
-- [ ] ADM-Q4 Putuskan apakah role akun existing boleh diubah admin
+- [x] 2026-08-24 ADM-Q4 Putuskan apakah role akun existing boleh diubah admin: dibatasi, dilarang ubah role bila ada relasi murid/sesi aktif
 
 ### Admin Tentor Polish (request user 2026-08-05)
 
