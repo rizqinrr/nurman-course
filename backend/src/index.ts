@@ -3,8 +3,8 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
-import { PrismaClient } from './generated/client';
+import { prisma } from './lib/prisma';
+import { supabaseAdmin } from './lib/supabase-admin';
 import { requireAuth, requireAdmin, AuthenticatedRequest } from './middleware/auth';
 import {
   createEnrollmentSchema,
@@ -35,25 +35,7 @@ import {
 
 dotenv.config();
 
-export const prisma = new PrismaClient(
-  process.env.NODE_ENV !== 'production'
-    ? { log: [{ level: 'query', emit: 'event' }] }
-    : undefined
-);
-
-if (process.env.NODE_ENV !== 'production') {
-  (prisma as any).$on('query', (e: any) => {
-    console.log(`\x1b[36m[SQL]\x1b[0m ${e.query} \x1b[33m(${e.duration}ms)\x1b[0m`);
-  });
-}
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-  : null;
+export { prisma };
 
 const app = express();
 

@@ -422,7 +422,7 @@ Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
   - [ ] NC-1.2h Sebelum migration lanjutan yang mengubah `users.email/phone/role`, rekonsiliasi ordering legacy `fix-null-email` (nama alfabetis akan berada setelah migration timestamp pada fresh replay). Jangan rename/edit migration applied tanpa strategi history; selalu replay seluruh history.
   - [ ] NC-1.2i Backup jangka panjang dan restore pada versi PostgreSQL yang sama: bukti saat ini public-only di folder temp lokal ber-ACL user-only, direstore ke 18.6 dari staging 17.6, bukan backup penuh Auth/Storage/roles Supabase. Tidak cukup sebagai strategi disaster recovery.
   - [ ] NC-1.2j Follow-up hardening/performance terpisah: evaluasi RLS defense-in-depth (saat ini anon/authenticated tidak punya akses), leaked-password protection nonaktif, 17 FK tanpa covering index. Jangan ubah security/grant global lewat baseline.
-- [ ] NC-1.3 Pindahkan `prisma` & `supabaseAdmin` dari `backend/src/index.ts` ke `backend/src/lib/` (prasyarat modularisasi — cegah circular import saat route dipecah)
+- [x] 2026-09-15 NC-1.3 Ekstrak `prisma` dan `supabaseAdmin` ke `backend/src/lib/prisma.ts` dan `supabase-admin.ts`; `index.ts` import dan tetap export Prisma lama. Env dimuat sebelum konstruksi, singleton/logging development/nullable client dipertahankan. `node --test backend/tests/clients.test.cjs`: 4/4 lolos (RED → GREEN), typecheck BE/FE + compile BE lolos, smoke fresh API health200/token-absen401/programs200. Review approve; tidak mengubah endpoint/auth/schema/data/dependency. Lint existing 75 error/28 warning tetap (NC-1.2g); smoke autentikasi positif belum dijalankan karena tidak ada sesi test tersedia. NC-1.4/NC-1.6 belum dimulai.
 - [ ] NC-1.4 `requireAuth` baca role dari DB (`prisma.user`), JWT hanya untuk identitas; hapus fallback `|| "wali"`; tambah helper `requireRole()` (D5) — **RISIKO: user Supabase tanpa baris Prisma sekarang diam-diam jadi `wali`, setelah ini ditolak → wajib cek staging dulu**
 - [ ] NC-1.5 Hardening: `helmet`, `express-rate-limit`, `express.json({ limit: '5mb' })` (bukti bayar & foto base64 masuk lewat body), CORS allowlist (sekarang `cors()` terbuka penuh)
 - [ ] NC-1.6 Test harness: Vitest + supertest, Prisma di-mock (fokus guard & validasi, bukan query)
@@ -517,4 +517,4 @@ Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
 
 ## In progress (maks 1 fokus utama)
 
-- (none) — NC-1.2 selesai. Task berikutnya belum dimulai. **WALI-MOB di-pause** (per keputusan user 2026-09-15: fokus pindah ke backend).
+- (none) — NC-1.3 selesai. Task berikutnya belum dimulai. **WALI-MOB di-pause** (per keputusan user 2026-09-15: fokus pindah ke backend).

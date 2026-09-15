@@ -47,6 +47,34 @@
 
 ---
 
+### 2026-09-15 — NC-1.3 ekstraksi client backend
+
+**Fase:** NC-1.3 — Fondasi modularisasi, branch `be-restruktur`
+**Status sesi:** selesai — Prisma dan Supabase admin menjadi modul standalone tanpa import balik entrypoint Express. Perilaku client dan export Prisma lama dipertahankan; tidak mengubah endpoint, auth, schema, data, frontend, atau dependency.
+
+**Request user:** "oke gas" setelah persetujuan scope NC-1.3 (ekstraksi client + verifikasi + docs), dilanjutkan "oke ini push dulu" → "gas" untuk commit/push perubahan NC-1.3 saja ke `be-restruktur`.
+
+**Keputusan (klarifikasi):** Dua modul kecil di `backend/src/lib/`, masing-masing memuat dotenv sebelum konstruksi. Pertahankan kode logging termasuk cast existing untuk refactor behavior-preserving. Regression test terbatas menggunakan Node built-in test runner dan ts-node existing; Vitest/supertest (NC-1.6), perubahan role (NC-1.4), dan refactor seed tetap terpisah.
+
+**Dikerjakan:**
+- `backend/src/lib/prisma.ts`: pindahkan instance Prisma module-cached dan query logging hanya nonproduction, tanpa koneksi eksplisit saat import.
+- `backend/src/lib/supabase-admin.ts`: pindahkan client service-role backend-only, `null` bila URL/key tidak tersedia; refresh/persistence session tetap false.
+- `backend/src/index.ts`: import kedua modul dan `export { prisma }` untuk kompatibilitas; seluruh route/startup/type export tetap.
+- `backend/tests/clients.test.cjs`: 4 regression test subprocess dengan `.env` sementara, nilai palsu, Prisma stub, Supabase asli; mengunci env-first, singleton, production/development logging, nullable admin client, tidak membuka network/listener saat import, dan export Prisma lama tetap instance yang sama. File temp test dibersihkan otomatis.
+- `tasks/todo.md`: NC-1.3 dicentang; NC-1.4/NC-1.6 belum dimulai.
+
+**Verifikasi:**
+- `node --test backend/tests/clients.test.cjs`: RED 4 gagal saat modul belum ada; GREEN 4/4 setelah ekstraksi, termasuk pemeriksaan export entrypoint.
+- `node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json` dan frontend: exit 0.
+- Compile backend `tsc --project backend/tsconfig.json --outDir <temp>/nc13-build`: exit 0; output di luar repo, bukan perubahan artifact runtime.
+- Smoke fresh backend process di loopback port sementara: `/api/health` 200, `/api/users/me` tanpa token 401, `/api/programs` 200 (DB read), SQL logging development muncul. Proses test dihentikan; tidak menjalankan seed atau mutasi data.
+- `npm run lint`: tetap gagal pada frontend existing (75 error, 28 warning); bukan regresi refactor, lihat NC-1.2g. Backend belum punya script lint.
+- Review independen approve, tidak ada blocker; `git diff --check` lolos. Tidak ada perubahan migration/client generated atau package lock.
+
+**Residual:** Smoke request terautentikasi positif belum dilakukan karena tidak ada sesi test tersedia; tidak membuat/reset akun atau mengambil token browser. Regression unit Prisma menggunakan stub; koneksi/read nyata dicakup smoke `/api/programs`. Belum uji deployment artifact lengkap/frontend build; packaging generated Prisma client bukan scope task ini. Commit/push mencakup NC-1.3 saja; tidak memulai NC-1.4 atau NC-1.6.
+
+---
+
 ### 2026-09-15 — NC-1.2 baseline diresmikan setelah restore dan replay
 
 **Fase:** NC-1.2 — Fondasi migration, branch `be-restruktur`
