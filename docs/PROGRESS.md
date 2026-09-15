@@ -45,6 +45,27 @@
 
 ---
 
+### 2026-09-06 — Redesign Halaman Profil Wali Murid 100% Google Stitch Style
+
+**Fase:** Portal Wali UI/UX Mobile-First (Warm Academic Portal) — Fase 6 (Subtask 6.1.2)
+**Status sesi:** selesai — Halaman Profil Wali (`/app/profile`) di-rewrite 100% pixel-perfect mengikuti Design System Google Stitch Warm Academic Portal.
+
+**Request user:** profil aja dulu -> gas
+
+**Keputusan (klarifikasi):** Mengadopsi struktur Stitch: TopBar mobile dengan back button bulat ke dashboard, judul Playfair "Profil Saya" & subtitle "Pengaturan Akun & Data Anak", Hero Card Identitas Wali dengan inisial bulat besar (`#4A70A9`) & badge "Wali Murid Terdaftar", daftar anak bimbingan dengan inisial bulat `#C8B99A` & status aktif belajar, form ganti password dengan input rounded-xl & toggle eye intip sandi, serta tombol full-width "Keluar dari Akun" berborder merah halus yang terintegrasi dengan modal konfirmasi logout.
+
+**Dikerjakan:**
+- **Frontend** `frontend/app/app/(wali)/profile/page.tsx`: Rewrite total mengadopsi Design System Google Stitch Warm Academic Portal.
+- **Docs** `tasks/plan-wali-mobile.md`: Tandai penyelesaian Subtask 6.1.2.
+
+**Verifikasi:**
+- `npx tsc --noEmit --project frontend/tsconfig.json` exit 0 (0 error).
+- Verifikasi visual Playwright: snapshot accessibility & screenshot viewport `profil-wali-stitch.png` terverifikasi presisi di dalam frame mobile `max-w-md`.
+
+**Residual:** Halaman Katalog Program Anak (`/app/program` & `[slug]`).
+
+---
+
 ### 2026-09-06 — E2E Testing Playwright: Flow Jadwal Tentor ke Laporan Belajar Wali
 
 **Fase:** Testing & Verifikasi Alur Bisnis LMS (Tentor → Wali)

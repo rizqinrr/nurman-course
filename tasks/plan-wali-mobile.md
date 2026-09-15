@@ -88,7 +88,7 @@ Menyesuaikan halaman sisa di portal wali agar konsisten dengan shell mobile.
 
 - [ ] **Task 6.1: Program Anak & Profil Wali Mobile**
   - **Subtask 6.1.1:** Halaman Katalog & Detail Program Anak (`program/page.tsx`, `program/[slug]/page.tsx`): Card program berorientasi vertikal mobile.
-  - **Subtask 6.1.2:** Halaman Profil Wali (`profile/page.tsx`): Form identitas, daftar anak, dan tombol keluar di dalam batas `max-w-md`.
+  - [x] **Subtask 6.1.2:** Halaman Profil Wali (`profile/page.tsx`): Redesign 100% Stitch Warm Academic Portal (TopBar back button bulat, hero card identitas wali dengan avatar inisial, list anak bimbingan dengan badge status aktif, form keamanan ganti password rounded-xl, dan tombol keluar akun border merah di frame `max-w-md`).
 
 ---
 
