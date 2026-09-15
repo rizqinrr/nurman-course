@@ -50,7 +50,7 @@
 ### 2026-09-16 — NC-1.6 test harness backend terisolasi
 
 **Fase:** NC-1.6 — Fondasi testing, branch `be-restruktur`
-**Status sesi:** sebagian selesai — Implementasi dan verifikasi selesai; commit/push sedang difinalisasi. NC-1.4 belum dimulai.
+**Status sesi:** selesai — Implementasi, verifikasi, dan review selesai. Commit `849d7bc` dipush ke `be-restruktur`; hash HEAD lokal/remote identik dan working tree bersih sesudah push implementasi. Penutupan checklist/docs disimpan dalam commit dokumentasi terpisah. NC-1.4 belum dimulai.
 
 **Request user:** "tuliskan rinci apa aja yg akan diubah" → "oke, siapkan todo yg rinci, dan eksekusi, sampai push" → "lanjut".
 
