@@ -1,0 +1,2 @@
+backend/prisma/migrations/**/migration.sql text eol=lf
+backend/prisma/migrations/migration_lock.toml text eol=lf

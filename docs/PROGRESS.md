@@ -33,6 +33,7 @@
 
 | Tanggal | Keputusan | Alasan |
 |---|---|---|
+| 2026-09-15 | NC-1.2 baseline `0_init` diresmikan; legacy `fix-null-email` dipertahankan | Gate schema/backup public/restore/replay lolos; staging hanya mencatat applied, bukan menjalankan SQL baseline. Migrasi baru wajib memperhatikan ordering legacy alfabetis. Backup public-only ke PG18 bukan disaster recovery penuh untuk staging PG17. |
 | 2026-09-15 | NC-1.2: baseline Prisma digate pemeriksaan staging, backup, riwayat, schema dan replay | Kandidat dari schema lokal bukan bukti kesetaraan DB. Selama koneksi gagal, simpan kandidat di luar `migrations/`; jangan `resolve`, `deploy`, `db push` atau reset. `migrate dev` untuk development terpisah, `migrate deploy` untuk staging/production setelah baseline disahkan. |
 | 2026-09-06 | Redesign Mobile-First Portal Wali (Universal Frame Centered) | Tampilan web desktop untuk portal wali ditiadakan; antarmuka difokuskan 100% pada pengalaman mobile phone container (`max-w-md`) yang terpusat di tengah layar desktop dengan latar canvas hangat (`#F0ECE1`) mengadopsi Google Stitch Warm Academic Portal. |
 | 2026-08-24 | Penguatan Validasi Bisnis Backend (Bentrok Murid, Lock Role Relasi, Status Invoice) | Mencegah murid dijadwalkan ganda pada jam yang sama, mengunci perubahan role bagi user dengan relasi aktif agar integritas data terjaga, dan mengatur state machine transisi status tagihan. |
@@ -43,6 +44,41 @@
 | 2026-08-20 | Implementasi NC Debugger Widget (Dev Mode) | Mempermudah penelusuran request API, cache hit/miss/invalidated, dan SQL Query timing layaknya Laravel Debugbar. |
 | 2026-08-20 | Implementasi In-Memory Cache di `apiFetch` | Mengurangi request berulang & loading screen berputar saat navigasi antar menu portal. |
 | YYYY-MM-DD | <keputusan> | <alasan> |
+
+---
+
+### 2026-09-15 — NC-1.2 baseline diresmikan setelah restore dan replay
+
+**Fase:** NC-1.2 — Fondasi migration, branch `be-restruktur`
+**Status sesi:** selesai — Koneksi staging pulih, backup public berhasil direstore, migration history berhasil direplay pada DB kosong terpisah, `0_init` dicatat applied. Tidak ada perubahan struktur/data aplikasi staging; entri sebelumnya tetap sebagai riwayat blocker yang sudah teratasi.
+
+**Request user:** "oke kalo gitu gas, pake todo" → "lanjut"; commit/push mengikuti persetujuan sesi NC-1.2.
+
+**Keputusan (klarifikasi):** Pertahankan `fix-null-email` pada history asli karena sudah applied. Baseline hanya struktur 13 model yang ada; tidak mengubah ACL/RLS, role, UI, atau `sessionId`. Pengujian menggunakan binary PostgreSQL Laragon existing, tanpa instalasi/dependency baru. PostgreSQL test 18.6 bukan versi persis staging 17.6; backup public-only cukup sebagai titik pemulihan scope metadata ini, bukan disaster recovery penuh Supabase.
+
+**Dikerjakan:**
+- **Audit staging:** `migrate diff` actual datasource terhadap schema repo kosong. Legacy `fix-null-email` sudah applied sejak 2026-08-06 dengan checksum LF `0e394ec4f66a02108fc221b38fabc50bcfea4a8819a64d3f056acb0c7a007ebc`. Tidak ditemukan trigger aplikasi (termasuk dari schema lain ke fungsi public), policy, view/materialized view, fungsi custom public, check constraint, sequence, foreign table, atau partition public. Table/default ACL kosong; schema public hanya owner postgres. RLS nonaktif pada 14 tabel, tetapi `anon`/`authenticated` efektif memiliki akses ke 0 tabel; tidak mengubah posture ini lewat baseline.
+- **Backup:** `pg_dump` custom format schema+data `public` melalui session read-only/TLS, termasuk `_prisma_migrations`; tersimpan di `C:\Users\Kiki\AppData\Local\Temp\opencode\nc-baseline-20260915\public-before.dump`, folder ACL hanya user Windows pemilik. SHA-256 archive disimpan lokal berdampingan; tidak masuk Git. Auth/Storage/role global tidak dicakup. Koreksi entri sebelumnya: binary tidak ada di PATH tetapi ditemukan di `C:\laragon\bin\postgresql\postgresql-18.6-winx64\bin`.
+- **Restore/replay:** cluster sementara menggunakan SCRAM dan hanya listen `127.0.0.1:55439`. Backup direstore dengan `--exit-on-error --single-transaction --no-owner` ke `nc_restore`; count/fingerprint 14 tabel cocok dengan staging sebelum/sesudah backup. DB kosong lain `nc_replay` menjalankan `migrate deploy` untuk `0_init` lalu `fix-null-email`; diff kosong, status up-to-date, deploy kedua no-op. SQL legacy hanya dieksekusi di DB replay kosong, bukan staging.
+- **Files:** pindah `backend/prisma/baseline-candidate.sql` tanpa perubahan isi menjadi `backend/prisma/migrations/0_init/migration.sql`; tambah `migration_lock.toml` provider PostgreSQL dan `.gitattributes` khusus LF migration agar checksum stabil lintas OS. Tidak mengedit migration legacy atau `schema.prisma`.
+- **Staging:** `migrate resolve --applied 0_init` dijalankan sekali setelah review independen menyetujui gate. Tepat satu record ditambahkan (16:22:35 UTC), `applied_steps_count=0`; checksum baseline `e7e37b18a0539132f487926c000b53eabb2acb68306c6aa9449184589d2a56ad` cocok file. Record/checksum legacy tetap. Tidak menjalankan `migrate deploy`, reset, `db push`, seed, atau SQL baseline pada staging.
+- **Docs:** NC-1.2 dicentang, follow-up lint/ordering legacy/backup jangka panjang/security-perf ditulis terpisah di `tasks/todo.md`.
+
+**Verifikasi:**
+- Backup restore: 14 tabel match (5 user, 3 murid, 3 program, 4 roadmap step, 2 material item, 3 sesi, 2 enrollment, 3 daily report, 3 progress report, 1 progress, 2 rekening, 2 prepayment, 0 invoice, 1 history migration sebelum resolve).
+- Sesudah resolve: tepat 2 migration applied; checksum keduanya benar. Count/fingerprint 13 tabel aplikasi tidak berubah dari backup. `migrate status` up-to-date dan schema diff kosong.
+- `prisma validate`, replay `migrate deploy`, replay diff/status/redeploy, typecheck backend dan frontend semuanya exit 0. CLI Prisma tetap 5.22.0.
+- Verifier sementara sempat gagal assertion karena pemisahan stdout Windows CRLF, bukan kegagalan migration; diperbaiki menjadi split CRLF/LF dan diverifikasi ulang read-only. `resolve` tidak diulang. Satu pemeriksaan CLI dari root gagal menemukan env; pemeriksaan final memakai cwd backend dan env yang benar, tanpa edit credential.
+- `npm run lint` tetap gagal: 75 error / 28 warning existing frontend, tidak diperbaiki di scope baseline. Build/browser E2E tidak dijalankan; tidak ada perubahan kode runtime.
+- Cluster test dihentikan clean dengan `pg_ctl stop -m fast`; status akhir no server running. Backup/data test tetap lokal ber-ACL user-only, tidak masuk Git. Log lint hasil sesi dibersihkan dari working tree.
+- Advisors: [leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) nonaktif dan [17 FK tanpa covering index](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys); dicatat untuk task terpisah.
+
+**Residual / operasional:**
+- Jalankan perintah Prisma dari `backend/`. Development terpisah menggunakan `node ../node_modules/prisma/build/index.js migrate dev --name <nama>`; staging/production yang sudah ter-baseline menggunakan `node ../node_modules/prisma/build/index.js migrate deploy`. Review SQL terlebih dahulu, jangan otomatis resolve pada database lain tanpa audit/backup.
+- Legacy alfabetis `fix-null-email` akan diurutkan setelah migration timestamp di fresh replay. Sebelum mengubah/menghapus kolom users yang dipakainya, rancang rekonsiliasi history dan uji replay penuh; jangan sekadar rename/hapus migration applied.
+- Baseline tidak mengkloning security configuration Supabase untuk project baru; audit akses schema/table dan RLS sebelum expose data API. Tidak menambahkan privilege anon/authenticated.
+- Backup di folder temp bukan retensi jangka panjang; simpan ke lokasi aman permanen yang disetujui sebelum perubahan destruktif berikutnya. Restore ke PG17 belum diuji. Auth/Storage tidak diubah dan tidak dibackup di langkah ini.
+- Rollback file Git saja tidak membatalkan entri baseline di DB. Bila ada isu metadata, hentikan migration berikutnya dan audit history; jangan menjalankan DROP/reset atau restore seluruh data tanpa kebutuhan/persetujuan. Backup sebelum resolve tetap tersedia.
 
 ---
 
