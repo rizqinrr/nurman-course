@@ -33,6 +33,7 @@
 
 | Tanggal | Keputusan | Alasan |
 |---|---|---|
+| 2026-09-15 | NC-1.2: baseline Prisma digate pemeriksaan staging, backup, riwayat, schema dan replay | Kandidat dari schema lokal bukan bukti kesetaraan DB. Selama koneksi gagal, simpan kandidat di luar `migrations/`; jangan `resolve`, `deploy`, `db push` atau reset. `migrate dev` untuk development terpisah, `migrate deploy` untuk staging/production setelah baseline disahkan. |
 | 2026-09-06 | Redesign Mobile-First Portal Wali (Universal Frame Centered) | Tampilan web desktop untuk portal wali ditiadakan; antarmuka difokuskan 100% pada pengalaman mobile phone container (`max-w-md`) yang terpusat di tengah layar desktop dengan latar canvas hangat (`#F0ECE1`) mengadopsi Google Stitch Warm Academic Portal. |
 | 2026-08-24 | Penguatan Validasi Bisnis Backend (Bentrok Murid, Lock Role Relasi, Status Invoice) | Mencegah murid dijadwalkan ganda pada jam yang sama, mengunci perubahan role bagi user dengan relasi aktif agar integritas data terjaga, dan mengatur state machine transisi status tagihan. |
 | 2026-08-24 | Penyeragaman Desain Tombol & Selector Anak di Portal Wali | Menghilangkan border dashed yang membingungkan, menyatukan bentuk selector anak menjadi rounded-[6px], dan mengubah tombol WhatsApp menjadi hijau solid agar konsisten dan menonjol sesuai fungsinya. |
@@ -42,6 +43,34 @@
 | 2026-08-20 | Implementasi NC Debugger Widget (Dev Mode) | Mempermudah penelusuran request API, cache hit/miss/invalidated, dan SQL Query timing layaknya Laravel Debugbar. |
 | 2026-08-20 | Implementasi In-Memory Cache di `apiFetch` | Mengurangi request berulang & loading screen berputar saat navigasi antar menu portal. |
 | YYYY-MM-DD | <keputusan> | <alasan> |
+
+---
+
+### 2026-09-15 — NC-1.2 kandidat baseline lokal; staging blocked
+
+**Fase:** NC-1.2 — Fondasi migration, branch `be-restruktur`
+**Status sesi:** sebagian selesai / blocked — Kandidat SQL lokal tersedia dan cocok dengan schema repo. Baseline staging BELUM didaftarkan karena koneksi DB gagal; tidak ada tabel, data aplikasi, atau metadata migration remote yang diubah oleh sesi ini.
+
+**Request user:** "oke gas pake todo, sekalian push ya" — melanjutkan NC-1.2, bukan seluruh Tahap 1.
+
+**Keputusan (klarifikasi):** Batas perubahan adalah baseline. Jangan melanjutkan penulisan remote tanpa verifikasi staging, backup yang bisa dipulihkan, riwayat migration, kesetaraan schema, dan replay terisolasi. Prisma tetap versi lokal 5.22.0; `migrate dev` hanya development terpisah, `migrate deploy` staging/production. Kandidat tidak otomatis diterapkan oleh Prisma.
+
+**Dikerjakan:**
+- **Preflight:** branch bersih `be-restruktur` tracking origin terverifikasi; NC-1.1 sudah tersimpan melalui commit `97ee4bb` dan `9d3879c`. Project ref pada `DATABASE_URL`, `DIRECT_URL`, dan `SUPABASE_URL` cocok dengan MCP; klasifikasi staging mengikuti konfirmasi user, bukan nama branch Git. Credential tidak dicetak/disimpan dalam dokumen.
+- **Kandidat** `backend/prisma/baseline-candidate.sql`: SQL struktur 13 model existing, 4 unique index dan 18 foreign key, dihasilkan dari `schema.prisma` lokal tanpa komentar generator. Tidak ada perubahan model, penghapusan `sessionId`, atau migrasi Course/Lesson. Ini bukan dump data/backup; belum mencakup RLS, policy, trigger, grant, atau objek lain di DB yang tidak direpresentasikan schema Prisma.
+- **Legacy:** `backend/prisma/migrations/fix-null-email/migration.sql` masih utuh. Script itu UPDATE data email + SELECT, bukan migration awal struktur; jangan `migrate deploy` sebelum riwayat aktual diperiksa dan legacy direkonsiliasi. Tidak menandai script itu applied tanpa bukti.
+- **Docs** `tasks/todo.md`: NC-1.1 dicentang, NC-1.2 dipecah menjadi preflight/kandidat/replay/resolve/verifikasi, status blocked dicatat. Task NC lain tidak dikerjakan.
+
+**Verifikasi:**
+- Prisma lokal 5.22.0; `node ../node_modules/prisma/build/index.js validate` dari `backend/`: exit 0.
+- `migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script`: exit 0. Regenerasi kedua dibandingkan dengan kandidat melalui `git diff --no-index` (abaikan komentar generator, blank line, dan line ending): exit 0, 13 tabel / 4 unique index / 18 foreign key.
+- Typecheck `node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json` dan `--project frontend/tsconfig.json`: exit 0.
+- `npm run lint`: gagal pada frontend existing, 75 error dan 28 warning (`no-explicit-any`, aturan React hooks, unescaped entities, dll.). Kode frontend tidak diubah; perbaikan dicatat sebagai follow-up terpisah.
+- `migrate status`: P1001 pada session pooler; MCP `list_tables` dan query metadata sederhana sama-sama timeout. TCP port 5432 dapat dijangkau, tetapi itu tidak membuktikan sesi PostgreSQL sehat. Log PostgreSQL yang diminta kosong; advisors security/performance mengembalikan daftar kosong, bukan bukti audit lengkap ketika query DB gagal.
+- `pg_dump`, `pg_restore`, `psql`, Docker dan Supabase CLI tidak ditemukan di PATH; backup dan replay database kosong belum diverifikasi. Tidak menginstal infra/dependency atau mengubah `.env` untuk melewati blocker.
+- `git diff --check`: lolos. Review independen menyetujui commit kandidat SQL + docs saja; approval bukan izin promosi/resolve dan NC-1.2 tetap blocked.
+
+**Residual:** NC-1.2 belum selesai. Pulihkan layanan/koneksi DB staging, periksa backup dan riwayat aktual, audit fitur DB di luar Prisma, uji replay pada DB terpisah, lalu promosikan kandidat ke `migrations/0_init/migration.sql` beserta lock provider yang sesuai, rekonsiliasi script legacy, dan baru `migrate resolve --applied 0_init`. Jangan menjalankan kandidat pada staging yang sudah berisi tabel. Tidak menjalankan build/browser E2E karena perubahan hanya kandidat SQL non-runtime dan docs; lint existing tetap gagal.
 
 ---
 

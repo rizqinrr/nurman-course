@@ -410,8 +410,15 @@ Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
 
 > Alasan tak boleh dilewati: schema akan berubah berkali-kali di Tahap 2–4. Melakukan itu tanpa migration history di staging = cara tercepat kehilangan data.
 
-- [ ] NC-1.1 Commit 3 file wali yang menggantung (`docs/PROGRESS.md`, `frontend/app/app/(wali)/profile/page.tsx`, `tasks/plan-wali-mobile.md`), lalu buat branch `be-restruktur` dari `dev`
-- [ ] NC-1.2 Baseline migration: `prisma migrate diff` dari state DB sekarang → migration `0_init`, lalu `migrate resolve --applied`. Setelah ini **stop `db push`**, semua perubahan schema lewat `migrate dev`
+- [x] 2026-09-15 NC-1.1 Simpan pekerjaan wali dan rencana NC: commit `97ee4bb` + `9d3879c` sudah di-push ke `dev`; branch `be-restruktur` dibuat, di-push, dan tracking `origin/be-restruktur` terverifikasi.
+- [ ] NC-1.2 Baseline migration tanpa mengubah tabel/data aplikasi (blocked 2026-09-15: Prisma `migrate status` P1001; MCP SQL timeout; backup/riwayat/schema aktual belum terverifikasi). Buat kandidat dari schema lokal; hanya promosikan ke `migrations/0_init/migration.sql` dan jalankan `migrate resolve --applied 0_init` setelah target staging, backup, riwayat migration, dan kesetaraan schema terverifikasi. Selanjutnya `migrate dev` hanya pada DB development terpisah; staging/production memakai `migrate deploy`. Jangan jalankan `db push`/reset untuk mengatasi drift.
+  - [x] 2026-09-15 NC-1.2a Periksa branch bersih, Prisma lokal 5.22.0, schema 13 model, script legacy `fix-null-email`, serta kecocokan project ref pada konfigurasi API/DB/MCP (tanpa mencetak credential).
+  - [ ] NC-1.2b Periksa schema aktual, `_prisma_migrations`, RLS/policy/trigger/grant aplikasi, dan backup yang dapat dipulihkan; hentikan jika ada drift/riwayat yang belum direkonsiliasi.
+  - [x] 2026-09-15 NC-1.2c `backend/prisma/baseline-candidate.sql` identik dengan SQL hasil Prisma 5.22.0 (abaikan komentar/whitespace): 13 tabel, 4 unique index, 18 foreign key. File sengaja di luar `migrations/`; belum diuji replay, bukan backup atau migration siap deploy. RLS/policy/trigger/grant tidak tercakup generator; wajib audit DB sebelum promosi.
+  - [ ] NC-1.2d Uji replay di database kosong terpisah dan bandingkan schema; pertahankan arsip script legacy tanpa menjalankan ulang UPDATE data email.
+  - [ ] NC-1.2e Setelah seluruh prasyarat lolos, promosikan kandidat, rekonsiliasi legacy, catat applied di staging; verifikasi migration status dan integritas data sebelum/sesudah.
+  - [x] 2026-09-15 NC-1.2f Sinkronisasi progress/task dan verifikasi lokal kandidat selesai; review independen menyetujui penyimpanan kandidat-only, bukan promosi/resolve. Typecheck lolos; lint existing gagal (lihat NC-1.2g). Status keseluruhan NC-1.2 tetap blocked.
+  - [ ] NC-1.2g Follow-up verifikasi: `npm run lint` gagal pada kode frontend existing (75 error, 28 warning); tangani pada task terpisah, bukan bagian baseline. Typecheck backend/frontend dan `prisma validate` lolos.
 - [ ] NC-1.3 Pindahkan `prisma` & `supabaseAdmin` dari `backend/src/index.ts` ke `backend/src/lib/` (prasyarat modularisasi — cegah circular import saat route dipecah)
 - [ ] NC-1.4 `requireAuth` baca role dari DB (`prisma.user`), JWT hanya untuk identitas; hapus fallback `|| "wali"`; tambah helper `requireRole()` (D5) — **RISIKO: user Supabase tanpa baris Prisma sekarang diam-diam jadi `wali`, setelah ini ditolak → wajib cek staging dulu**
 - [ ] NC-1.5 Hardening: `helmet`, `express-rate-limit`, `express.json({ limit: '5mb' })` (bukti bayar & foto base64 masuk lewat body), CORS allowlist (sekarang `cors()` terbuka penuh)
@@ -507,4 +514,4 @@ Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
 
 ## In progress (maks 1 fokus utama)
 
-- (none) — NC-1.1 siap dimulai. **WALI-MOB di-pause** (per keputusan user 2026-09-15: fokus pindah ke backend).
+- NC-1.2 **blocked**: pulihkan koneksi database staging lalu verifikasi backup, riwayat migration, schema dan replay terisolasi sebelum promosi baseline/resolve. NC-1.1 selesai. **WALI-MOB di-pause** (per keputusan user 2026-09-15: fokus pindah ke backend).
