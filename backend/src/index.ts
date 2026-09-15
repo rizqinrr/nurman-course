@@ -37,7 +37,7 @@ dotenv.config();
 
 export { prisma };
 
-const app = express();
+export const app = express();
 
 function generateWaliEmail(phone: string): string {
   return `${phone}@nurmancourse.local`;

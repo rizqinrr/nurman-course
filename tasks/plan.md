@@ -1,4 +1,36 @@
-# Rencana Implementasi: Portal Admin Lengkap
+# Rencana Aktif: NC-1.6 Test Harness Backend
+
+## Scope disetujui 2026-09-16
+
+User: "oke, siapkan todo yg rinci, dan eksekusi, sampai push" lalu "lanjut". Branch `be-restruktur`; NC-1.6 sebelum NC-1.4. Tidak mengubah role, schema, staging, frontend, atau funnel. Rencana portal admin lama dipertahankan di bawah sebagai arsip.
+
+## Urutan dan acceptance criteria
+
+1. **Dependency/config:** pin versi patched Vitest/supertest/types pada backend dan review lockfile. Vitest Node-only dengan discovery `.test.ts`; node:test `.cjs` tetap terpisah. `test` aggregate gagal bila salah satu suite gagal; typecheck tests/config tidak menghasilkan build artifact.
+2. **Auth characterization:** gunakan middleware asli dan mock hanya dependency boundary. Test 401 header/token, tiga role, legacy fallback wali, 500 exception, 403/nonadmin, admin pass, isolasi identitas. Ini baseline, bukan pengesahan metadata sebagai otorisasi.
+3. **HTTP slice:** RED untuk export app yang belum ada, lalu export minimal di index.ts tanpa memindah route/startup. Health200 tanpa DB, me401 tanpa DB, me200 profil fixture, admin-users403 dengan input valid/nonadmin dan400 input invalid/admin; tidak ada mutasi. Import app tidak menjalankan startup.
+4. **Verification/review/ship:** empat client tests lama tetap utuh; test baru, typecheck BE/FE/test, compile dan smoke CommonJS, lint dan audit. Sync docs, review independen, cek staged diff/secrets, commit/push NC-1.6 saja dan cek HEAD remote.
+
+## Files
+
+- `backend/package.json`, `package-lock.json`: devDeps dan scripts.
+- `backend/vitest.config.mts`, `backend/tsconfig.test.json`: konfigurasi test saja.
+- `backend/tests/setup.ts`, helper bila diperlukan, `auth.test.ts`, `api.test.ts`: env palsu, mock/reset/fail-fast, pembatasan network, test kasus nyata.
+- `backend/src/index.ts`: export app saja; guard `require.main === module` dan export prisma dipertahankan.
+- `tasks/todo.md`, `docs/PROGRESS.md`: hasil dan residual; rencana ini tidak menggantikan checklist.
+
+## Risiko dan gate
+
+- Native CommonJS `require()` tidak otomatis terkena mock Vitest; uji source import Vitest serta subprocess CommonJS existing, tanpa migrasi module runtime.
+- Mock default yang melempar dapat tertangkap dan terlihat sebagai 500 yang benar: track unexpected calls dan assert nol di teardown.
+- Credential palsu tidak cukup: mock dotenv/SDK sebelum import dan blok outbound, hanya izinkan loopback/port server test. Tutup listener sesudah test.
+- Versi awal Vitest 3.2.4 hasil instalasi memiliki advisory; ganti ke patched sebelum diterima. Audit existing Next.js critical menjadi follow-up terpisah.
+- Lint frontend existing 75 error/28 warning belum diperbaiki. Harness bukan bukti query SQL, otorisasi DB NC-1.4, atau login staging tiga role.
+- Rollback kode/config melalui revert commit NC-1.6; tidak ada rollback database karena tidak ada mutasi staging.
+
+---
+
+# Arsip Rencana Implementasi: Portal Admin Lengkap
 
 ## Status Dokumen
 - Status: **draft siap implementasi**

@@ -47,6 +47,38 @@
 
 ---
 
+### 2026-09-16 — NC-1.6 test harness backend terisolasi
+
+**Fase:** NC-1.6 — Fondasi testing, branch `be-restruktur`
+**Status sesi:** sebagian selesai — Implementasi dan verifikasi selesai; commit/push sedang difinalisasi. NC-1.4 belum dimulai.
+
+**Request user:** "tuliskan rinci apa aja yg akan diubah" → "oke, siapkan todo yg rinci, dan eksekusi, sampai push" → "lanjut".
+
+**Keputusan (klarifikasi):** Dahulukan NC-1.6 sebelum perubahan role NC-1.4. Pertahankan empat regression test node:test existing dan runtime CommonJS; Vitest hanya mengeksekusi test TypeScript baru. Middleware/Zod asli, dependency eksternal di-mock. Tidak mengubah schema, data, auth, frontend source, atau MCP.
+
+**Dikerjakan:**
+- `backend/package.json`, `package-lock.json`: devDeps pinned Vitest 4.1.11, supertest 7.1.4, @types/supertest 6.0.3; script aggregate `test`, `test:clients`, `test:api`, `test:watch`, `typecheck:test`. Pilihan awal Vitest 3.2.4 dibuang karena advisory; tidak menjalankan `npm audit fix` global atau mengaktifkan install scripts global.
+- `backend/vitest.config.mts`, `backend/tsconfig.test.json`: Node-only, discovery `.test.ts` saja, isolasi file, larang `.only`, empty discovery gagal, timeout; tests/config tidak masuk artifact produksi.
+- `backend/tests/setup.ts`: env Supabase palsu sebelum import, dotenv di-mock, Prisma/SDK boundary strict, mock reset per test. Unexpected calls dicatat supaya throw yang tertangkap handler tetap menggagalkan teardown. Network guard mengizinkan hanya TCP ke `127.0.0.1` pada port server suite; fetch/TLS/listener lain ditolak, listener dibersihkan.
+- `backend/tests/auth.test.ts`: 18 characterization tests untuk 401, SDK throw500, tiga role, guard admin403/pass, identitas antar-request, dan legacy fallbackwali. Test legacy bukan pengesahan user_metadata sebagai otorisasi; perubahan ekspektasinya milik NC-1.4.
+- `backend/tests/api.test.ts`: 6 HTTP tests pada app asli untuk health200, me401/me200, wali/tentor403, admin invalid400 dengan Zod asli dan nol mutasi.
+- `backend/src/index.ts`: satu baris `export const app = express()`; startup guard dan export Prisma tidak berubah. `clients.test.cjs` tetap utuh.
+- `tasks/plan.md`, `tasks/todo.md`: rincian langkah/acceptance criteria dan hasil; rencana admin lama dipertahankan sebagai arsip, bukan dihapus.
+
+**Verifikasi:**
+- RED: 18 auth characterization pass, 6 API fail khusus karena export app belum tersedia. GREEN setelah export: `npm run test --workspace=backend` lulus 4 node:test + 24 Vitest. Tidak ada skip.
+- Enam probe sementara (SDK/fetch/TCP remote/TCP loopback tak terdaftar/TLS/listener) sengaja menelan error tetapi tetap fail di teardown; `test` aggregate meneruskan exit1. Filter test tak ada juga exit1. Probe dihapus; `test:api` terakhir kembali 24/24 dan `typecheck:test` exit0.
+- Typecheck BE/FE: `node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json` dan frontend exit0; test config typecheck exit0.
+- Compile backend ke `<temp>/opencode/nc16-build` exit0. Smoke compiled CJS sebagai main dengan Prisma stub dan Supabase SDK asli: `$connect` stub sekali, listener loopback, health200 dan me tanpa token401. Outbound di child diblok, env palsu; child dihentikan. Script smoke awal salah mengasumsikan lokasi ts-node hoisted, diperbaiki menggunakan workspace resolution; bukan perubahan kode aplikasi.
+- `npm run build --workspace=frontend`: compile/typecheck/static generation 35/35 lolos. Warning middleware convention deprecated existing. Build dijalankan karena transitive dependency shared juga berubah.
+- `npm run lint`: tetap 75 error/28 warning frontend existing; backend belum mempunyai lint sendiri. Log Turbo hasil sesi dibersihkan.
+- Review independen approve tanpa blocker. Delta existing lockfile: PostCSS 8.5.10→8.5.28 dan tinyglobby 0.2.16→0.2.17 diwajibkan Vite 8.3.0; Nano ID 3.3.11→3.3.19 mengikuti PostCSS; hasown 2.0.3→2.0.4 mengikuti form-data; @types/estree 1.0.8→1.0.9 patch incidental. Tidak mengklaim dependency frontend tidak terdampak. Flag dev dua optional fsevents berubah hasil npm; macOS production install tidak diuji.
+- `npm audit --json` terakhir: 12 findings (1 low/5 moderate/5 high/1 critical) pada dependency existing; Vitest/mocker patched tidak lagi dilaporkan. [Next.js Windows RCE advisory](https://github.com/advisories/GHSA-p293-qw3h-jr36) dan dependency lama lain menjadi follow-up NC-1.6h, bukan diperbaiki diam-diam di harness.
+
+**Residual:** Harness memakai stub Prisma/SDK, bukan bukti query SQL, koneksi staging, atau login tiga role nyata. Smoke compiled memakai ts-node untuk shared package source existing dan stub generated Prisma, bukan validasi packaging deployment penuh. Belum fresh install lintas OS atau browser smoke. Lint dan security dependency existing masih perlu task terpisah; tidak deploy aplikasi. Mock memakai partial fixture fleksibel, bukan validasi penuh tipe SDK. Commit/push terbatas NC-1.6, tidak memulai NC-1.4/1.5.
+
+---
+
 ### 2026-09-15 — NC-1.3 ekstraksi client backend
 
 **Fase:** NC-1.3 — Fondasi modularisasi, branch `be-restruktur`
