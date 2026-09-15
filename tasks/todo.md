@@ -1,7 +1,7 @@
 # Tasks — nurman-course
 
 > Source of truth **checklist eksekusi**.  
-> **Branch kerja aktif:** `uiux` (revisi tampilan; base dari `dev`). Jangan commit ke `main` kecuali diminta user.  
+> **Branch kerja aktif:** `be-restruktur` (restrukturisasi backend nCourse; base dari `dev`) — lihat blok **NC**. Branch `uiux`/WALI-MOB di-pause. Jangan commit ke `main` kecuali diminta user.  
 > Roadmap: [`../docs/ROADMAP-LMS.md`](../docs/ROADMAP-LMS.md)  
 > Progress log: [`../docs/PROGRESS.md`](../docs/PROGRESS.md)  
 > Agent rules: [`../AGENTS.md`](../AGENTS.md)
@@ -364,6 +364,136 @@ Prioritas rendah:
 
 ---
 
+## NC — Restrukturisasi nCourse (Course/Section/Lesson + Entitlement)
+
+> **Branch kerja:** `be-restruktur` (base dari `dev`). Hasil sesi grilling 2026-09-15.
+> **Fokus:** backend dulu. Satu tahap = satu fokus; tahap boleh berhenti kapan saja tanpa meninggalkan barang setengah jadi.
+> **Sumber:** 18 fitur usulan user (terinspirasi Udemy, konteks presentasi/blog tanpa video) → 6 dikerjakan, 12 ditunda dengan pemicu jelas (lihat bagian bawah).
+
+### Keputusan terkunci (salin ke tabel Keputusan `docs/PROGRESS.md` saat sesi pertama)
+
+| # | Keputusan | Alasan |
+|---|---|---|
+| D1 | **Opsi A (dual surface) resmi dipilih** | Materi publik di root `/materi/*` & `/kelas/*` mensyaratkan permukaan di luar `/app`. Mengakhiri status "belum diputuskan" di `ROADMAP-LMS.md`. |
+| D2 | **Role ≠ akses konten** | Role menentukan portal; `Entitlement` menentukan konten. Wali bisa beli course tanpa ganti role. |
+| D3 | **Akses konten menempel ke `User`, bukan `Murid`** | Membaca materi tak butuh konsep murid. `Murid` tetap murni untuk program bertentor. |
+| D4 | **`Course` adalah unit yang dijual** | Lesson tetap punya slug global & bisa ditautkan lintas course. |
+| D5 | **Role diambil dari DB, bukan JWT `user_metadata`** | Menghapus kelas bug "role basi" + fallback diam-diam `\|\| "wali"` di `requireAuth`. |
+| D6 | **Backend penentu tunggal akses** | API tak pernah mengirim `bodyText` yang tak berhak. Pola lama (kirim semua, sembunyikan di UI) adalah asal kebocoran `/api/programs`. |
+| D7 | **Pembayaran tetap manual** | **KEPUTUSAN TERBUKA** — payment gateway ditunda sampai volume transaksi diketahui. |
+| D8 | **Rename domain email `@nurmancourse.local` ditunda** | Menyentuh login semua akun tanpa email asli (`resolve-phone` → `dbUser.email` → `signInWithPassword`). Butuh task + script migrasi sendiri. |
+| D9 | **Penulis konten = admin + tentor terdaftar** | Bukan marketplace terbuka. Guard: admin semua course, tentor hanya course miliknya (`authorId`). |
+| D10 | **Skala kecil: <10 course, <100 artikel, puluhan pembaca (12 bulan)** | Analytics & engagement insight ditunda — di skala ini satu query sudah cukup. |
+| D11 | **Hierarki `Course → Section → Lesson`** | Evolusi/rename `Program → RoadmapStep → MaterialItem` yang **sudah ada**, bukan tabel paralel baru. |
+| D12 | **Markdown (`react-markdown`), bukan block editor** | Konsekuensi sadar: highlight & note inline ikut tertunda (anchor teks rapuh di markdown yang di-render ulang). |
+| D13 | **Tanpa Q&A / review teks** | Diskusi tetap lewat WhatsApp yang sudah hidup di seluruh portal. Nol beban moderasi. Selaras `ROADMAP-LMS.md` baris 70 (forum = out of scope). |
+| D14 | **Harga one-time saja, tanpa subscription** | Langganan + bayar manual = verifikasi bukti transfer tiap bulan per pelanggan (beban tumbuh linear). |
+| D15 | **Tanpa infra baru** (tanpa cron/mail server/storage/search engine) | Verifikasi email tetap bisa karena ditangani Supabase sendiri. |
+| D16 | **`Program` dan `Course` dua entitas terpisah**, terhubung `Course.programId` nullable | Siklus hidup beda: program dijual per blok 12 pertemuan (tagihan+tentor), course dijual sekali & dibaca selamanya. Menyatukannya = kolom nullable menumpuk (penyakit `MaterialItem.sessionId` yang baru dibuang). |
+
+### Aturan akses — satu pertanyaan tunggal
+
+> `lesson.visibility === "public"` **ATAU** user punya `Entitlement` aktif (`revokedAt` null **dan** (`expiresAt` null **atau** masa depan)) atas course yang memuat lesson ini.
+
+Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
+
+| Tier | Mekanisme |
+|---|---|
+| Publik (blog, tanpa login) | `visibility: public` — tanpa entitlement |
+| Login + gratis | `accessTier: free` → entitlement `source: free` terbit otomatis |
+| Bayar, akses selamanya | entitlement `source: purchase`, `expiresAt: null` |
+| Bayar + dapat tentor | `Enrollment` aktif → entitlement `source: enrollment`, `expiresAt` = akhir blok |
+
+---
+
+### Tahap 1 — Fondasi (WAJIB, tidak boleh dilewati)
+
+> Alasan tak boleh dilewati: schema akan berubah berkali-kali di Tahap 2–4. Melakukan itu tanpa migration history di staging = cara tercepat kehilangan data.
+
+- [ ] NC-1.1 Commit 3 file wali yang menggantung (`docs/PROGRESS.md`, `frontend/app/app/(wali)/profile/page.tsx`, `tasks/plan-wali-mobile.md`), lalu buat branch `be-restruktur` dari `dev`
+- [ ] NC-1.2 Baseline migration: `prisma migrate diff` dari state DB sekarang → migration `0_init`, lalu `migrate resolve --applied`. Setelah ini **stop `db push`**, semua perubahan schema lewat `migrate dev`
+- [ ] NC-1.3 Pindahkan `prisma` & `supabaseAdmin` dari `backend/src/index.ts` ke `backend/src/lib/` (prasyarat modularisasi — cegah circular import saat route dipecah)
+- [ ] NC-1.4 `requireAuth` baca role dari DB (`prisma.user`), JWT hanya untuk identitas; hapus fallback `|| "wali"`; tambah helper `requireRole()` (D5) — **RISIKO: user Supabase tanpa baris Prisma sekarang diam-diam jadi `wali`, setelah ini ditolak → wajib cek staging dulu**
+- [ ] NC-1.5 Hardening: `helmet`, `express-rate-limit`, `express.json({ limit: '5mb' })` (bukti bayar & foto base64 masuk lewat body), CORS allowlist (sekarang `cors()` terbuka penuh)
+- [ ] NC-1.6 Test harness: Vitest + supertest, Prisma di-mock (fokus guard & validasi, bukan query)
+- [ ] NC-1.7 `.gitignore` untuk `backend/src/generated/` — saat ini 5 file `query_engine-windows.dll.node` @~18MB ikut ter-commit, 4 di antaranya file sampah `.tmp*`
+- [ ] NC-1.8 Buang `MaterialItem.sessionId` (FK nullable yang tak pernah diisi endpoint mana pun — fitur mati)
+- [ ] NC-1.C1 Checkpoint: `tsc --noEmit` BE+FE, `vitest run`, `next build`, smoke Playwright login 3 role (pastikan NC-1.4 tidak memutus akses siapa pun)
+
+### Tahap 2 — Course / Section / Lesson → fitur #16, #14
+
+- [ ] NC-2.1 Schema: `Course` (slug unik, title, description, level?, category?, accessTier `free|paid`, price?, status `draft|published`, publishedAt?, authorId, programId? nullable, active), `Section` (courseId, order, title, summary?), `Lesson` (sectionId, slug unik **global**, title, summary?, bodyText, visibility `public|entitled`, status, publishedAt?, order, estimatedMinutes?)
+- [ ] NC-2.2 Migrasi data: tiap `Program.hasRoadmap` → 1 `Course`; `RoadmapStep` → `Section`; **`RoadmapStep.bodyText` → `Lesson` urutan 0** (konten yang dibaca wali sekarang tidak boleh hilang); `MaterialItem` → `Lesson`; slug digenerate dari judul + jaga keunikan
+- [ ] NC-2.3 Pecah route (pola strangler — file lama dibiarkan utuh): `backend/src/routes/courses.ts`, `lessons.ts`, `admin/authoring.ts` + `routes/index.ts`
+- [ ] NC-2.4 Ganti renderer: `react-markdown` + `remark-gfm` + `rehype-sanitize` menggantikan `MarkdownContent.tsx` buatan sendiri (53 baris, cuma paham `##`, `-`, `**bold**`, **tidak bisa link sama sekali**)
+- [ ] NC-2.5 Validasi link internal saat simpan: `[teks](/materi/slug)` dicek slug-nya ada → tidak ada tautan mati
+- [ ] NC-2.6 Draft & publish workflow (#14) + ownership guard D9 (admin semua, tentor hanya `authorId` miliknya)
+- [ ] NC-2.7 UI authoring admin + tentor; `frontend/app/app/admin/roadmap/RoadmapClient.tsx` ikut bermigrasi ke model Lesson (jangan biarkan dua model materi hidup berdampingan)
+- [ ] NC-2.C2 Checkpoint: verifikasi manual `/app/program/[slug]` — konten roadmap yang dibaca wali harus tetap utuh pasca-migrasi; `tsc`, `vitest`, `next build`
+
+### Tahap 3 — Permukaan publik → fitur #5, #18
+
+- [ ] NC-3.1 Helper `apiFetchServer` (pakai `@supabase/ssr` yang sudah terpasang — baca sesi dari cookie, teruskan token ke Express)
+- [ ] NC-3.2 `/kelas` (katalog) + `/kelas/[slug]` (silabus, rating, jumlah peserta, CTA) — **Server Component** + `generateMetadata`
+- [ ] NC-3.3 `/materi/[slug]` Server Component + ISR + `generateMetadata` (satu URL kanonik, publik & ter-entitlement di route yang sama; backend yang menentukan isi terkirim atau paywall — D6)
+- [ ] NC-3.4 **Tutup kebocoran `/api/programs`** — endpoint ini publik tanpa `requireAuth` dan sekarang membocorkan seluruh `bodyText` roadmap ke siapa pun
+- [ ] NC-3.5 Search & filter (#18) via Postgres `tsvector` — kategori, level, penulis. Cukup sampai ribuan materi, tanpa search engine (D15)
+- [ ] NC-3.6 Related content (#5): link internal + prev/next dalam section + lesson sekelas
+- [ ] NC-3.7 Tautan dari `/landing` ke `/kelas`. **`/course/*` (funnel WA) TIDAK disentuh** — jalur lead hidup, dilarang AGENTS.md tanpa task khusus
+- [ ] NC-3.C3 Checkpoint: cek HTML ter-render berisi konten (view-source, bukan cuma browser), `tsc`, `vitest`, `next build`
+
+### Tahap 4 — Member & Entitlement → fitur #1
+
+- [ ] NC-4.1 Signup mandiri: email + password + verifikasi email (ditangani Supabase, tanpa mail server sendiri). **Halaman `/login` saat ini login-only** — mode Daftar pernah dihapus, perlu dibangun ulang terpisah
+- [ ] NC-4.2 Role `member`: tambah di `userRoleSchema` (shared), `middleware.ts`, `seed.ts`, `user_metadata` Supabase (4 tempat hardcode)
+- [ ] NC-4.3 `User.phone` jadi nullable (sekarang `@unique` + wajib — mustahil untuk signup email-only); sesuaikan `createUserSchema` & alur `resolve-phone`
+- [ ] NC-4.4 Halaman tujuan member sesudah login — **jangan** `/app/dashboard` (mengasumsikan punya murid)
+- [ ] NC-4.5 Tabel `Entitlement` + auto-grant untuk course `accessTier: free`
+- [ ] NC-4.6 Jembatan: `Enrollment` aktif → terbitkan entitlement `source: enrollment` (satu jalur akses, bukan dua)
+- [ ] NC-4.7 Reading progress (#1): tabel `LessonProgress` (userId × lessonId) — **sengaja terpisah** dari `Progress` (muridId × roadmapStepId) yang sudah ada, karena beda subjek (D3)
+- [ ] NC-4.C4 Checkpoint: test guard entitlement (4 tier), regression 3 role lama, `tsc`, `vitest`, `next build`
+
+### Tahap 4.5 — Rating → fitur #9 (bintang saja)
+
+- [ ] NC-4.5.1 Tabel `Rating` (userId × courseId, score 1–5, unique) — **hanya pemilik entitlement aktif** yang boleh menilai (anti-spam tanpa captcha/moderasi)
+- [ ] NC-4.5.2 Jumlah peserta dihitung **live** dari entitlement aktif (bukan kolom counter), **disembunyikan bila < 5** agar bukti sosial tidak jadi bumerang
+- [ ] NC-4.5.3 Tampilkan rating + jumlah peserta di `/kelas` & `/kelas/[slug]`
+
+### Tahap 5 — Monetisasi (D7 masih terbuka)
+
+- [ ] NC-5.1 Checkout one-time manual mengikuti pola invoice yang sudah ada (terbitkan → upload bukti → verifikasi admin) → entitlement `source: purchase`
+- [ ] NC-5.2 **Keputusan terbuka:** payment gateway (Midtrans/Xendit) — jangan dikunci sebelum volume transaksi diketahui
+
+### Tahap 6 — Rename brand nCourse
+
+- [ ] NC-6.1 Rename **display/brand saja**: ~150 kemunculan di 52 file (teks UI, `<title>`, metadata, logo, copy landing)
+- [ ] NC-6.2 **JANGAN** sentuh `@nurmancourse.local` (D8), `@nurman-course/shared`, nama package.json, nama folder repo
+- [ ] NC-6.3 (Terpisah, belum dijadwalkan) Migrasi domain email placeholder + update baris `users.email` Prisma **dan** `auth.users` Supabase — berisiko memutus login semua akun tanpa email asli
+
+### Fitur ditunda — beserta pemicunya
+
+> Semua bisa menyusul **tanpa membongkar** apa pun, karena hierarki 3 level + entitlement sudah dipasang sejak awal.
+
+| Fitur usulan | Baru dikerjakan saat |
+|---|---|
+| #2 Bookmark & highlight, #3 Note inline | Pindah ke block editor (membatalkan D12) — anchor teks stabil |
+| #4 Q&A/diskusi, #15 Engagement insight | WhatsApp sudah kewalahan menampung pertanyaan |
+| #6 Downloadable resources, #8 Sertifikat | Storage disetujui — bucket **privat + signed URL** (menjawab keberatan M4) |
+| #7 Reminder & deadline | Cron + kanal notifikasi disetujui (membatalkan D15) |
+| #10 Gift / share course | Checkout Tahap 5 sudah jadi |
+| #11 Block editor | Menulis dengan markdown terasa menyiksa |
+| #12 Quiz & assessment | Ada kebutuhan penilaian nyata (prasyarat #8) |
+| #13 Course analytics | Skala melewati D10 (<10 course / <100 artikel) |
+| #17 Subscription | Payment gateway ada (membatalkan D14) |
+
+### Risiko yang perlu diawasi
+
+1. **NC-1.4 (D5)** — user Supabase tanpa baris Prisma sekarang diam-diam dapat role `wali`; setelah perubahan akan ditolak. **Wajib cek staging sebelum merge.**
+2. **NC-2.2** — `RoadmapStep.bodyText` yang dibaca wali hari ini harus terbawa utuh ke `Lesson`. Verifikasi manual di `/app/program/[slug]`.
+3. **Tahap 2** menyentuh UI wali & admin yang baru saja dirapikan (WALI-MOB) — jadwalkan setelah WALI-MOB stabil.
+
+---
+
 ## Backlog ide (belum dijadwalkan)
 
 - Payment gateway (Midtrans/Xendit)
@@ -377,4 +507,4 @@ Prioritas rendah:
 
 ## In progress (maks 1 fokus utama)
 
-- (none)
+- (none) — NC-1.1 siap dimulai. **WALI-MOB di-pause** (per keputusan user 2026-09-15: fokus pindah ke backend).
