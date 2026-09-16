@@ -1,219 +1,196 @@
-# Roadmap — LMS Sederhana (Nurman Course)
+# Roadmap — Nurman Course menuju nCourse
 
-> Status: **draft roadmap** (dokumen only — belum implementasi kode LMS)  
-> Dibuat: 2026-07-29  
-> Master planning (manusia): vault `My Projects/nurman-course/03 - Roadmap LMS Sederhana.md`  
-> Progress eksekusi: [`PROGRESS.md`](./PROGRESS.md) · Task: [`../tasks/todo.md`](../tasks/todo.md)
+Dokumen arah produk dan urutan pengembangan, bukan checklist eksekusi atau log progres. Funnel WhatsApp dan portal operasional les sudah tersedia; perluasan menjadi katalog konten mandiri masih merupakan rencana yang harus dipilih melalui task aktif.
 
----
+## 1. Patokan dan pembagian dokumen
 
-## 1. Problem statement
+| Dokumen | Fungsi |
+|---|---|
+| [AGENTS.md](../AGENTS.md) | Aturan kerja, larangan scope, tanggung jawab pricing, dan disiplin dokumentasi. |
+| [SYSTEM_MAP.md](../SYSTEM_MAP.md) | Peta sistem/routing sebagai patokan awal; cek source bila rincian tertinggal. |
+| [README.md](../README.md) | Pintu masuk repo; bagian template tidak menjadi keputusan stack/deployment. |
+| [design.md](../design.md) | Referensi desain root; konflik dengan keputusan visual berikutnya perlu rekonsiliasi, bukan redesign diam-diam. |
+| [CODEBASE_OVERVIEW.md](./CODEBASE_OVERVIEW.md) | Arsitektur dan batas implementasi sekarang, termasuk konflik dokumentasi root. |
+| [flow-system.md](./flow-system.md) / [erd-lms.md](./erd-lms.md) | Alur sistem dan model data sekarang; model rencana diberi label terpisah. |
+| [tasks/todo.md](../tasks/todo.md) | Task, checkbox, tanggal selesai, status dan blocker singkat. |
+| [tasks/plan.md](../tasks/plan.md) | Langkah implementasi, scope, dependency, acceptance criteria, dan approval gates. |
+| [PROGRESS.md](./PROGRESS.md) | Keputusan bertanggal, perubahan yang benar-benar terjadi, hasil verifikasi, commit, dan residual. |
 
-**How might we** memberi admin Nurman Course dan calon/peserta satu tempat untuk:
+Markdown root tetap patokan awal. Klaim lama seperti “tidak ada backend”, “stack belum dipilih”, atau “semua data statis” tidak menggambarkan implementasi sekarang. Jangan menjadikan konflik itu alasan mengganti stack atau menjalankan rencana tanpa izin. Rincian konflik ada di overview; rekonsiliasi root merupakan task DOC-ROOT.
 
-1. melihat **katalog & detail program** (teks + **roadmap alur belajar**),
-2. melihat **jadwal sesi**,
-3. mengakses **materi belajar (konten teks)**,
-4. melacak **tagihan / status bayar**,
+Vault hanya ringkasan manusia; status kerja ditentukan dokumen repo. Roadmap ini tidak menyatakan tanggal release, hasil test, atau keberhasilan deployment.
 
-tanpa membangun LMS enterprise (video platform, multi-campus, dsb.)?
+## 2. Masalah dan sasaran produk
 
----
+Memberi pengelola les, tentor, wali, dan calon pembaca satu sistem yang mudah digunakan untuk:
 
-## 2. Kondisi sekarang (baseline)
+- Menemukan program les dan menghubungi admin melalui WhatsApp.
+- Mengelola murid, enrollment, jadwal, laporan belajar, dan pembayaran manual.
+- Membaca materi teks secara mandiri melalui katalog konten publik/gratis/berbayar, tanpa membangun LMS enterprise atau platform video.
 
-| Aspek | Saat ini |
-|-------|----------|
-| Produk | Funnel marketing/pendaftaran: pilih program → config → **WhatsApp** |
-| Deploy | Vercel (frontend-only) |
-| Data | Statis `data/materials.ts` |
-| Backend / auth / DB | Tidak ada |
-| User | Publik (calon daftar) + admin terima lead via WA |
+Pertahankan kecepatan funnel dan layanan les yang berjalan. Pengembangan konten mandiri tidak boleh merusak lead WhatsApp atau menghilangkan materi roadmap yang saat ini dibaca wali.
 
-Funnel ini **tetap valuable** sebagai channel lead. LMS adalah **evolusi**, bukan pengganti instan tanpa keputusan arsitektur.
+## 3. Titik awal dan model pengguna
 
----
+### Implementasi yang menjadi titik awal
 
-## 3. User target (MVP)
+| Area | Bentuk sistem |
+|---|---|
+| Marketing | `/landing` dan funnel `/course/*` dengan katalog statis; kalkulasi harga hanya di `CourseConfigClient`. |
+| Portal | `/app/*` untuk wali, `/app/tentor/*` untuk tentor, `/app/admin/*` untuk admin. |
+| Backend | Express TypeScript, Prisma ORM, PostgreSQL Supabase; kontrak input dari shared Zod schemas. |
+| Identitas | Supabase Auth, login email/nomor WhatsApp; backend NC-1.4 lokal memakai verified ID serta role/active DB tanpa fallback email/metadata/wali. Middleware frontend/login masih metadata; bukan bukti deployment atau role UI sudah diperbaiki. |
+| Pembelajaran | `Program → RoadmapStep → MaterialItem`; sesi dan laporan terkait murid. |
+| Pembayaran | Invoice dan prabayar manual; terdapat batas integrasi payload UI/API yang dijelaskan di flow/overview, bukan dianggap E2E selesai. |
+| Konten mandiri baru | `Course`, `Section`, `Lesson`, `Entitlement`, `LessonProgress`, dan role `member` belum menjadi model runtime. |
 
-| Role | Siapa | Kebutuhan inti |
-|------|--------|----------------|
-| **Admin** | Admin utama (pengelola les) | Kelola program, roadmap, materi, murid, wali, tentor, jadwal, tagihan |
-| **Tentor (Tentor)** | Tutor yang mengajar | Lihat jadwal sesi, input laporan kegiatan harian & laporan perkembangan |
-| **Wali Murid** | Orang tua dari siswa | Pantau progres belajar anak (laporan harian + perkembangan), jadwal, tagihan |
+Referensi versi dependency, route terperinci, dan deployment ada di overview. Pemeriksaan keberhasilan fitur dan status fase tidak diduplikasi di sini.
 
-**Catatan Murid:** Murid (anak) tidak memiliki akun login sendiri. Wali murid yang memegang akun login dan dapat memantau lebih dari satu murid (jika mendaftarkan >1 anak).  
-**Belum di MVP:** portal multi-admin, chat in-app, pendaftaran mandiri oleh wali (akun wali dibuat oleh admin).
+### Pengguna sekarang dan sasaran perluasan
 
----
+| Pengguna | Tanggung jawab sekarang / sasaran |
+|---|---|
+| Admin | Mengelola akun, murid, program, enrollment, jadwal, materi dan tagihan; sasaran berikutnya dapat mengelola seluruh course. |
+| Tentor | Mengelola sesi dan laporan; sasaran authoring hanya course miliknya, bukan marketplace penulis terbuka. |
+| Wali | Memantau anak dan mengirim bukti pembayaran; dalam rancangan NC dapat memperoleh akses course tanpa mengganti role wali. |
+| Murid | Subjek layanan les/laporan, bukan akun login mandiri. |
+| Member (rencana) | Akun pembaca mandiri dengan email terverifikasi; tidak diwajibkan memiliki Murid atau nomor telepon. |
+| Publik | Pengunjung funnel dan, kelak, pembaca lesson yang memang dipublikasikan untuk akses publik. |
 
-## 4. Definisi “LMS sederhana” (MVP)
+Schema memungkinkan satu wali mempunyai beberapa murid, tetapi handler create murid membatasi wali yang sudah memiliki murid apa pun. Selector multi-anak bukan bukti onboarding multi-anak tersedia. Roadmap tidak mengubah aturan ini; perubahan memerlukan task produk tersendiri.
 
-### In scope
+## 4. Keputusan arah yang sudah dicatat
 
-| Fitur | Keterangan |
-|-------|------------|
-| Katalog & detail program | Deskripsi **teks**; cukup dalam untuk melihat peta jalan belajar |
-| Roadmap / alur belajar | Urutan langkah per program/level |
-| Jadwal sesi | Daftar pertemuan belajar terstruktur untuk wali dan tentor |
-| Materi belajar | Konten **teks** (markdown/plain) per langkah roadmap |
-| Pembayaran / tagihan | Invoice + status (unpaid / waiting / paid); konfirmasi manual oleh admin |
-| Laporan Harian | Diisi tentor: tanggal, jam mulai/selesai, aktivitas/materi dibahas, catatan |
-| Laporan Perkembangan | Rangkuman capaian anak per blok sesi (N sesi) diisi tentor & dibaca wali |
-| Manajemen Wali & Murid | Akun wali dibuat oleh admin; wali terhubung ke satu atau lebih murid (anak) |
-| Funnel WA | Tetap ada sebagai channel pendaftaran utama sebelum akun dibuat admin |
+Sumber keputusan kanonik: [D1–D16 di PROGRESS](./PROGRESS.md#keputusan-ncourse). Ringkasan di bawah menjelaskan implikasi produk, bukan salinan riwayat atau status implementasi.
 
-### Out of scope (sengaja — Not Doing dulu)
+- **Opsi A — dual surface:** pertahankan funnel WhatsApp, portal operasional, dan permukaan konten publik yang berbeda.
+- **Role berbeda dari akses konten:** role mengatur wewenang portal/operasi; entitlement mengatur hak membaca course/lesson. Otorisasi role DB (D5) sudah diterapkan lokal pada backend NC-1.4; frontend masih metadata, entitlement tetap target terpisah.
+- **Akses konten melekat pada User:** `Murid` tetap untuk layanan bertentor; progress membaca mandiri berbeda dari progress belajar anak.
+- **Program dan Course terpisah:** Program tetap produk layanan les dengan sesi/tagihan per blok; Course unit konten yang dapat dijual sekali, dengan `programId` opsional sebagai jembatan.
+- **Hierarki Course → Section → Lesson:** migrasikan konten roadmap existing secara terencana. D16 memperjelas D11: bukan mengganti seluruh entitas Program dan relasi operasional dengan Course.
+- **Backend menentukan konten yang boleh terkirim:** paywall di UI saja tidak cukup. Endpoint publik existing yang mengirim body roadmap perlu ditutup melalui task akses konten.
+- **Penulis terbatas:** admin dan tentor yang didaftarkan admin; tentor hanya course dengan ownership sesuai.
+- **Teks/Markdown terlebih dahulu:** bukan block editor atau video. Diskusi tetap WhatsApp; tanpa Q&A dan review teks.
+- **Pembayaran manual/one-time:** pilihan payment gateway belum diputuskan. Tidak ada subscription di iterasi awal.
+- **Skala awal kecil:** kurang dari 10 course, kurang dari 100 artikel, puluhan pembaca; belum memerlukan analytics besar atau mesin pencarian terpisah.
+- **Tanpa infra baru:** verifikasi email melalui Supabase; cron, mail server sendiri, storage tambahan, dan search engine bukan scope otomatis.
+- **Brand nCourse adalah rename display:** jangan mengubah domain email placeholder, package identifier, atau folder tanpa migrasi terpisah.
 
-- Video streaming / live class platform
-- SCORM / xAPI
-- Forum, chat in-app, gamifikasi berat
-- Payment gateway full otomatis (bisa fase belakangan)
-- Absensi advanced & nilai rapor lengkap
-- Multi-tenant / multi-cabang
-- Docker wajib (opsional belakangan jika self-host)
+`MaterialItem.sessionId` masih berada dalam schema dan dipakai seed; rencana menghapusnya bukan perubahan yang sudah dilakukan.
 
----
+## 5. Opsi integrasi funnel dan LMS
 
-## 5. Referensi fitur (LearnHouse → Nurman MVP)
+### Opsi A — arah yang dipilih
 
-> **Inspirasi saja** — bukan commit pakai/fork LearnHouse, bukan ganti stack.  
-> Sumber: [learnhouse/learnhouse](https://github.com/learnhouse/learnhouse) · [learnhouse.app](https://learnhouse.app) · docs: [docs.learnhouse.app](https://docs.learnhouse.app)  
-> Lisensi LearnHouse: **AGPL-3.0** (self-host/fork = compliance terpisah). Stack mereka (Next + FastAPI + Postgres + Redis) **bukan** keputusan stack Nurman (masih Fase 0).
+| Permukaan | Peran |
+|---|---|
+| `/landing` | Marketing dan entry navigasi; kelak menghubungkan ke katalog konten. |
+| `/course/*` | Funnel layanan les, tetap berakhir pada pesan WhatsApp. |
+| `/app/*` | Portal operasional wali/tentor/admin, bukan diganti oleh katalog publik. |
+| `/kelas`, `/kelas/[slug]` (rencana) | Katalog course, silabus, informasi akses dan CTA. |
+| `/materi/[slug]` (rencana) | URL lesson kanonik, bukan alias `/course/materi/[id]`. |
 
-Filter: **hanya yang dekat MVP §4** (katalog, roadmap, materi teks, jadwal, tagihan + sedikit nice-to-have dekat).
+Pemisahan permukaan tidak berarti harus menambah subdomain, aplikasi, atau server baru. Kontrak data dan navigasi tetap harus konsisten dengan keputusan akses backend.
 
-### Cocok / map ke MVP
+### Opsi B — alternatif historis, bukan pilihan aktif
 
-| Fitur (inspirasi LearnHouse / sejenis) | Map ke Nurman MVP | Catatan |
-|----------------------------------------|-------------------|---------|
-| Courses + detail program | Katalog & detail program | Sudah di MVP §4 |
-| Collections / bundles | Grouping program (opsional) | Nice-to-have dekat katalog; bukan wajib Fase 2 |
-| Block editor / konten kaya | Materi belajar **teks** | Mulai markdown/plain; editor block belakangan |
-| Urutan langkah / path belajar | Roadmap alur per program/level | Intinya urutan langkah — bukan fitur 1:1 LH |
-| Jadwal / daftar pertemuan | Jadwal sesi | List/kalender sederhana; **bukan** live class |
-| Payments (di LH: enterprise) | Tagihan + status bayar | MVP: **manual** (unpaid/waiting/paid); gateway belakangan |
-| User groups (ringan) | Cohort / batch kecil | Hanya jika perlu batasi akses materi per batch |
-| Certificates (ringan) | Backlog **dekat** MVP | Setelah completion tracking; **bukan** Fase 1–2 |
-| Custom branding / landing app | Branding area `/app` | Selaras Opsi A (dual surface) |
-| SEO metadata / OG | SEO halaman program | Funnel + halaman LMS |
+Funnel sebagai onboarding/checkout langsung pernah dipertimbangkan. Opsi itu tidak boleh diterapkan diam-diam karena mengubah lead flow yang berjalan. Mengganti Opsi A membutuhkan keputusan produk baru di progress serta task/migration yang jelas; opsi B bukan fase yang wajib dieksekusi kemudian.
 
-### Sadar menarik, tetap di luar MVP (Not Doing dulu)
+## 6. Batas produk iterasi nCourse
 
-Assignments berbobot, discussions/forum, podcasts, playgrounds AI, code execution multi-bahasa + auto-grade, collaborative boards, analytics berat, SSO, multi-org/multi-tenant — **tetap out of scope** §4 sampai fase jauh (bukan wishlist aktif).
+### Masuk arah pengembangan
 
-### Cara pakai section ini
+- Katalog Course/Section/Lesson dengan slug, metadata, status draft/published, ownership, dan estimasi baca.
+- Rendering Markdown yang mendukung link dengan sanitasi; validasi link internal saat authoring.
+- Halaman konten server-rendered dengan metadata dan aturan akses pada backend.
+- Akun member email/password dengan verifikasi email, tanpa mengasumsikan mempunyai anak.
+- Entitlement gratis, pembelian lifetime, atau enrollment bertentor; reading progress per User/Lesson.
+- Search/filter sederhana dan related content/prev-next.
+- Rating bintang 1–5 oleh pemilik entitlement aktif; jumlah peserta dihitung live dan disembunyikan jika kurang dari lima.
+- Checkout manual satu kali dan rename display nCourse setelah fondasi siap.
 
-1. Saat spek Fase 0–2: cek kolom **Map ke Nurman MVP** dulu.  
-2. Jangan anggap baris di atas = task coding. Task hanya dari `tasks/todo.md`.  
-3. Kalau mau self-host LearnHouse sebagai eksperimen: catat di `PROGRESS.md` + pahami AGPL; **jangan** campur ke funnel Vercel tanpa keputusan eksplisit.
+### Di luar iterasi awal
 
----
+- Video streaming/live class, SCORM/xAPI, kuis/ujian kompleks, dan assignment enterprise.
+- Forum, chat aplikasi, Q&A, review teks, gamifikasi besar, serta moderasi konten pengguna umum.
+- Subscription, gateway dipilih tanpa data kebutuhan, analytics besar, atau event pipeline baru.
+- Bookmark/highlight/inline notes yang membutuhkan anchor stabil di block editor.
+- Reminder otomatis, sertifikat/download privat, gift course sebelum prasyarat infrastrukturnya disetujui.
+- Multi-tenant/cabang, SSO perusahaan, Docker wajib, atau migrasi database/framework sebagai efek samping.
 
-## 6. Dua opsi arsitektur: funnel ↔ LMS
+Pemicu untuk mengevaluasi fitur ditunda ada di [rancangan fitur ditunda](../tasks/plan.md#nc-deferred-design), bukan janji delivery.
 
-**Belum diputuskan.** Setiap fase implementasi harus merujuk opsi yang aktif di `PROGRESS.md`.
+## 7. Fase pengembangan NC
 
-### Opsi A — Dual surface (disarankan untuk Fase 0–1)
+Tabel ini menyatakan urutan dan hasil yang dituju. Checkbox, tanggal, status selesai/blocked, serta bukti eksekusi hanya di todo/progress.
 
-| | |
-|--|--|
-| Ide | `/course/*` tetap marketing + WA. LMS di area terpisah (`/app`, subdomain, atau project terpisah). |
-| Plus | Funnel Vercel stabil; risiko LMS tidak merusak lead flow. |
-| Minus | Dua “pintu”; sync katalog funnel vs LMS perlu disiplin. |
-| Cocok jika | Lead WA masih utama; LMS dibangun bertahap. |
+| Tahap | Fokus | Hasil yang dituju / prasyarat |
+|---|---|---|
+| NC-1 | Fondasi | Migration history yang bisa direplay, client backend terpisah, test harness, role DB, hardening, disiplin generated artifact dan evaluasi relasi materi-sesi. |
+| NC-2 | Course / Section / Lesson | Schema dan migrasi konten tanpa kehilangan `RoadmapStep.bodyText`; authoring admin/tentor, Markdown, draft/publish dan ownership. Program operasional tetap hidup. |
+| NC-3 | Permukaan publik | `/kelas` dan `/materi/[slug]`, metadata/server rendering, link dari landing, search/filter/related content dan pembatasan respons konten. |
+| NC-4 | Member / Entitlement | Signup verifikasi email, role member dan phone nullable, tujuan login member, entitlement serta jembatan enrollment, reading progress terpisah. |
+| NC-4.5 | Rating | Bintang dengan entitlement aktif dan jumlah peserta yang tidak memerlukan counter terpisah. |
+| NC-5 | Monetisasi | Pembayaran manual satu kali menjadi entitlement purchase; gateway menunggu keputusan. |
+| NC-6 | Rename display | Brand nCourse di UI/metadata tanpa migrasi identitas akun atau package. |
 
-### Opsi B — Funnel = onboarding LMS
+**Gate lintas tahap:** aturan draft/published dan akses harus dirancang sebelum body konten nonpublik diekspos. Tahap publik tidak boleh meluncurkan seluruh body sambil menunggu entitlement di tahap berikutnya. Mekanisme issuance/expiry/revocation dan rollout dipastikan pada rencana akses; jangan mengarang kebijakan akhir blok dari field yang belum ada.
 
-| | |
-|--|--|
-| Ide | Akhir flow daftar (config) masuk akun + dashboard; WA opsional/notifikasi. |
-| Plus | Satu journey; data lead langsung ke sistem. |
-| Minus | Auth+DB lebih awal; sentuh funnel existing. |
-| Cocok jika | Siap fondasi backend & login. |
+Nomor tahap NC berbeda dari fase 0–5 pada roadmap awal. Tidak menyatakan semua pekerjaan fase lama selesai hanya karena portal sudah tersedia; gunakan ID task untuk melacak hasilnya.
 
-**Keputusan sementara di dokumen:** favor **A** untuk fondasi; evaluasi **B** saat auth + tagihan hidup (Fase 4–5). Final choice dicatat di Keputusan (`PROGRESS.md` + vault).
+### Fase awal 0–5 sebagai konteks historis
 
----
+| Fase awal | Fokus desain |
+|---|---|
+| 0 | Spec, model data, dan pilihan stack. |
+| 1 | Fondasi identitas, API/database, shell portal, seed. |
+| 2 | Katalog operasional, murid/tentor/wali, enrollment, roadmap dan materi. |
+| 3 | Jadwal dan laporan sesi/perkembangan. |
+| 4 | Tagihan serta verifikasi pembayaran manual. |
+| 5 | Integrasi funnel sesuai keputusan produk. |
 
-## 7. Fase roadmap
+Tabel historis bukan checklist baru. Tidak mewajibkan trigger sinkronisasi auth/DB hanya karena pernah tertulis sebagai kandidat fase awal.
 
-| Fase | Nama | Hasil “done” | Kode? |
-|------|------|--------------|-------|
-| **0** | Spec & model data | Entity + relasi di doc/ERD kasar; stack kandidat | Docs only |
-| **1** | Fondasi | Auth admin+tentor+wali, DB, trigger sync, shell `/app`, seed data | Ya |
-| **2** | Katalog, Murid & Tentor | Admin CRUD Program, Murid, Tentor, Wali; list katalog & roadmap | Ya |
-| **3** | Jadwal & Laporan Sesi | Tentor input Laporan Harian & Laporan Perkembangan per blok | Ya |
-| **4** | Tagihan | Invoice + status; konfirmasi manual; wali lihat tagihan | Ya |
-| **5** | Integrasi funnel | Implement Opsi A atau B yang dipilih | Ya |
+## 8. Model konten dan akses yang direncanakan
 
-Detail task per fase: [`../tasks/todo.md`](../tasks/todo.md).
+[ERD](./erd-lms.md) mendokumentasikan schema sekarang. Diagram konseptual berikut belum menjadi schema database:
 
----
-
-## 8. Model data (draft — Fase 0)
-
-Konseptual; nama final menyesuaikan ORM/DB.
-
-```
-User            id, role (admin|tentor|wali), name, phone, email?, createdAt
-Murid           id, waliId, name, birthDate?, schoolLevel?, createdAt
-Program         id, slug, name, description, category, basePrice?, sessionsPerBlock, active
-RoadmapStep     id, programId, order, title, bodyText, level?
-Session         id, programId, tentorId, muridId, startsAt, endsAt, location?, status
-MaterialItem    id, roadmapStepId | sessionId, title, bodyText, order
-Enrollment      id, muridId, programId, status, startedAt
-Invoice         id, enrollmentId, amount, status (unpaid|waiting|paid), dueAt, paidAt?, note?
-DailyReport     id, sessionId, muridId, date, startTime, endTime, activity, notes
-ProgressReport  id, muridId, programId, blockNumber, achievements, masteredMaterials, weakMaterials, notes, createdAt
-Progress        id, muridId, roadmapStepId, status (in_progress|completed), updatedAt
+```text
+Program (layanan les) ← optional programId — Course (unit konten/jual)
+                                            └─ Section
+                                               └─ Lesson (slug global)
+User ─ Entitlement ─ Course
+User ─ LessonProgress ─ Lesson
+User ─ Rating ─ Course
+Enrollment ─ jembatan akses bertentor ─ Entitlement
 ```
 
-Funnel statis hari ini (`materials.ts`) **bukan** schema LMS — migrasi/mapping diputus di Fase 5.
+- Konten dari `RoadmapStep.bodyText` harus ikut dimigrasikan, bukan hanya `MaterialItem`.
+- `LessonProgress` memakai User; `Progress` existing memakai Murid/RoadmapStep. Jangan menukar subjek saat migrasi.
+- Publik, gratis setelah login, pembelian lifetime, dan enrollment adalah mekanisme akses berbeda; rumus entitlement dan empat tier ada di [plan akses](../tasks/plan.md#nc-access-design).
+- Draft/published dan kepemilikan author adalah guard tambahan; `visibility: public` saja bukan izin menampilkan draft.
+- Detail migrasi, foreign key, expiry enrollment dan routing member masih melalui plan/approval. Akun nonaktif sudah ditolak `403 ACCOUNT_INACTIVE` oleh backend NC-1.4 lokal; kontrak auth/profil ada di [flow](./flow-system.md#4-login-identitas-dan-otorisasi-aktual), bukan keputusan baru dari diagram konseptual.
 
----
+## 9. Stack dan referensi inspirasi
 
-## 9. Stack kandidat (belum lock)
+Stack aplikasi yang sudah dipakai: Next.js/React/Tailwind, Express/TypeScript, Prisma/PostgreSQL Supabase, Supabase Auth, dan shared Zod. Tidak ada pemilihan database/auth provider baru pada roadmap ini. Target renderer Markdown adalah `react-markdown` + `remark-gfm` + `rehype-sanitize`; jangan mengklaim paket/renderer itu sudah diimplementasikan hanya karena tercantum di rencana.
 
-| Layer | Kandidat | Kriteria pilih |
-|-------|----------|----------------|
-| App | Next.js App Router (lanjut) | Satu codebase, Vercel-friendly |
-| DB | Postgres (Supabase / Neon / Vercel Postgres) | Managed, auth optional bundled |
-| Auth | Supabase Auth / NextAuth / Clerk | Simple admin+peserta |
-| Konten | Markdown di DB atau MDX | Teks dulu |
-| Bayar | Manual status → nanti Midtrans/Xendit | MVP tanpa gateway OK |
+[LearnHouse](https://github.com/learnhouse/learnhouse) / [dokumentasinya](https://docs.learnhouse.app) merupakan inspirasi historis, bukan keputusan memakai/fork produknya. Lisensi AGPL-3.0 dan stack Next/FastAPI/Postgres/Redis milik referensi tidak berpindah menjadi stack repo ini.
 
-Lock stack = output **Fase 0** + catatan di `PROGRESS.md`.
+| Inspirasi | Penyesuaian untuk Nurman Course |
+|---|---|
+| Courses/detail/syllabus | Katalog teks dan hierarki tiga level dengan akses backend. |
+| Groups/collections | Dievaluasi hanya jika kebutuhan pengelompokan nyata muncul. |
+| Rich editor | Markdown dahulu; block editor menunggu kebutuhan penulis. |
+| Session/calendar | Pertemuan les nyata, bukan video/live platform. |
+| Payments | Transfer/manual approval dahulu. |
+| Certificates/reminders/analytics | Ditunda sampai prasyarat dan volume penggunaan relevan. |
 
----
+## 10. Aturan penggunaan roadmap
 
-## 10. Asumsi yang perlu divalidasi
-
-- [ ] Single admin cukup untuk 3–6 bulan ke depan
-- [ ] Materi teks/markdown cukup (tanpa video) untuk program inti
-- [ ] Status bayar manual (transfer + konfirmasi) acceptable
-- [ ] Funnel WA tetap channel lead utama sampai Fase 5
-- [ ] Peserta mau login (bukan hanya chat WA)
-
----
-
-## 11. Aturan kerja (wajib untuk agent & manusia)
-
-1. **Jangan coding fitur LMS** sebelum task di `tasks/todo.md` untuk fase itu `in_progress` dan sejalan roadmap.
-2. **Setiap progres** → update `docs/PROGRESS.md` + centang/ubah status di `tasks/todo.md`.
-3. **Keputusan arsitektur** (A/B, stack, bayar) → catat di `PROGRESS.md` bagian Keputusan + mirror vault bila perlu.
-4. **Funnel `/course/*`** jangan dirombak besar tanpa task eksplisit Fase 5 / Opsi B.
-5. Patokan agent: **`AGENTS.md`** (source of truth operasional).
-
----
-
-## 12. Success criteria roadmap dokumen ini
-
-- [x] MVP in/out tertulis
-- [x] User admin + tentor + wali tertulis
-- [x] Opsi A vs B tertulis (belum final pick)
-- [x] Fase 0–5 tertulis
-- [x] Link progress + tasks
-- [x] Referensi fitur LearnHouse (dekat MVP) tercatat (§5)
-- [ ] Fase 0 entity/ERD diperjelas (saat eksekusi Fase 0)
-- [ ] Stack di-lock (saat eksekusi Fase 0)
+- Mulai dari Markdown root, lalu pilih task di todo dan baca plan terkait. Roadmap bukan izin implementasi seluruh fase.
+- Jangan mencampur perubahan dependency, lint, auth, schema, dan UI dalam satu scope tanpa approval eksplisit.
+- Fokus kerja berikutnya backend; instruksi terakhir menghentikan Playwright dan pekerjaan frontend lanjutan tetap berlaku sampai user mengubahnya.
+- NC-1.4 **belum selesai seluruhnya**: implementasi backend lokal tersedia, tetapi merge/rollout **BLOCKED** sampai admin memastikan kegunaan lima Auth tanpa profil dan menyetujui dampak/rekonsiliasi. Penghapusan fallback email bukan rekonsiliasi data legacy. Audit staging/development, keputusan dan verifikasi terpusat di [PROGRESS](./PROGRESS.md#backend-part2-20260916); frontend/browser/login/session test, mutasi remote, commit/push/deploy tidak termasuk izin scope ini.
+- Pertahankan funnel/pricing; jangan mengganti Program dengan Course atau memigrasikan domain email secara terselubung.
+- Catat hasil dan keputusan di progress, status singkat di todo, serta langkah/kriteria yang belum dikerjakan di plan. Jangan menyimpan log verifikasi pada roadmap ini.

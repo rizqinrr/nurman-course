@@ -1,208 +1,177 @@
-# 📊 Codebase Overview & System Audit — Nurman Course
+# Codebase Overview — Nurman Course
 
-Dokumen ini berisi analisis lengkap dan mendalam mengenai arsitektur, tech stack, fitur yang telah diimplementasikan, struktur proyek, pemetaan rute, fitur parsial, serta fitur yang belum tersedia pada sistem **Nurman Course**.
+Referensi arsitektur implementasi saat ini: funnel pendaftaran WhatsApp dan portal operasional les untuk wali, tentor, serta admin. Dokumen ini bukan checklist pekerjaan, log hasil pengujian, atau bukti kondisi server produksi.
 
----
+## 1. Hierarki sumber dan cara membaca
 
-## 1. Tech Stack
+Markdown root tetap menjadi patokan awal; klaim implementasi yang bertentangan diverifikasi terhadap source/config, bukan disalin sebagai fakta baru.
 
-Nurman Course dikembangkan dengan arsitektur **Monorepo** berbasis **npm workspaces** dan **Turborepo** (`turbo.json`) yang terdiri dari 3 paket utama:
+| Sumber | Peran |
+|---|---|
+| [AGENTS.md](../AGENTS.md) | Aturan kerja, batas scope, dan tanggung jawab funnel/pricing. |
+| [SYSTEM_MAP.md](../SYSTEM_MAP.md) | Peta navigasi dan lokasi kode; beberapa rincian masih tertinggal. |
+| [README.md](../README.md) | Pintu masuk repo; masih boilerplate, bukan panduan monorepo lengkap. |
+| [design.md](../design.md) | Referensi desain root; konflik dengan penerapan visual terbaru dijelaskan di bawah. |
+| [ROADMAP-LMS.md](./ROADMAP-LMS.md) | Visi, batas produk, dan fase; rencana tidak membuktikan fitur sudah ada. |
+| [flow-system.md](./flow-system.md) / [erd-lms.md](./erd-lms.md) | Referensi alur bisnis / model data; detail aktual mengikuti handler dan Prisma schema. |
+| [tasks/todo.md](../tasks/todo.md) / [tasks/plan.md](../tasks/plan.md) | Checklist eksekusi / rencana rinci dan approval gates. |
+| [PROGRESS.md](./PROGRESS.md) | Keputusan, riwayat perubahan, bukti verifikasi, dan residual; tidak diduplikasi di sini. |
 
-### Frontend (`frontend/`)
-- **Framework:** Next.js `16.2.4` (App Router, Turbopack)
-- **Library UI:** React `19.2.4`, Tailwind CSS `v4.x` (menggunakan `@tailwindcss/postcss`), Lucide React `^1.11.0`, Framer Motion `^12.43.0`
-- **Design System & Typography:**
-  - AppVerse.id Design System: Warm off-white canvas (`#f7f4ef`), border tan (`#c8b99a`), primary deep blue (`#4a70a9`), solid warm cards (`#edeae3` / `#fdfcfa`)
-  - Typography: Heading menggunakan `Playfair Display` dan body menggunakan `DM Sans` via `next/font/google` di `frontend/app/layout.tsx`
-- **Auth & Client API:** `@supabase/ssr` (`^0.12.4`), `@supabase/supabase-js` (`^2.45.0`), kustom `apiFetch` client dengan in-memory cache (TTL 1 jam) dan selective cache invalidation (`frontend/lib/api.ts`)
-- **Developer Experience (DX):** NC Debugger Widget (`frontend/components/ui/DebugBar.tsx`, dev-only) untuk inspect request timing, cache hit/miss, dan response code secara real-time.
+### Konflik dokumentasi yang perlu diketahui
 
-### Backend (`backend/`)
-- **Server:** Express `^4.19.2` (TypeScript `^5.3.3` + `ts-node`)
-- **ORM & Database:** Prisma ORM `^5.18.0` / `5.22.0` terhubung ke PostgreSQL Supabase (Connection Pooling + Direct URL)
-- **Auth & Security:** Supabase Auth (JWT Bearer token verification via `@supabase/supabase-js` di `backend/src/middleware/auth.ts`)
-- **Logging:** Morgan (`^1.10.0`) + Prisma SQL Query timing logger (cyan console output)
+| Sumber | Konflik dan pembacaan yang benar |
+|---|---|
+| `AGENTS.md` | Bagian akhir menyatakan tidak ada backend/DB/auth/LMS, bertentangan dengan overview root dan kode Express/Prisma/portal. Pernyataan itu baseline lama, bukan keadaan seluruh aplikasi sekarang. |
+| `README.md` | Path `app/page.tsx`, uraian Geist, dan saran Vercel berasal dari template. App berada di `frontend/app`; layout mendaftarkan Geist, Geist Mono, Playfair Display, dan DM Sans. Tidak semua permukaan memakai font yang sama. |
+| `design.md` | Latar solid blue/Geist/glassmorphism tidak menggambarkan seluruh UI. Token AppVerse sudah warm; layout wali memakai frame `max-w-md`, canvas `#F0ECE1` dan isi `#F7F4EF`, sesuai keputusan warm mobile di progress. Ini catatan konflik, bukan keputusan desain baru. |
+| `SYSTEM_MAP.md` | `/app/materi` adalah redirect ke `/app/program`, bukan katalog terpisah. `/app/admin/pengguna` belum memiliki `page.tsx`. Peta client backend/cache juga perlu dibaca bersama modul terbaru di bawah. |
+| Roadmap dan catatan historis | Klaim frontend-only, demo mode, stack kandidat, atau A/B belum final tidak boleh menggantikan source sekarang. Blok NC pada task memilih Opsi A, tetapi Course/Entitlement dan route publik barunya belum diimplementasikan. |
 
-### Shared Package (`packages/shared/`)
-- **Validation & Types:** Single source of truth untuk tipe TypeScript dan Zod schemas `^3.23.8` (validasi sesi, user, murid, invoice, prepayment, daily report, progress report, serta helper `normalizePhone`).
+## 2. Arsitektur dan dependency utama
 
-### Deployment Infra
-- **Server:** VPS Ubuntu (`43.156.207.5`)
-- **CI/CD:** GitHub Actions (`.github/workflows/deploy.yml`) melakukan build dan `rsync` ke `/home/ubuntu/MyProject/nurman-course/` lalu mengeksekusi script deployment `/opt/nurman-deploy/deploy.sh` (PM2 + Nginx).
+Monorepo menggunakan npm workspaces (`frontend`, `backend`, `packages/*`) dan Turborepo. Funnel tetap memakai data statis; data operasional portal melewati Express dan Prisma. Keduanya tidak otomatis berbagi katalog.
 
----
-
-## 2. Features Already Implemented (Fitur Berjalan)
-
-### A. Marketing & Conversion Funnel (WhatsApp Flow)
-- **Landing Page Modern (`/landing`):** Navigasi, hero, statistik, benefit, kurikulum kategori, testimoni, dan Infinite Tutor Carousel (`LandingTutors.tsx`).
-- **Funnel Pendaftaran (`/course` → `/course/program` → `/course/materi` → `/course/config`):**
-  - Pemilihan program, materi, dan level.
-  - Konfigurasi durasi (60/90 menit), frekuensi (1-4x seminggu), peserta (1-3 siswa dengan diskon otomatis), hari, dan jam les.
-  - Perhitungan estimasi harga otomatis dan generate pesan WhatsApp terstruktur (`CourseConfigClient.tsx`).
-
-### B. Autentikasi Multi-Metode
-- Login di `/login` mendukung **Email** atau **Nomor WhatsApp** + Password (auto-resolve nomor via `/api/auth/resolve-phone` dengan placeholder domain `@nurmancourse.local`).
-- Proteksi route berbasis peran (Role-Based Access Control) di `frontend/middleware.ts` untuk 3 peran: Admin, Tentor, dan Wali Murid.
-
-### C. Portal Wali Murid (`/app/...`)
-- **Dashboard Multi-Anak (`/app/dashboard`):** Selector anak (tab pill jika >1 murid), kartu program aktif, sesi terdekat, alert tagihan H-1, rekap rapor capaian terakhir.
-- **Katalog & Detail Program (`/app/program` & `/app/program/[slug]`):** Filter kategori, outline silabus, modal materi Markdown, CTA WhatsApp. Jika anak sudah terdaftar, otomatis beralih ke *Interactive Learning Roadmap*.
-- **Jadwal Belajar (`/app/jadwal`):** Kalender sesi mendatang vs riwayat belajar dengan badge status-aware.
-- **Laporan Belajar (`/app/laporan`):** Tab Laporan Harian dan Laporan Perkembangan (rapor blok), tombol konsultasi langsung via WhatsApp tentor bersangkutan.
-- **Tagihan & Pembayaran Mandiri (`/app/tagihan`):**
-  - Tampil invoice unpaid.
-  - Form upload bukti transfer (canvas compressor JPEG atau file PDF).
-  - Form deposit pembayaran prabayar.
-  - Pilihan rekening pembayaran dinamis dari database.
-- **Profil & Ganti Sandi (`/app/profile`):** Data akun wali dan anak, serta form ubah kata sandi mandiri via Supabase Auth.
-
-### D. Portal Tentor (`/app/tentor/...`)
-- **Dashboard Tentor (`/app/tentor/dashboard`):** Agenda mengajar hari ini, status laporan pending otomatis berdasarkan jam selesai sesi, deteksi anak siap cetak rapor blok.
-- **Jadwal Sesi (`/app/tentor/jadwal`):** CRUD jadwal sesi les, auto-fill jam selesai (+1 jam default), validasi bentrok jadwal tentor & murid, pembatalan/penghapusan sesi via modal `ConfirmDialog`.
-- **Laporan Harian (`/app/tentor/laporan-harian`):** Tabel laporan sesi, input/edit laporan kegiatan belajar, modal detail, print A4 hasil belajar (`window.print`).
-- **Laporan Perkembangan (`/app/tentor/laporan-perkembangan`):** Form evaluasi capaian per blok sesi (N sesi).
-- **Profil (`/app/tentor/profil`):** Update password akun tentor.
-
-### E. Portal Admin (`/app/admin/...`)
-- **Dashboard Statistik (`/app/admin`):** Metrik program aktif, murid aktif, tentor aktif, tagihan waiting, dan sesi hari ini.
-- **Manajemen Murid & Wali (`/app/admin/murid`):** CRUD murid, auto-create akun wali (default password `12345678`), upload foto base64, reset password akun wali, soft/hard delete cascade.
-- **Manajemen Tentor (`/app/admin/tentor`):** CRUD tentor, reset password, deaktivasi, atau hard delete akun Supabase Auth.
-- **Manajemen Program (`/app/admin/program`):** CRUD program kursus, harga dasar, kategori, dan batas sesi per blok.
-- **Manajemen Roadmap & Materi (`/app/admin/roadmap`):** Manajemen langkah belajar bertingkat per program, editor teks/materi markdown, reorder langkah.
-- **Manajemen Enrollment (`/app/admin/enrollment`):** Pendaftaran murid ke program dan penugasan tentor, tolak duplikasi enrollment aktif (`409 Conflict`), hapus enrollment cascade invoice.
-- **Manajemen Jadwal (`/app/admin/jadwal`):** CRUD sesi master seluruh tentor & murid dengan validasi bentrok waktu ganda.
-- **Manajemen Tagihan (`/app/admin/tagihan`):** Penerbitan invoice manual, verifikasi bukti transfer wali (modal preview gambar fullscreen / PDF blob), state machine perubahan status (Lunas / Verifikasi / Dibatalkan).
-- **Master Rekening Bank (`/app/admin/rekening`):** CRUD rekening tujuan pembayaran (BSI, Mandiri, dll.), set rekening default.
-
----
-
-## 3. Project Structure
-
-```text
-nurman-course/
-├── backend/
-│   ├── prisma/
-│   │   ├── schema.prisma       # 13 Model (User, Murid, Program, Session, Invoice, dll.)
-│   │   └── seed.ts             # Script seed data awal 3-role (Admin, Tentor, Wali)
-│   ├── src/
-│   │   ├── index.ts            # Entrypoint server Express & seluruh controller route API
-│   │   └── middleware/auth.ts  # Middleware Express JWT Supabase (requireAuth, requireAdmin)
-│   └── package.json
-├── frontend/
-│   ├── app/                    # Next.js App Router
-│   │   ├── (auth)/login/       # Halaman login multi-role
-│   │   ├── app/                # Root portal LMS
-│   │   │   ├── (wali)/         # Route group khusus portal Wali Murid
-│   │   │   ├── tentor/         # Sub-portal Tentor
-│   │   │   └── admin/          # Sub-portal Admin
-│   │   ├── course/             # Funnel pendaftaran WhatsApp
-│   │   └── landing/            # Landing page publik (AppVerse style)
-│   ├── components/
-│   │   ├── ui/                 # Reusable UI (Button, GlassCard, ConfirmDialog, ProofModal, DebugBar)
-│   │   ├── course/             # Section landing funnel
-│   │   └── landing/            # Section landing AppVerse (Nav, Hero, Stats, Tutors, dll.)
-│   ├── data/                   # landing.ts, materials.ts, lms.ts
-│   ├── lib/                    # api.ts (apiFetch + in-memory cache), constants.ts, format.ts
-│   ├── middleware.ts           # Route guard edge Next.js (redirect role-based)
-│   └── package.json
-├── packages/
-│   └── shared/                 # @nurman-course/shared (Zod schemas, types, phone helper)
-├── docs/                       # Dokumentasi spesifikasi, ERD, roadmap LMS, & audit
-└── tasks/                      # todo.md & plan.md (eksekusi roadmap)
+```mermaid
+graph TD
+    Visitor[Pengunjung] --> Funnel[Landing dan funnel Next.js]
+    Static[materials.ts dan landing.ts] --> Funnel
+    Funnel --> WA[WhatsApp melalui wa.me]
+    Portal[Portal wali / tentor / admin] --> Auth[Supabase Auth]
+    Portal --> Client[apiFetch dan memory cache]
+    Client --> API[Express API]
+    API --> Auth
+    API --> Prisma[Prisma client]
+    Prisma --> DB[PostgreSQL Supabase]
+    Shared[Shared types dan Zod schemas] --> Portal
+    Shared --> API
 ```
 
----
+| Layer | Dependency yang tercatat |
+|---|---|
+| Frontend | Next.js dan `eslint-config-next` **16.3.5**; React/React DOM **19.2.4**; Tailwind CSS dan PostCSS plugin **^4**. |
+| UI | Framer Motion `^12.43.0`, Lucide React `^1.11.0`; komponen lokal di `frontend/components/`. |
+| Auth client | Frontend: `@supabase/ssr ^0.12.4`, `@supabase/supabase-js ^2.111.0`; backend mendeklarasikan SDK `^2.45.0`. |
+| Backend | Express **4.22.3**, Morgan **1.12.0**, TypeScript, ts-node, cors, dotenv. Output TypeScript tetap CommonJS. |
+| Database | Prisma/client manifest `^5.18.0`, resolved **5.22.0** pada lockfile root; datasource `postgresql`. |
+| Shared | `@nurman-course/shared`: tipe, schema Zod `^3.23.8`, dan `normalizePhone`; entrypoint masih `src/index.ts`. |
+| Tooling | Turbo `^2.0.4`, ESLint `^9`; backend Vitest **4.1.11**, Supertest **7.1.4**, serta Node test runner. |
 
-## 4. Pages / Routes Map
+Angka berawalan `^` adalah range manifest, bukan klaim versi terpasang. Acuan: [root manifest](../package.json), [frontend manifest](../frontend/package.json), [backend manifest](../backend/package.json), [shared manifest](../packages/shared/package.json), dan [lockfile root](../package-lock.json).
 
-Berdasarkan output build generator Next.js (`35 routes`):
+## 3. Peta modul dan tanggung jawab
 
-### Publik / Marketing & Funnel
-| Route | Tipe | Deskripsi |
-|---|---|---|
-| `/` | Statik | Redirect ke `/course` |
-| `/landing` | Statik | Halaman landing marketing utama (AppVerse theme) |
-| `/course` | Statik | Hero funnel lama |
-| `/course/program` | Statik | Pemilihan jenis program (Materi / Jenjang / Calistung) |
-| `/course/materi` | Statik | List materi reguler |
-| `/course/materi/[id]` | Dinamik | Detail materi + pemilihan level |
-| `/course/jenjang` | Statik | List jenjang pendidikan |
-| `/course/calistung` | Statik | List program calistung |
-| `/course/config` | Statik | Konfigurasi durasi/jam/peserta + kalkulasi harga + link WhatsApp |
+| Lokasi | Tanggung jawab / interface penting |
+|---|---|
+| `frontend/app/` | Route publik, `/login`, serta portal `/app`; login berada di `app/login`, bukan `(auth)/login`. |
+| `frontend/app/course/config/CourseConfigClient.tsx` | State konfigurasi lokal, estimasi harga funnel, dan pembentukan URL WhatsApp. Jangan menduplikasi kalkulasi harga di page lain. |
+| `frontend/data/materials.ts` | Katalog funnel; `getMaterialById`, `getMaterialsByCategory`, `getLevelBasePrice`. Bukan model `MaterialItem` database. |
+| `frontend/data/landing.ts`, `frontend/data/lms.ts` | Konten marketing statis / tipe dan helper tampilan portal; bukan database pengganti. |
+| `frontend/lib/api.ts` | `apiFetch<T>(path, options): Promise<T>`, `buildQuery`, GET cache, invalidation, dan subscription log. |
+| `frontend/lib/supabase/`, `frontend/middleware.ts` | Client/session Supabase dan redirect akses portal berdasarkan metadata role. |
+| `frontend/components/ui/DebugBar.tsx` | Log request development melalui `useSyncExternalStore`, snapshot stabil, clear/copy log. |
+| `frontend/hooks/useClock.ts` | `useClock(intervalMs = 60000)` mengembalikan timestamp atau `null` awal; interval/focus/visibility dibersihkan saat unmount. |
+| `frontend/components/ui/ProofModal.tsx` | Modal bukti; export `ProofImage` membaca dimensi natural sebelum merender Next Image `unoptimized`. PDF memakai jalur blob terpisah. |
+| `frontend/components/course/`, `frontend/components/landing/` | Section funnel/marketing; reusable UI berada di `components/ui/`. |
+| `frontend/app/layout.tsx`, `frontend/app/globals.css` | Registrasi font, DebugBar, CSS global, dan token AppVerse; bukan bukti semua halaman sudah seragam. |
+| `frontend/utils/format.ts`, `frontend/lib/constants.ts` | Helper format dan konstanta seperti `WHATSAPP_NUMBER`. |
+| `backend/src/index.ts` | Registrasi handler Express, export `app` serta re-export `prisma`; belum dipisah menjadi router/service per domain. |
+| `backend/src/lib/prisma.ts` | Instance Prisma module-cached, dotenv sebelum konstruksi, log SQL/durasi pada nonproduction. Tidak mengimpor entrypoint Express. |
+| `backend/src/lib/supabase-admin.ts` | Client service-role khusus backend; `null` bila konfigurasi tidak tersedia, session refresh/persistence dimatikan. Tidak mengimpor entrypoint. |
+| `backend/src/middleware/auth.ts` | `requireAuth` (verified ID → role/active DB), `validateAccountAccess` (dipakai middleware/profil), `requireRole(...roles)` allowlist, `requireAdmin = requireRole("admin")`, dan `AuthenticatedRequest`. |
+| `backend/prisma/` | Schema, migration history, dan seed; generated client ada di `backend/src/generated/client`, bukan source untuk diedit. |
+| `packages/shared/src/index.ts` | Kontrak input domain dan tipe/status bersama. Import shared tidak menjamin setiap payload UI sudah sesuai schema. |
 
-### Autentikasi & Portal Gatekeeper
-| Route | Tipe | Deskripsi |
-|---|---|---|
-| `/login` | Statik | Halaman login (Email / No. WA + Password) |
-| `/app` | Statik | Root gatekeeper portal (auto-redirect oleh middleware sesuai role) |
+Startup backend hanya dipanggil saat `require.main === module`: koneksi Prisma lalu listener `127.0.0.1`, port dari `PORT` atau `5000`. Mengimpor `app` tidak menjalankan startup listener; client tetap dikonstruksi saat import.
 
-### Portal Wali Murid (`(wali)`)
-| Route | Tipe | Deskripsi |
-|---|---|---|
-| `/app/dashboard` | Statik | Dashboard rekap murid aktif |
-| `/app/program` | Statik | Katalog program les & status terdaftar |
-| `/app/program/[slug]` | Dinamik | Detail silabus & roadmap belajar interaktif |
-| `/app/materi` | Statik | Katalog materi belajar |
-| `/app/jadwal` | Statik | Kalender & riwayat sesi belajar anak |
-| `/app/laporan` | Statik | Tab Laporan Harian & Rapor Perkembangan |
-| `/app/tagihan` | Statik | Tagihan invoice, upload bukti transfer, form prabayar |
-| `/app/profile` | Statik | Profil wali & form ganti password |
+## 4. Route yang tersedia
 
-### Portal Tentor (`/app/tentor`)
-| Route | Tipe | Deskripsi |
-|---|---|---|
-| `/app/tentor/dashboard` | Statik | Dashboard sesi hari ini & evaluasi rapor siap terbit |
-| `/app/tentor/jadwal` | Statik | Manajemen jadwal sesi mengajar tentor |
-| `/app/tentor/laporan-harian` | Statik | Tabel laporan sesi, input laporan, print format A4 |
-| `/app/tentor/laporan-perkembangan` | Statik | Input evaluasi capaian belajar per blok |
-| `/app/tentor/profil` | Statik | Profil tentor & form ganti password |
+Daftar ini mengikuti `frontend/app/**/page.tsx`, bukan angka static generation. Angka “35 static pages” pada log build tidak berarti “35 route”. Route group `(wali)` adalah pengelompokan folder dan **tidak masuk URL**.
 
-### Portal Admin (`/app/admin`)
-| Route | Tipe | Deskripsi |
-|---|---|---|
-| `/app/admin` | Statik | Statistik dashboard operasional |
-| `/app/admin/murid` | Statik | Manajemen murid & akun wali |
-| `/app/admin/tentor` | Statik | Manajemen akun tentor |
-| `/app/admin/program` | Statik | Master katalog program les |
-| `/app/admin/roadmap` | Statik | Manajemen alur belajar & materi teks per program |
-| `/app/admin/enrollment` | Statik | Pendaftaran murid ke program & assign tentor |
-| `/app/admin/jadwal` | Statik | Jadwal sesi master seluruh tentor & murid |
-| `/app/admin/tagihan` | Statik | Master invoice, verifikasi bukti bayar, prabayar |
-| `/app/admin/tagihan/[invoiceId]` | Dinamik | Fullscreen viewer bukti pembayaran |
-| `/app/admin/rekening` | Statik | Master rekening bank tujuan pembayaran |
+| Area | URL aktual dan fungsi |
+|---|---|
+| Entry / marketing | `/` redirect ke `/landing`; `/landing` adalah marketing, `/course` adalah entry funnel. |
+| Pilih program | `/course/program`, `/course/materi`, `/course/jenjang`, `/course/calistung`. |
+| Detail / konfigurasi | `/course/materi/[id]`, `/course/config`. |
+| Login / selector | `/login`; `/app` berisi selector portal, tetapi middleware mengalihkan wali/tentor ke area masing-masing. |
+| Wali: ringkasan | `/app/dashboard`, `/app/jadwal`, `/app/laporan`, `/app/profile`. |
+| Wali: program / tagihan | `/app/program`, `/app/program/[slug]`, `/app/tagihan`. |
+| Alias materi | `/app/materi` redirect ke `/app/program`; file berada di luar group `(wali)`. |
+| Tentor: entry | `/app/tentor` redirect ke `/app/tentor/dashboard`. |
+| Tentor: operasional | `/app/tentor/dashboard`, `/app/tentor/jadwal`, `/app/tentor/laporan-harian`, `/app/tentor/laporan-perkembangan`, `/app/tentor/profil`. |
+| Admin: ringkasan / orang | `/app/admin`, `/app/admin/murid`, `/app/admin/tentor`. |
+| Admin: pembelajaran | `/app/admin/program`, `/app/admin/enrollment`, `/app/admin/roadmap`, `/app/admin/jadwal`. |
+| Admin: pembayaran | `/app/admin/tagihan`, `/app/admin/tagihan/[invoiceId]`, `/app/admin/rekening`. |
 
----
+`/kelas`, `/materi/[slug]`, dan portal member baru masih rencana NC. Jangan menyamakannya dengan `/course/materi/[id]` atau `/app/program/[slug]` yang sudah ada.
 
-## 5. In-Progress or Partial Features (Fitur Setengah Jadi / Tertunda)
+## 5. Alur aplikasi dan batas API
 
-1. **Upload Foto Murid (Task `M4`):**
-   - *Status:* On-hold / parsial.
-   - *Kondisi:* Foto murid disimpan sebagai data Base64 terkompresi di kolom `Murid.photoPath`. Migrasi ke Supabase Storage ditunda karena alasan privasi (menolak bucket publik, butuh arsitektur private bucket + signed URL token).
-2. **Kategori Halaman `/course/program` (Task `P4`):**
-   - Halaman `/course/program/page.tsx` masih menghardcode 3 kategori (Materi, Jenjang, Calistung), belum membaca helper dinamis `getCategories()` dari `frontend/data/materials.ts`.
-3. **Format Label WhatsApp Calistung (Task `P3`):**
-   - Format pesan WhatsApp di `CourseConfigClient.tsx` untuk program Calistung perlu diselaraskan agar menggunakan label "Program" bukan "Materi".
-4. **Next.js 16 Deprecation Warning (`middleware` → `proxy`):**
-   - Konvensi file `frontend/middleware.ts` memunculkan warning deprecation karena Next.js 16 menyarankan migrasi ke `proxy.ts`.
-5. **Keselarasan Desain Funnel `/course/*`:**
-   - Halaman `/landing` dan seluruh portal `/app/*` sudah mengadopsi AppVerse Design System (warm off-white, font serif/sans modern, solid buttons), tetapi funnel pendaftaran `/course/*` masih memakai styling glassmorphism lama dengan gradient biru.
+- **Funnel:** data `materials.ts` → pilih kategori/item/level → query `materi`, `level`, `program` → konfigurasi lokal → estimasi per anak per minggu → `wa.me`. Ini bukan checkout, pembuatan akun, atau penjadwalan database otomatis.
+- **Login:** email/password langsung ke Supabase; nomor WhatsApp lebih dahulu di-resolve ke email melalui API. Akun tanpa email asli dapat memakai placeholder `@nurmancourse.local`; login page tidak menyediakan signup member.
+- **Operasional:** admin mengelola akun, murid, program, enrollment, roadmap/materi, sesi, rekening, dan invoice. Tentor mengelola sesi/laporan; wali membaca data anak, program, jadwal, laporan, serta tagihan.
+- **Pembayaran:** backend menerima bukti transfer untuk invoice milik wali (`unpaid` → `waiting`), lalu admin memverifikasi menjadi `paid` atau mengembalikan ke `unpaid`. Prabayar memakai entitas tersendiri; tidak ada payment gateway otomatis. Batas integrasi UI dijelaskan di §8.
+- **Client state:** `apiFetch` menambahkan Bearer token dari session browser. GET cache berumur satu jam dan berkunci path; `bypassCache` melewati baca/tulis cache. Request non-GET menginvalidasi kategori path sebelum fetch, bukan sinkronisasi realtime lintas pengguna.
+- **Waktu / debug:** jadwal memakai clock default satu menit, dashboard tentor satu detik; perubahan status berbasis waktu dapat menunggu interval. Log request hanya development; SQL logging backend nonproduction. Cache dan log ini melengkapi local state, bukan berarti seluruh aplikasi “tanpa shared state”.
 
----
+Ringkasan boundary di [handler Express](../backend/src/index.ts), bukan kontrak lengkap seluruh endpoint:
 
-## 6. What's Missing (Kekurangan Dibandingkan LMS Modern)
+| Kelompok endpoint | Akses dan bentuk penggunaan |
+|---|---|
+| `GET /api/health`, `POST /api/auth/resolve-phone` | Tanpa `requireAuth`; health dan pemetaan nomor login. |
+| `GET /api/programs`, `GET /api/programs/:id` | Publik; respons `{ programs }` / `{ program }`, termasuk roadmap. Parameter detail backend adalah ID, bukan slug route frontend. |
+| `GET /api/users/me`, `/api/me/*` | `requireAuth`; profil dan data operasional dengan pemeriksaan role/ownership per handler. |
+| `POST /api/daily-reports`, `POST /api/progress-reports`; mutasi `/api/me/sessions` | Terautentikasi dengan pembatasan tentor di handler. |
+| `/api/admin/*` | `requireAuth` dan `requireAdmin`; operasi domain tidak semuanya mempunyai set CRUD yang identik. |
+| `GET /api/payment-accounts` | Memerlukan `requireAuth`, meskipun bukan route berprefiks admin. |
 
-Berdasarkan batasan MVP pada `docs/ROADMAP-LMS.md` dan standar platform LMS umum:
+Respons belum seragam: endpoint lama memakai `{ user }`, `{ sessions }`, dan sejenisnya; banyak endpoint admin memakai `{ data }`. Error dapat berupa `{ error: "..." }` atau `{ error: { code, message, details } }`; `apiFetch` menangani kedua bentuk. Jangan mengasumsikan satu envelope global.
 
-1. **Portal Login Murid Mandiri:**
-   - Murid (anak) tidak memiliki akun login sendiri. Seluruh aktivitas belajar dan pemantauan dilakukan melalui akun Wali Murid.
-2. **Kuis, Ujian, & Tugas Online (Quizzes & Assignments):**
-   - Belum ada modul evaluasi mandiri interaktif; evaluasi hasil belajar saat ini 100% kualitatif melalui Laporan Harian dan Laporan Perkembangan tentor.
-3. **Materi Multimedia / Video Streaming:**
-   - Konten materi pelajaran (`MaterialItem`) masih murni berbasis teks/Markdown sederhana; belum terintegrasi video player, audio embedding, atau PDF viewer in-app.
-4. **Automated Payment Gateway:**
-   - Pembayaran invoice masih manual (transfer bank lalu upload foto bukti transfer untuk diverifikasi manual oleh admin), belum terhubung ke Midtrans, Xendit, atau QRIS instan.
-5. **Notifikasi Otomatis (WhatsApp Webhook / In-App Push):**
-   - Pemberitahuan jadwal atau tagihan masih mengandalkan klik tombol WhatsApp manual (`wa.me`), belum ada integrasi webhook WhatsApp Gateway otomatis (Fonnte/Waba) atau email notification.
-6. **Penerbitan Sertifikat Digital:**
-   - Belum ada generator sertifikat digital otomatis (PDF certificate) saat murid menyelesaikan sebuah blok program.
+## 6. Auth dan model data saat ini
+
+**NC-1.4 sudah diimplementasikan lokal pada backend, bukan bukti deployment.** `requireAuth` menerima tepat satu token dalam format `Bearer <token>`, memverifikasi identitas melalui `supabase.auth.getUser(token)`, lalu mencari `User` berdasarkan verified ID dengan `select: { id, email, role, active }`. `validateAccountAccess` menolak profil hilang, `active !== true`, atau role di luar shared `userRoleSchema` (`admin/tentor/wali`). `req.user` hanya memuat verified `id`, email DB (opsional), dan role DB tervalidasi; tanpa otorisasi dari metadata, default wali, atau cache privilege.
+
+`GET /api/users/me` membaca ulang verified ID dengan `murids`, menjalankan validator yang sama, dan mempertahankan respons sukses `{ user }`. Tidak ada fallback email atau raw error logging pada middleware/profil. Kontrak `401`/`403`/`500` dan guard allowlist dijelaskan di [flow auth](./flow-system.md#4-login-identitas-dan-otorisasi-aktual).
+
+**Batas rollout:** middleware frontend/login masih memakai metadata role; perubahan backend bukan perbaikan role UI atau rekonsiliasi data legacy. NC-1.4 belum selesai seluruhnya: merge/rollout **BLOCKED** sampai admin memastikan kegunaan lima akun Auth tanpa profil dan menyetujui dampak/rekonsiliasi. Hasil audit staging/development dan verifikasi terpusat di [PROGRESS](./PROGRESS.md#backend-part2-20260916); tidak ada mutasi remote, frontend/browser/login/session test, commit/push/deploy dalam scope ini.
+
+[Prisma schema](../backend/prisma/schema.prisma) memuat 13 model:
+- Identitas/operasional: `User`, `Murid`, `Program`, `Enrollment`, `Session`.
+- Konten/progres: `RoadmapStep`, `MaterialItem`, `DailyReport`, `ProgressReport`, `Progress`.
+- Pembayaran: `Invoice`, `Prepayment`, `PaymentAccount`.
+
+Relasi utamanya `User(wali) → Murid → Enrollment → Program`, `Enrollment → Invoice`, `Murid → Prepayment`, serta `Program → RoadmapStep → MaterialItem`. Sesi menghubungkan program, murid, dan tentor; `DailyReport.sessionId` unik. `MaterialItem.sessionId` **masih ada** dan nullable, di samping `roadmapStepId` nullable. Kolom capaian `ProgressReport` berupa `String[]`.
+
+Bedakan constraint database dengan aturan handler:
+- `User.phone`, `User.email`, `Program.slug`, dan `DailyReport.sessionId` memakai unique constraint; role/status disimpan sebagai `String`, dengan daftar nilai di shared types/Zod.
+- `Murid.waliId` tidak unik: database memungkinkan satu wali memiliki beberapa murid. Namun `POST /api/admin/murids` menolak `409` bila wali sudah memiliki **murid apa pun**, tanpa filter `active`; bukan sekadar pembatasan “satu anak aktif”. Selector multi-anak UI tidak membuktikan flow pendaftaran multi-anak tersedia.
+- Duplikasi enrollment aktif ditolak handler berdasarkan pasangan murid/program/status, bukan unique constraint pasangan tersebut pada schema.
+
+## 7. Testing, konfigurasi, dan deployment
+
+Test yang tersedia adalah referensi cakupan, bukan hasil baru atau jaminan end-to-end:
+- `backend/tests/clients.test.cjs`: Node regression untuk konstruksi client, env-first, instance reuse, logging, dan import tanpa startup; Prisma distub.
+- `backend/tests/auth.test.ts`, `backend/tests/api.test.ts`: Vitest/Supertest pada middleware/app asli dengan mock Prisma/SDK; regression NC-1.4 mencakup single Bearer token, verified-ID/role DB, akun hilang/inactive/invalid role, guard allowlist, kegagalan SDK/DB, dan profil tanpa fallback email. `tests/setup.ts` membatasi network ke server loopback suite. Rujukan hasil suite/typecheck dan status compile: [PROGRESS](./PROGRESS.md#backend-part2-20260916), dikelola main; test mock bukan bukti login/akses akun nyata.
+- `frontend/tests/api.test.mjs`: snapshot log, cache, invalidation, TTL, dan error; `frontend/tests/roadmap-reorder.test.mjs`: reorder concurrency dengan mock hooks/source transform. Bukan pengujian lifecycle browser penuh.
+
+Perintah referensi dari root, **bukan instruksi eksekusi sesi docs-only**:
+```powershell
+npm run test --workspace=backend
+npm run typecheck:test --workspace=backend
+node --test frontend/tests/api.test.mjs frontend/tests/roadmap-reorder.test.mjs
+```
+
+Konfigurasi API frontend memakai `NEXT_PUBLIC_API_URL` (fallback origin yang sama). Backend memakai konfigurasi Supabase serta `DATABASE_URL`/`DIRECT_URL` pada datasource Prisma. Nilai credential tidak menjadi isi dokumentasi ini. Seed melakukan `deleteMany`; bukan langkah onboarding aman untuk database berisi data. Migration history tersedia di `backend/prisma/migrations/`; kebijakan baseline/replay ada di progress, bukan bukti status database yang sedang aktif.
+
+[Workflow deployment](../.github/workflows/deploy.yml) dipicu push ke `main` atau `workflow_dispatch`, berjalan pada runner `ubuntu-latest`, lalu melakukan rsync **source** melalui SSH. `node_modules`, `.next`, `dist`, generated backend, `.git`, dan `.env*` dikecualikan. Setelah sync, workflow memanggil remote `sudo -n /opt/nurman-deploy/deploy.sh`.
+
+Tidak ada langkah install/build lokal runner dalam workflow tersebut. Isi script remote tidak tersedia dalam pemeriksaan ini: versi runtime server, PM2/Nginx, proses build/restart sebenarnya, dan keberhasilan deployment **[UNVERIFIED]**. Runner Ubuntu bukan bukti OS/runtime server; boilerplate Vercel juga bukan bukti hosting aktual.
+
+## 8. Batas implementasi yang jangan dianggap selesai
+
+- **Kontrak pembayaran UI/API belum selaras:** halaman wali mengirim `paymentProof`/`paymentProofName` (invoice juga `paymentNote`), sementara `submitPaymentSchema`/`createPrepaymentSchema` memerlukan `proofBase64` dan mengenali `proofName`/`note`. Source menunjukkan ketidakcocokan; keberadaan form dan endpoint bukan bukti submit pembayaran berhasil.
+- **Konten belum dilindungi Entitlement:** endpoint publik program menyertakan `RoadmapStep.bodyText`. Pembatasan tampilan berdasarkan enrollment di UI bukan otorisasi konten backend.
+- **Media masih inline:** foto/bukti disimpan sebagai string/data URL pada field terkait. Private Storage/signed URL belum menjadi flow yang selesai; viewer PDF bukti bayar bukan modul materi multimedia.
+- **Funnel tidak membaca kapasitas sesi live:** pilihan slot/full berasal dari konstanta konfigurasi. Durasi dua jam dan lokasi tentor masih `comingSoon`.
+- **Model NC belum ada:** `Course`, `Section`, `Lesson`, `Entitlement`, dan role `member` bukan bagian schema/kontrak role sekarang. Rencana tersebut tidak menggantikan `Program`/`RoadmapStep`/`MaterialItem` sebelum implementasi.
+
+Rencana lanjutan tetap di task/plan, keputusan dan bukti hasil tetap di progress. Overview ini menjelaskan batas source saat dibaca, tidak memberikan approval deploy atau menyatakan seluruh portal sudah lolos QA.

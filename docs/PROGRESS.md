@@ -1,7 +1,9 @@
 # Progress Log — nurman-course
 
 > Log sesi kerja, keputusan, dan status fase. Satu-satunya log progres yang dijaga opencode.
-> Task checklist: [`../tasks/todo.md`](../tasks/todo.md) · Roadmap: [`ROADMAP-LMS.md`](./ROADMAP-LMS.md) · Aturan: [`../AGENTS.md`](../AGENTS.md)
+> Task checklist/status: [todo.md](../tasks/todo.md) · Rencana/acceptance criteria: [plan.md](../tasks/plan.md) · Roadmap: [ROADMAP-LMS.md](./ROADMAP-LMS.md)
+> Referensi: [overview](./CODEBASE_OVERVIEW.md) · [flow](./flow-system.md) · [ERD](./erd-lms.md) · [AGENTS.md](../AGENTS.md) · [SYSTEM_MAP.md](../SYSTEM_MAP.md) · [README.md](../README.md) · [design.md](../design.md)
+> **Peran dokumen:** Markdown root adalah patokan awal; konflik klaim implementasi harus diverifikasi, bukan diwariskan. Todo menyimpan task/status, plan menyimpan langkah/gate, PROGRESS menyimpan keputusan, hasil, verifikasi, dan residual. Entri lama adalah riwayat pada tanggalnya, bukan klaim runtime terkini.
 
 ## Cara pakai
 
@@ -33,6 +35,8 @@
 
 | Tanggal | Keputusan | Alasan |
 |---|---|---|
+| 2026-09-16 | NC-1.4: staging/development `akjzhktsdkbykjknkwwo`, audit agregat read-only; kontrak 401/403/500 dan profil verified-ID-only disetujui | User mengonfirmasi environment dan scope audit. Missing profil berubah dari 404 menjadi 403; role invalid/inactive ditolak, tanpa fallback email/metadata/wali atau auto-provision. Lima Auth tanpa profil perlu keputusan admin: merge/rollout ditahan; implementasi lokal/mock test boleh dilanjutkan melalui "oke gas pake todo". Tidak ada izin mutasi remote, sesi test, frontend, commit/push/deploy. |
+| 2026-09-16 | Backend-only, eksekusi per bagian; akun `active=false` ditolak `403 ACCOUNT_INACTIVE` | User menyetujui plan dan todo rinci. Akun nonaktif diarahkan daftar ulang/hubungi admin; identitas email/nomor sama membutuhkan persetujuan admin, tidak auto-reactivate. Mulai patch dependency backend; perubahan frontend/browser, operasi DB remote dan commit/push/deploy tidak diizinkan otomatis. |
 | 2026-09-15 | NC-1.2 baseline `0_init` diresmikan; legacy `fix-null-email` dipertahankan | Gate schema/backup public/restore/replay lolos; staging hanya mencatat applied, bukan menjalankan SQL baseline. Migrasi baru wajib memperhatikan ordering legacy alfabetis. Backup public-only ke PG18 bukan disaster recovery penuh untuk staging PG17. |
 | 2026-09-15 | NC-1.2: baseline Prisma digate pemeriksaan staging, backup, riwayat, schema dan replay | Kandidat dari schema lokal bukan bukti kesetaraan DB. Selama koneksi gagal, simpan kandidat di luar `migrations/`; jangan `resolve`, `deploy`, `db push` atau reset. `migrate dev` untuk development terpisah, `migrate deploy` untuk staging/production setelah baseline disahkan. |
 | 2026-09-06 | Redesign Mobile-First Portal Wali (Universal Frame Centered) | Tampilan web desktop untuk portal wali ditiadakan; antarmuka difokuskan 100% pada pengalaman mobile phone container (`max-w-md`) yang terpusat di tengah layar desktop dengan latar canvas hangat (`#F0ECE1`) mengadopsi Google Stitch Warm Academic Portal. |
@@ -44,6 +48,148 @@
 | 2026-08-20 | Implementasi NC Debugger Widget (Dev Mode) | Mempermudah penelusuran request API, cache hit/miss/invalidated, dan SQL Query timing layaknya Laravel Debugbar. |
 | 2026-08-20 | Implementasi In-Memory Cache di `apiFetch` | Mengurangi request berulang & loading screen berputar saat navigasi antar menu portal. |
 | YYYY-MM-DD | <keputusan> | <alasan> |
+
+<a id="keputusan-ncourse"></a>
+## Keputusan restrukturisasi nCourse (D1–D16)
+
+Hasil grilling 2026-09-15 pada branch `be-restruktur`; dipindahkan verbatim dari `tasks/todo.md` pada 2026-09-16. Tabel ini mencatat keputusan/target, **bukan checklist implementasi selesai**. Rujukan stabil untuk roadmap: [PROGRESS.md#keputusan-ncourse](./PROGRESS.md#keputusan-ncourse).
+
+| # | Keputusan | Alasan |
+|---|---|---|
+| D1 | **Opsi A (dual surface) resmi dipilih** | Materi publik di root `/materi/*` & `/kelas/*` mensyaratkan permukaan di luar `/app`. Mengakhiri status "belum diputuskan" di `ROADMAP-LMS.md`. |
+| D2 | **Role ≠ akses konten** | Role menentukan portal; `Entitlement` menentukan konten. Wali bisa beli course tanpa ganti role. |
+| D3 | **Akses konten menempel ke `User`, bukan `Murid`** | Membaca materi tak butuh konsep murid. `Murid` tetap murni untuk program bertentor. |
+| D4 | **`Course` adalah unit yang dijual** | Lesson tetap punya slug global & bisa ditautkan lintas course. |
+| D5 | **Role diambil dari DB, bukan JWT `user_metadata`** | Menghapus kelas bug "role basi" + fallback diam-diam `\|\| "wali"` di `requireAuth`. |
+| D6 | **Backend penentu tunggal akses** | API tak pernah mengirim `bodyText` yang tak berhak. Pola lama (kirim semua, sembunyikan di UI) adalah asal kebocoran `/api/programs`. |
+| D7 | **Pembayaran tetap manual** | **KEPUTUSAN TERBUKA** — payment gateway ditunda sampai volume transaksi diketahui. |
+| D8 | **Rename domain email `@nurmancourse.local` ditunda** | Menyentuh login semua akun tanpa email asli (`resolve-phone` → `dbUser.email` → `signInWithPassword`). Butuh task + script migrasi sendiri. |
+| D9 | **Penulis konten = admin + tentor terdaftar** | Bukan marketplace terbuka. Guard: admin semua course, tentor hanya course miliknya (`authorId`). |
+| D10 | **Skala kecil: <10 course, <100 artikel, puluhan pembaca (12 bulan)** | Analytics & engagement insight ditunda — di skala ini satu query sudah cukup. |
+| D11 | **Hierarki `Course → Section → Lesson`** | Evolusi/rename `Program → RoadmapStep → MaterialItem` yang **sudah ada**, bukan tabel paralel baru. |
+| D12 | **Markdown (`react-markdown`), bukan block editor** | Konsekuensi sadar: highlight & note inline ikut tertunda (anchor teks rapuh di markdown yang di-render ulang). |
+| D13 | **Tanpa Q&A / review teks** | Diskusi tetap lewat WhatsApp yang sudah hidup di seluruh portal. Nol beban moderasi. Selaras `ROADMAP-LMS.md` baris 70 (forum = out of scope). |
+| D14 | **Harga one-time saja, tanpa subscription** | Langganan + bayar manual = verifikasi bukti transfer tiap bulan per pelanggan (beban tumbuh linear). |
+| D15 | **Tanpa infra baru** (tanpa cron/mail server/storage/search engine) | Verifikasi email tetap bisa karena ditangani Supabase sendiri. |
+| D16 | **`Program` dan `Course` dua entitas terpisah**, terhubung `Course.programId` nullable | Siklus hidup beda: program dijual per blok 12 pertemuan (tagihan+tentor), course dijual sekali & dibaca selamanya. Menyatukannya = kolom nullable menumpuk (penyakit `MaterialItem.sessionId` yang baru dibuang). |
+
+**Anotasi pembacaan 2026-09-16 (teks tabel asli tetap):**
+- **D11 — superseded sebagian oleh D16:** pernyataan rename `Program` menjadi `Course` pada keputusan awal tidak berlaku; `Program` dipertahankan untuk layanan bertentor. Hierarki konten `Course → Section → Lesson` tetap target, dengan migrasi NC-2.1/NC-2.2. Tidak menyatakan tabel target sudah dibuat.
+- **D16 — koreksi status:** frasa historis "sessionId ... baru dibuang" **bukan pekerjaan selesai**. Berdasarkan handoff pemeriksaan source main, `MaterialItem.sessionId` masih ada di schema dan dipakai seed; audit/migrasi penghapusannya tetap **NC-1.8 pending**, bukan field yang boleh diasumsikan tidak digunakan. Tidak ada pemeriksaan DB live pada DOC-SYNC.
+- **D5 — status kode lokal diperbarui pada NC-1.4:** role DB tanpa metadata/fallback wali telah terimplementasi dan terverifikasi pada [checkpoint Bagian2](#backend-part2-20260916). Tabel keputusan bukan bukti deploy atau konsistensi frontend; merge/rollout masih tertahan untuk 5 Auth tanpa profil, routing frontend di luar scope.
+
+---
+
+<a id="backend-push-20260916"></a>
+### 2026-09-16 — Commit dan push checkpoint backend
+
+**Fase:** NC-GIT / DOC-SYNC / NC-SEC-BE / NC-1.4
+**Status sesi:** commit dependency `2d5444e` dan auth/tests `0765024` berhasil dipush ke `origin/be-restruktur`; sinkronisasi dokumentasi disertakan pada commit berikutnya.
+
+**Request user:** "push" → "Commit dan push" seluruh 14 file → "push aja".
+
+**Keputusan (klarifikasi):** Izin commit/push khusus branch be-restruktur, bukan merge/deploy. Tidak memakai browser/Playwright atau melakukan operasi DB.
+
+**Dikerjakan:** Pisahkan dependency dan auth/tests menjadi commit terarah, pertahankan tujuh dokumen DOC-SYNC serta checkpoint Bagian1/2; catat izin Git terbaru tanpa mengubah riwayat larangan sesi sebelumnya.
+
+**Verifikasi:** preflight status/diff/log/upstream; remote awal bd7b39c cocok dengan branch lokal; staged diff check lulus; push pertama bd7b39c→0765024 sukses. Test95/95, typecheck/compile dan review kode sebelumnya tetap berlaku karena kode tidak diubah lagi. Dokumentasi akhir dipush setelah commit.
+
+**Residual:** merge/rollout masih blocked untuk keputusan 5 Auth tanpa profil; frontend dan data remote tidak diubah. Lint backend belum tersedia; tidak ada klaim deployment.
+
+---
+
+<a id="backend-part2-20260916"></a>
+### 2026-09-16 — Backend bagian 2: audit akun dan otorisasi DB lokal
+
+**Fase:** NC-1.4
+**Status sesi:** checkpoint implementasi lokal selesai — audit read-only dan kontrak disepakati; 95/95 test, typecheck source/test, compile dan review security lulus. NC-1.4 secara keseluruhan masih sebagian: merge/rollout blocked untuk keputusan admin atas 5 Auth tanpa profil. Bagian3 belum dimulai.
+
+**Request user:** "tentukan environtment serta izin audit akun dll" → staging/development, izinkan audit read-only, setujui kontrak; hasil 5 akun tanpa profil → "Selidiki dahulu" → "oke gas pake todo".
+
+**Keputusan (klarifikasi):** project `akjzhktsdkbykjknkwwo` adalah staging/development menurut user; tidak mengganti konfigurasi atau membuat environment baru. Audit SELECT agregat diperbolehkan, tanpa email/nomor/ID akun/token/password hash pada hasil. Token invalid 401; missing profil/invalid role 403; inactive 403 ACCOUNT_INACTIVE; gangguan DB/Auth 500 generik; profil ID-only tanpa email fallback. Lima akun tanpa profil tidak boleh otomatis dihapus, dibuatkan profil, direlink atau diaktifkan; admin harus menentukan kegunaannya sebelum rollout. Tidak ada izin login/sesi test, perubahan data/schema remote, frontend, commit/push/deploy.
+
+**Dikerjakan:**
+- Audit schema terbatas menemukan tabel aplikasi `public.users` (bukan `public.User`), lalu snapshot agregat join `auth.users.id::text = public.users.id` dan pemeriksaan email lower/trim sebagai sinyal saja.
+- Auth total 10; aplikasi total 5; matched ID 5 (admin1/tentor1/wali3); Auth tanpa profil 5; aplikasi tanpa Auth 0; role invalid/inactive/mismatch metadata/mismatch email ID cocok/duplikasi email/email sama dengan ID berbeda seluruhnya 0.
+- Pendalaman 5 akun tanpa profil: metadata tentor3/wali2, email confirmed3, email identity5, last_sign_in_at terisi0, dibuat dalam30hari0, deleted/banned/anonymous0. Ini bukan bukti akun tidak dibutuhkan atau tidak pernah mengakses sistem melalui jalur lain; metadata bukan authority hak akses.
+- Dua gangguan socket pada query metadata berhasil setelah masing-masing satu retry SELECT; tidak ada mutasi atau audit log pengguna yang dibaca. Audit tidak diulang saat implementasi lokal.
+- Preflight branch be-restruktur, 9 file modified existing dipertahankan (docs dan dependency Bagian1). Subtask NC-1.4a/b selesai; test-engineer menambahkan regression pada tiga file tests dengan boundary tetap fail-closed.
+
+**Implementasi lokal:**
+- `backend/src/middleware/auth.ts`: satu Bearer token non-whitespace; getUser terverifikasi → lookup User via ID dengan select id/email/role/active; shared userRoleSchema dan validateAccountAccess dipakai ulang oleh profil. req.user hanya ID terverifikasi/email DB/role valid, tanpa metadata/fallback wali/cache privilege. requireRole allowlist, requireAdmin wrapper mempertahankan FORBIDDEN/message lama; role admin tidak bypass allowlist tentor.
+- `backend/src/index.ts`: profil tetap `{ user: dbUser }` termasuk murids; dua lookup ID bounded (auth/profil) dan pemeriksaan ulang profil hilang/inactive/invalid; fallback email dan log rekonsiliasi berisi PII dihapus. Catch auth/profil hanya log generik, bukan exception mentah. Endpoint/guard ownership lain tidak dirombak.
+- Kontrak error: header/token invalid401 string lama; SDK returned status400/401/403 →401, status lain/exception/DB gagal →500 generik; missing403 PROFILE_NOT_FOUND, inactive403 ACCOUNT_INACTIVE, invalidrole403 INVALID_ROLE. Missing/inactive/invalid ditolak tanpa write/provision/relink. Role/active adalah snapshot per request, bukan pembatalan atomik request yang sudah berjalan.
+- Tiga file tests: boundary lookup terpisah, negative mutation tests, token sama role/active berubah, identity out-of-order, profil/murids, allowlist dan ownership session/report; strict unexpected-call ledger dan network guard tetap. Test null tentorId pada Session merupakan defensive fixture, bukan klaim schema Session nullable.
+- Overview/flow/roadmap/ERD diselaraskan ke status kode lokal, bukan klaim deployed; D5 dan NC-1.4 tetap diberi batas rollout/frontend. Tidak menambah dependency atau mengubah manifest/lockfile lagi.
+
+**Verifikasi:**
+- RED awal test:api 62 gagal/13 lulus dari75; strict mocks menangkap dua jalur mutasi tak berhak. Setelah middleware49/49 pass; requireRole15 tests baru RED karena factory belum ada, lalu GREEN.
+- `npm run test --workspace=backend`: **4 node:test +91 Vitest =95/95 pass**, nol skip/fail. Client regression4 tidak diubah; timeout20s awal pada satu subprocess tidak berulang pada full run final, tanpa menaikkan timeout.
+- `npm run typecheck:test --workspace=backend` dan `node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json`: exit0.
+- Compile `node node_modules/typescript/bin/tsc --project backend/tsconfig.json --outDir C:\Users\Kiki\AppData\Local\Temp\opencode\nc-auth-be-build-20260916`: exit0; parent temp diverifikasi, artifact/server tidak dijalankan.
+- Review security independen: tidak ada blocker kode; satu nit test dynamic factory diganti direct typed import. Sesudah refactor test, `npm run test:api --workspace=backend`91/91 dan typecheck:test exit0; source/client tests tidak berubah.
+- `git diff --check` lulus; frontend/shared/Prisma diff kosong. Audit dependency tidak diulang (tidak ada dependency delta NC-1.4); hasil backend0 sebelumnya hanya bukti waktu/scope Bagian1. Tidak menjalankan browser/frontend test, DB integration/mutasi, login/sesi nyata, commit/push/deploy.
+
+**Residual:** merge/rollout blocked NC-1.4-ROLLOUT: admin memastikan kegunaan 5 akun tanpa profil dan keputusan dampak/rekonsiliasi, smoke nyata tiga role belum diizinkan. Frontend masih metadata role (di luar scope). Lint backend belum tersedia sesuai konfirmasi sebelumnya; task NC-1.7c. Belum commit/push/deploy.
+
+---
+
+<a id="backend-part1-20260916"></a>
+### 2026-09-16 — Backend bagian 1: dependency runtime dan rencana bertahap
+
+**Fase:** NC-BE-PLAN / NC-SEC-BE, subset backend NC-SEC-FOLLOWUP
+**Status sesi:** selesai — plan/checklist delapan bagian disimpan dan Bagian 1 dependency runtime selesai. Audit backend full/omit-dev 0 temuan; regression 28/28, typecheck source/test dan compile lulus. Bagian 2 belum dimulai; belum commit/push.
+
+**Request user:** "buat plan lengkap ... fokus backend" → "akun no aktif ... harus daftar ulang atau hubungin admin" → "oke kerjakan, pake todo yang rinci, kerjalan perbagian aja".
+
+**Keputusan (klarifikasi):** Eksekusi satu bagian per checkpoint, mulai dependency backend. Akun inactive ditolak 403 ACCOUNT_INACTIVE; email/nomor sama membutuhkan admin, tidak auto-reactivate. Kebijakan dicatat untuk NC-1.4, belum diimplementasikan pada bagian 1. Tidak mengubah frontend atau menjalankan browser; operasi DB remote, commit/push/deploy tetap terpisah.
+
+**Dikerjakan:** Simpan plan backend-only di `tasks/plan.md#backend-restructure`, checklist per bagian di `tasks/todo.md#backend-parts`, pertahankan ID/status historis. Bagian 1 terbatas manifest/lockfile dependency backend. Tujuh file docs existing hasil DOC-SYNC dipertahankan.
+
+**Verifikasi awal:** branch be-restruktur; manifest/lockfile awal tidak memiliki perubahan. Node24.18.0/npm12.0.1. Suite backend awal 4 node:test +24 Vitest pass. Audit backend full dan omit-dev masing-masing 4 moderate (Express/body-parser/qs/Morgan), bukan audit seluruh monorepo. Resolved awal Express4.22.2/body-parser1.20.6/qs6.15.3/Morgan1.11.0. Registry kandidat Express4.22.3 membutuhkan qs~6.16.0, body-parser1.20.8 kompatibel dengan range parent, Morgan1.12.0 patched; tidak ada install lifecycle script pada manifest kandidat Express/Morgan/body-parser yang diperiksa.
+
+**Hasil Bagian 1:**
+- `backend/package.json` pin Express4.22.3 dan Morgan1.12.0; lockfile mengubah tepat empat resolved packages: Express4.22.2→4.22.3, body-parser1.20.6→1.20.8, qs6.15.3→6.16.0, Morgan1.11.0→1.12.0. Path-to-regexp tetap0.1.13 (hanya range parent naik); qs deduped juga dipakai Superagent/Supertest, masih memenuhi range. Tidak ada perubahan source/tests/auth/schema/shared/frontend.
+- `npm update express morgan body-parser qs --workspace=backend --ignore-scripts --no-audit --no-fund`: changed4packages. Manifest kandidat/integrity diperiksa, tidak memakai override/global audit fix. Warning npm bahwa allowScripts pada workspace diabaikan dicatat; invocation ini tetap mematikan scripts secara eksplisit.
+- Advisory target: [qs isBuffer DoS](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g), [qs array-limit bypass](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx), [Morgan log forging](https://github.com/advisories/GHSA-jxfw-x594-9x9m). Aplikasi memakai query parser Express dan morgan dev; jalur exploit penuh qs parse→stringify maupun log consumer produksi tidak dibuktikan. Patch tidak bergantung klaim exploit telah terjadi.
+- Overview diperbarui untuk versi backend; task induk NC-SEC-FOLLOWUP tetap memiliki residual non-backend, bukan ditutup seluruhnya.
+
+**Verifikasi final:**
+- `npm run test --workspace=backend`: 4 node:test +24 Vitest pass, nol skip/fail, sebelum dan sesudah patch.
+- `npm run typecheck:test --workspace=backend` dan `node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json`: exit0.
+- Compile `tsc --project backend/tsconfig.json --outDir <temp>/nc-sec-be-build-20260916`: exit0; tidak menjalankan artifact/server DB.
+- `npm audit --workspace=backend --omit=dev --json` dan `npm audit --workspace=backend --json`: masing-masing0 findings (awal4moderate). Bukan audit full monorepo; baseline-browser-mapping/Babel/tooling frontend tetap follow-up terpisah.
+- Review security independen approve tanpa blocker; `git diff --check` lulus. Diff frontend/shared/backend source/tests/schema kosong. Tidak menjalankan browser/test frontend atau operasi DB.
+
+**Residual:** User mengonfirmasi lint backend **belum ada**; tidak dijalankan atau menambah config dalam batch dependency, dijadwalkan NC-1.7c. Belum fresh-install/packaging smoke/deploy; compile dan mock suite bukan bukti DB live. Workspace allowScripts bukan allowlist efektif pada npm12 dan perlu evaluasi konfigurasi saat task artifact. NC-1.4 masih memakai metadata/fallback wali; aturan inactive baru keputusan, belum kode. Audit mapping serta detail kontrak profil tetap gate Bagian 2. Tidak commit/push; perubahan DOC-SYNC existing tetap belum committed.
+
+---
+
+<a id="doc-sync-20260916"></a>
+### 2026-09-16 — DOC-SYNC: pisahkan referensi, checklist, rencana, dan riwayat
+
+**Fase:** DOC-SYNC — dokumentasi saja, branch konteks `be-restruktur`
+**Status sesi:** selesai — sinkronisasi tujuh dokumen, validasi rujukan utama, dan review independen selesai. Perubahan terbatas pada dokumentasi; belum commit/push.
+
+**Request user:** "patokannya file2 md root ... docs diupdate" → "oke gas" → "lanjut" → "ya kan fokusnya ke dokumen dulu aja". Scope hanya dokumentasi, tanpa perubahan aplikasi, test/build/browser/DB atau Git writes/push.
+
+**Keputusan (klarifikasi):** `AGENTS.md` mengatur cara kerja; `SYSTEM_MAP.md` memetakan kode; `README.md` pintu masuk; `design.md` referensi desain. Overview/flow/ERD mendeskripsikan implementasi, roadmap arah/target, todo checklist/status, plan langkah/acceptance criteria, progress keputusan/hasil/verifikasi/residual. Konflik root dicatat untuk tindak lanjut, bukan dibenarkan dengan perubahan aplikasi. Entri sesi lama tidak ditulis ulang.
+
+**Dikerjakan:**
+- `docs/CODEBASE_OVERVIEW.md`, `docs/flow-system.md`, `docs/erd-lms.md`, `docs/ROADMAP-LMS.md`: selaraskan arsitektur, alur, 13 model Prisma, serta target NC berdasarkan pemeriksaan source pada tahap awal. Pisahkan implementasi sekarang dari rencana; tandai batas bukti runtime/deployment dan konflik root.
+- `tasks/todo.md`: ringkas uraian panjang menjadi task/status dan rujukan hasil; pertahankan ID dan tanggal historis. DOC-SYNC ditutup; WALI-MOB tetap belum selesai dan di-pause. NC-1.7 tetap audit tracking generated, NC-1.8 tetap audit relasi schema/seed.
+- `tasks/plan.md`: header dipisahkan dari hasil/izin sesi lama; A/B, harness, ADM dan monorepo tetap sebagai arsip desain tanpa checkbox eksekusi. Scope/acceptance pending tetap ada; aturan akses/empat tier, fitur ditunda/pemicu dan exit criteria fase dipindah dari todo ke plan.
+- `docs/PROGRESS.md`: pertahankan pemindahan D1–D16 dari edit parsial, dengan anotasi D5/D11/D16. Tambahkan target [arsip historis tambahan](#arsip-todo-20260916) yang sebelumnya belum ada dan [baseline lint lama](#arsip-plan-baseline-20260916); hasil yang sudah ada cukup ditautkan, bukan disalin ulang.
+- Tambahkan **DOC-ROOT pending** (terhubung P1/P2) untuk konflik root: AGENTS menyebut backend sekaligus "tidak ada backend/DB/auth/LMS"; README masih template path/font/deploy; SYSTEM_MAP dan design memuat peta/desain lama dibanding log terbaru. Tidak mengedit root dalam sesi ini.
+- Pertahankan **DOC-PAYCHECK pending**: UI mengirim `paymentProof`/`paymentProofName`, sedangkan shared/backend mengharuskan `proofBase64` dan mengenali `proofName`. Detail tersedia di flow/overview. Ini **temuan source-only**, bukan reproduksi live atau bugfix.
+
+**Verifikasi:**
+- Pembacaan tujuh dokumen, pemeriksaan heading/anchor utama dan rujukan silang, serta pencarian checkbox: tidak ada checklist eksekusi di plan atau dokumen referensi. Anchor keputusan, arsip todo/baseline plan, scope DOC-SYNC, desain akses/fitur ditunda/exit criteria tersedia.
+- Review independen dokumen/diff: **approve**, tanpa blocker pada pemisahan peran, D1–D16 beserta anotasinya, atau informasi penting yang terlihat pada diff. Bukan audit source-fact ulang maupun validasi otomatis seluruh tautan repo.
+- `git diff --check` lulus; `git status --short` dan diff membatasi perubahan ke tujuh Markdown dalam `docs/` dan `tasks/`. Root dan aplikasi tidak diubah.
+- Tidak menjalankan lint/typecheck/test/build/browser/DB/install atau Git writes/push pada penutupan docs-only; tidak mengklaim bukti runtime baru.
+
+**Residual:** DOC-ROOT/DOC-PAYCHECK, NC-1.4/1.7/1.8, QA yang ditunda, dan WALI-MOB tetap pending/di-pause. Konflik root belum direkonsiliasi. Tautan eksternal, semua tautan arsip lama, render Mermaid, serta kondisi aplikasi/DB live tidak diuji pada penutupan ini; status historis fase/demo bukan bukti implementasi terkini.
 
 ---
 
@@ -2560,3 +2706,55 @@
 - Konten = Markdown di DB
 - Progres per hari = table terpisah
 - Funnel tetap terpisah (Opsi A)
+
+---
+
+<a id="arsip-todo-20260916"></a>
+## Arsip historis tambahan dari todo dan plan — dipindahkan 2026-09-16
+
+Fragmen berikut berasal dari dokumen sebelum perapian DOC-SYNC; **bukan verifikasi baru**, bukan izin operasi, dan bukan klaim kondisi runtime saat ini. Hanya detail yang belum tercakup pada entri sesi dipertahankan di sini; seluruh file lama tidak diduplikasi. Tautan arsip ini sudah ada dalam edit parsial sebelumnya, tetapi targetnya belum ada ketika delegasi dilanjutkan.
+
+### Riwayat unik dari todo
+
+- **UIUX 2026-08-24 — kontras katalog wali:** `/app/program` dan `/app/program/[slug]` mengganti card `bg-app-surface` menjadi `bg-app-white`; warna teks muted `#6b7b6c` menjadi `#556656`. Todo lama mencatat build compile OK. Tabel Keputusan sudah memuat alasan kontras putih, tetapi belum angka perubahan muted ini.
+- **NC-1.1, 2026-09-15:** selain penyimpanan pekerjaan wali/rencana NC melalui `97ee4bb` dan `9d3879c` yang sudah disebut pada sesi kandidat baseline, todo mencatat push ke `dev`, pembuatan/push branch `be-restruktur`, dan tracking `origin/be-restruktur` terverifikasi saat itu. Tidak memeriksa Git kembali pada DOC-SYNC.
+- **NC-1.2g B3/B4, 2026-09-16:** todo mencatat probe **21 kasus terisolasi oleh implementer**, bukan browser penuh. Detail clock/cadence dan batas pengujian tetap pada sesi penutupan backend-only.
+- **NC-1.7 — klaim lama yang ditarik dari checklist:** teks awal menyatakan lima `query_engine-windows.dll.node` sekitar 18 MB ikut ter-commit, empat berupa `.tmp*`. Itu belum dibuktikan sebagai kondisi tracking terkini; sesi 2026-08-05 justru sudah mencatat ignore `backend/src/generated/`. NC-1.7 tetap pending untuk membedakan ignored, untracked, dan tracked; tidak menghapus generated artifact dalam DOC-SYNC.
+- **NC-1.8 — koreksi asumsi lama:** frasa "FK nullable yang tak pernah diisi endpoint mana pun — fitur mati" tidak membuktikan field aman dibuang. Handoff source menyatakan `MaterialItem.sessionId` masih ada dan digunakan seed; audit data/consumer/migration tetap pending (lihat anotasi D16).
+- **Estimasi scope NC lama, bukan hitungan baru:** NC-2.4 menyebut renderer custom 53 baris hanya mendukung `##`, `-`, `**bold**`, belum link; NC-4.2 menyebut empat lokasi hardcode role; NC-6.1 memperkirakan sekitar 150 kemunculan brand dalam 52 file. Rincian ini dipindahkan agar checklist tidak mengunci ukuran/source snapshot lama; audit ulang saat implementasi.
+- **Arsip ADM — konteks awal rencana:** semula portal admin hanya dashboard dengan endpoint `GET /api/admin/murids` dan `GET /api/admin/tentors`; live memakai `NEXT_PUBLIC_DEMO_MODE="false"` dengan fallback selama transisi. Ini konteks historis plan, bukan konfigurasi saat ini setelah DMO-1/DMO-2. Checklist plan lama berbeda usia dengan todo (misalnya roadmap/session masih unchecked); checkbox plan dibuang sebagai status duplikat, bukan menurunkan status todo.
+
+<a id="arsip-plan-baseline-20260916"></a>
+### Baseline historis dari rencana security, lint, dan role DB
+
+Konteks sebelum patch A/B, bukan versi/finding terkini. Baseline rencana menyebut Node `24.18.0`, npm `12.0.1`, Windows; Next/config `16.2.4`, React/React DOM `19.2.4`, Express 4, TypeScript CommonJS, Prisma `5.22.0`. Kandidat Next/config `16.3.5` dicatat tersedia dan kompatibel dengan peer React 19 / ESLint 9 pada pemeriksaan saat itu. Header lama juga menyebut baseline docs `104f426` dan implementasi harness `849d7bc`; tidak ada pemeriksaan commit baru pada DOC-SYNC.
+
+Rincian lint yang semula hanya ada di plan: **75 error + 28 warning, 26 file**.
+
+| Rule | Severity | Jumlah historis |
+|---|---|---:|
+| `@typescript-eslint/no-explicit-any` | error | 58 |
+| `react-hooks/set-state-in-effect` | error | 7 |
+| `react-hooks/purity` | error | 4 |
+| `react/no-unescaped-entities` | error | 6 |
+| `@typescript-eslint/no-unused-vars` | warning | 16 |
+| `@next/next/no-img-element` | warning | 11 |
+| `react-hooks/exhaustive-deps` | warning | 1 |
+
+Hasil harness (4 node:test + 24 Vitest), build 35 halaman, audit 12, penggantian Vitest rentan, dan delta dependency sudah ada pada [sesi NC-1.6](#2026-09-16--nc-16-test-harness-backend-terisolasi); tidak disalin lagi. Hasil A/B, audit residual 9, instalasi manifest-only, penghentian proses, dan batas QA ada pada [penutupan backend-only](#2026-09-16--patch-dependency-dan-lint-selesai-penutupan-backend-only). Izin Git berikutnya dan checksum commit ada pada [sesi commit/push](#2026-09-16--commit-dan-push-patch-dependency-serta-lint), bukan izin DOC-SYNC.
+
+### Indeks riwayat yang sudah tercakup — tidak disalin ulang
+
+| Bagian todo/plan yang diringkas | Lokasi riwayat di PROGRESS |
+|---|---|
+| P1, pembatalan foto bucket publik, rule satu wali–satu murid | [2026-08-23 — Sinkronisasi SYSTEM_MAP](#2026-08-23--sinkronisasi-system_mapmd-dengan-kode-p1-sebagian) |
+| DX-1 lanjutan, TENTOR-24, salin log dan hapus badge umur | [2026-08-21 — Bugfix laporan harian](#2026-08-21--bugfix-laporan-harian-menimpa-laporan-lama--tabel-laporan--modal-detail) |
+| WALI-22 tuning, dropdown dan modal materi | [2026-08-20 — Katalog program wali](#2026-08-20--katalog-program-wali-filter-kategori--kartu-informatif-ringkas-detail-program-split-terdaftar-vs-belum-terdaftar) |
+| Login redesign lalu login-only | [2026-08-11 — Redesign login](#2026-08-11--redesign-halaman-login-login-visual--interaktif-tanpa-ubah-logic) |
+| TENTOR-1–7 termasuk reset password dan detail restart | [2026-08-05 — Admin Tentor Lengkap](#2026-08-05--admin-tentor-lengkap-alamat-foto-email-opsional-login-wa) |
+| TENTOR-8/9, PID lama dan print | [2026-08-05 — Jadwal manual dan cetak PDF](#2026-08-05--tentor-jadwal-manual--cetak-pdf-rapi-harian--perkembangan--profil-sejajar) |
+| TENTOR-14 follow-up Program kosong | [2026-08-06 — Fix detail prepayment](#2026-08-06--fix-kolom-program-kosong-di-detail-prepayment-admin) |
+| NC-1.2a–f, checksum, backup/restore/replay, advisors | [2026-09-15 — Baseline diresmikan](#2026-09-15--nc-12-baseline-diresmikan-setelah-restore-dan-replay) |
+| NC-1.3, RED/GREEN, compile dan smoke | [2026-09-15 — Ekstraksi client](#2026-09-15--nc-13-ekstraksi-client-backend) |
+
+Desain/pending scope tidak diarsipkan sebagai hasil: [aturan akses/tier NC](../tasks/plan.md#nc-access-design) dan [fitur ditunda/pemicu](../tasks/plan.md#nc-deferred-design) berada di plan. D1–D16 tetap pada [keputusan nCourse](#keputusan-ncourse).

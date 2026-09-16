@@ -1,18 +1,143 @@
-# Rencana Perbaikan: Dependency Security, Lint Frontend, dan Role dari DB
+# Rencana Kerja — nurman-course
 
-## 1. Status dan batas persetujuan
+> Dokumen ini menyimpan scope, desain, langkah, risiko, approval gates, dan acceptance criteria; **bukan status eksekusi atau log hasil**. Status/tanggal task hanya di [todo.md](./todo.md), keputusan dan bukti di [PROGRESS.md](../docs/PROGRESS.md).
+> Patokan awal: [AGENTS.md](../AGENTS.md), [SYSTEM_MAP.md](../SYSTEM_MAP.md), [README.md](../README.md), [design.md](../design.md). Klaim root yang bertentangan perlu rekonsiliasi DOC-ROOT, bukan disalin sebagai fakta runtime.
 
-- **Tanggal:** 2026-09-16.
-- **Status:** Tahap A/B selesai dan dipush pada 2026-09-16 setelah user "push aja dulu": `164337f` (dependency), `9655324` (lint/tests). Dokumentasi penutupan di commit terpisah. Tahap C belum dimulai; keputusan akses akun tetap terbuka.
-- **Izin Git terbaru:** user mengizinkan commit/push hasil A/B dan docs ke `be-restruktur`; menggantikan batas larangan Git sesi sebelumnya di bawah. Tidak ada izin deploy, Playwright lanjutan, mutasi DB, atau implementasi NC-1.4.
-- **Request user:** awalnya docs-only, dilanjutkan "oke letsgo kerjakan pake todo yg rinci" dan "lanjut". Instruksi terakhir: "kenapa malah sampe frontend sih, ga usah pake playwright, cukup testing backend aja, kelarin".
-- **Branch konteks:** `be-restruktur`; baseline terakhir `104f426`, implementasi harness NC-1.6 pada `849d7bc`. Dokumen rencana sebelumnya belum committed dan tetap dipertahankan.
-- **Penutupan sesuai instruksi terbaru:** tidak melanjutkan Playwright, fixture browser, atau perubahan frontend tambahan. Perbaikan yang sudah dibuat tidak di-revert tanpa permintaan. Verifikasi final hanya backend: 4 node:test + 24 Vitest, typecheck BE/test, compile ke temp semuanya lulus. Proses test browser/server milik sesi dihentikan.
-- **Bukti sebelum pembatasan terbaru:** Next/config16.3.5, clean install terisolasi, audit9 (0critical), lint frontend0/0, frontend build35/35 dan typecheck lolos; 12 regression test Node frontend lolos. Browser publik dan beberapa komponen fixture sempat diperiksa, bukan QA lengkap portal tiga role.
-- **Override gate dokumen ini:** kewajiban browser lanjutan di A3/B/checkpoint/matriks di bawah tidak dijalankan untuk penutupan sesi ini, sesuai user. Sisa QA visual, lifecycle seluruh portal dan login tiga role dicatat sebagai residual, bukan dianggap pass oleh test backend.
-- **Tetap tidak dijalankan:** query/mutasi staging, migration, perubahan environment/MCP, login akun nyata, commit/push, atau deploy. Keputusan terbuka tahap C tetap memerlukan persetujuan eksplisit.
-- Perintah/checklist di bawah adalah target pekerjaan; bukti hasil aktual dicatat di todo/progress, bukan diasumsikan sudah dilakukan.
-- Checklist pelaksanaan tetap di [todo.md](./todo.md); bukti sesi di [PROGRESS.md](../docs/PROGRESS.md). Rencana NC-1.6 dan portal admin lama disimpan sebagai arsip di bagian bawah dan tidak menjadi izin kerja baru.
+<a id="backend-restructure"></a>
+## Rencana utama — restrukturisasi backend-only
+
+Acuan keputusan: [D1–D16](../docs/PROGRESS.md#keputusan-ncourse) dan [akun nonaktif / izin bertahap](../docs/PROGRESS.md#backend-part1-20260916). Rencana ini memperinci bagian backend dari task NC, bukan mengganti ID historis. Status hanya di todo; hasil hanya di progress. Arsip frontend dan DOC-SYNC di bawah tidak memberi scope eksekusi sekarang.
+
+### Batas dan cara eksekusi
+
+- Kerjakan satu bagian sampai checkpoint, laporkan, baru pilih bagian selanjutnya. Bagian pertama adalah **NC-SEC-BE**, subset runtime dari NC-SEC-FOLLOWUP; auth tidak diubah bersamaan.
+- Boleh mengubah backend source/tests/config/Prisma serta shared contracts bila diperlukan oleh bagian aktif. Lockfile root hanya mengikuti dependency backend yang ditinjau.
+- Tidak mengubah frontend, middleware redirect, funnel/pricing, UI, renderer Markdown React, atau menjalankan frontend build/lint/test/Playwright.
+- Tetap Express 4, TypeScript CommonJS, Prisma/PostgreSQL Supabase; `Program` layanan les dipertahankan. Tidak menambah microservices, generic repository, atau memindahkan seluruh monolit sekaligus.
+- Tidak mengulang baseline/client/harness yang sudah tercatat selesai. Tidak commit/push/deploy, menjalankan seed destruktif, atau operasi DB remote tanpa izin tersendiri.
+- Setiap perubahan perilaku: test RED, implementasi minimal, GREEN, review. Dependency-only: baseline audit/regression, patch terarah, audit/regression sesudah patch.
+- Boundary utama: HTTP/token → identitas DB → ownership resource; author → konten publik/privat; pembayaran → grant akses. Role tidak menggantikan ownership dan CORS bukan otorisasi.
+
+### Bagian 1 — dependency runtime backend (NC-SEC-BE)
+
+**Files:** `backend/package.json`, `package-lock.json`; regression test backend hanya jika diperlukan. Tidak mengubah route/auth/schema.
+
+1. Rekam branch/diff awal; pisahkan perubahan docs existing. Audit workspace backend runtime dan full; identifikasi direct/transitive, advisory, reachability, Node requirement, integrity dan scripts kandidat.
+2. Pilih patch Express 4/Morgan serta body-parser/qs yang kompatibel; tanpa override transitive atau audit fix global. Jangan mewariskan nomor versi kandidat tanpa verifikasi registry.
+3. Pin dependency langsung yang disentuh; regenerasi lockfile melalui npm scoped dengan install scripts dimatikan. Review seluruh delta, termasuk perubahan transitive/hoisting yang tidak diminta.
+4. Jalankan suite client/auth/API, typecheck backend/test dan compile. Audit ulang jalur runtime; probe dependency bila perlu untuk mengunci advisory target.
+5. Review security/scope, sync docs, hentikan bagian ini sebelum NC-1.4.
+
+**Acceptance criteria:** advisory target tidak lagi berlaku pada versi resolved; seluruh delta terkait backend dan dijelaskan; tidak ada perubahan frontend/schema/otorisasi; regression/compile lolos. Audit tanpa temuan hanya berarti scope/waktu pemeriksaan tersebut, bukan aplikasi aman atau siap deploy.
+**Rollback:** pertahankan patch aman; jika kandidat tidak kompatibel, hentikan dan pilih forward fix/mitigasi yang disetujui, bukan downgrade diam-diam ke versi rentan.
+
+### Bagian 2 — identitas, role DB, akun nonaktif (NC-1.4)
+
+**Files:** `backend/src/middleware/auth.ts`, profil `/api/users/me` di `index.ts`, `backend/tests/auth.test.ts`, `api.test.ts`, `setup.ts`; pecah batch test/middleware/profil, bukan satu perubahan besar.
+
+**Gate disepakati 2026-09-16:** user mengonfirmasi project `akjzhktsdkbykjknkwwo` sebagai staging/development dan mengizinkan audit akun agregat read-only. Token invalid 401; missing DB/invalid role 403; inactive 403 ACCOUNT_INACTIVE; gangguan DB/Auth 500 generik; profil verified-ID-only tanpa fallback email. Bentuk profil sukses dan error guard admin dipertahankan. Audit menemukan 5 akun Auth tanpa profil; user memilih selidiki dahulu. Implementasi lokal/test mock diizinkan melalui "oke gas pake todo", tetapi merge/rollout tetap tertahan sampai admin menentukan dampak/rekonsiliasi. Tidak ada izin mutasi data/schema, sesi test, frontend, commit/push/deploy. Gate ini memperbarui butir usulan C0/C3 historis di bawah; hasil audit ada di [progress](../docs/PROGRESS.md#backend-part2-20260916).
+
+1. Konfirmasi environment/izin audit mapping read-only; catat count missing ID, role invalid, metadata mismatch dan inactive tanpa menyalin PII. Jangan auto-link email atau memperbaiki akun dalam audit.
+2. Kontrak disepakati: token invalid 401; missing DB 403 PROFILE_NOT_FOUND, invalid role 403 INVALID_ROLE, inactive 403 ACCOUNT_INACTIVE, infra 500 generik. Pesan inactive mengarahkan daftar ulang atau hubungi admin; identitas email/nomor yang sama tidak boleh auto-reactivate tanpa admin.
+3. RED untuk mismatch metadata/DB, perubahan role antar-request, missing/invalid/inactive DB user, exception, guard tiga role dan nol mutasi saat ditolak.
+4. Verifikasi token memakai getUser, lookup User berdasarkan verified ID, role dari DB tanpa fallback metadata/wali/cache role lintas request. Tambahkan requireRole dan wrapper requireAdmin kompatibel.
+5. Profil memakai verified ID yang sama tanpa fallback email sesuai kontrak disepakati; response sukses termasuk murids dipertahankan dan pembacaan profil divalidasi ulang. Tidak mengubah metadata, password atau mengaktifkan akun lewat request autentikasi.
+6. GREEN/review; endpoint yang bergantung assignment/ownership tetap memiliki guard objek. `tentorId = null` tidak memberi akses bebas.
+
+**Acceptance criteria:** user metadata admin/DB wali tidak memperoleh privilege admin; akun nonaktif ditolak dengan kode yang disepakati; semua role existing tetap sesuai matriks; tidak ada grant/relink otomatis. Smoke tiga role nyata hanya bila tersedia sesi test berizin.
+**Batas rollout:** frontend redirect/cache role tidak diselaraskan dalam scope ini; backend tests bukan bukti login UI end-to-end. Audit/kontrak selesai, tetapi keputusan admin atas 5 Auth tanpa profil memblokir merge/rollout, bukan alasan fail-open atau auto-provision.
+
+### Bagian 3 — hardening HTTP (NC-1.5)
+
+**Files kandidat:** middleware keamanan/config backend, `index.ts`, manifest/lock, test HTTP. Tambahkan file hanya jika tanggung jawabnya jelas.
+
+- Tetapkan origin CORS berizin, rate-limit window/kuota dan topologi proxy aktual. Jangan `trust proxy=true` tanpa bukti proxy menimpa forwarding headers; limiter memory tidak dijanjikan global untuk multi-instance.
+- Terapkan Helmet, allowlist CORS, limiter umum dan endpoint sensitif, JSON limit rencana 5mb. Hitung overhead base64; label ukuran file UI bukan jaminan payload diterima. API limiter tidak melindungi login langsung ke Supabase.
+- Uji preflight/origin ditolak/absent Origin, spoofed forwarding headers, malformed JSON 400, body terlalu besar 413, rate limit 429, response generik dan log tidak berisi credential/bukti.
+
+**Acceptance criteria:** controls bekerja pada HTTP tests tanpa memperluas origin/privilege; default produksi tidak fail-open bila konfigurasi wajib hilang. Angka rate limit/origin dan perubahan header merupakan gate konfigurasi, bukan ditebak.
+
+### Bagian 4 — artifact dan relasi materi-sesi (NC-1.7 / NC-1.8)
+
+**4A NC-1.7:** audit tracked/ignored generated client dan temp; verifikasi generate → compile → start, resolusi shared source/CommonJS dan generated Prisma; smoke artifact terisolasi. Jangan hapus file user atau ubah ignore berdasarkan asumsi jumlah file. Definisikan lint backend scoped sebagai sub-batch konfigurasi; tidak menggunakan lint frontend sebagai pengganti.
+**4B NC-1.8:** petakan caller/seed dan, dengan izin, data roadmap-only/session-only/keduanya/tanpa induk. Tentukan mapping konten. `sessionId` masih dipakai; penghapusan kolom hanya setelah backfill, konsumen dan rollback aman.
+**Acceptance criteria:** artifact runtime terbukti berjalan sesuai batas smoke; seluruh kategori materi punya rencana tanpa kehilangan konten. Drop kolom bukan output wajib audit.
+
+### Bagian 5 — modularisasi dan konten (backend NC-2)
+
+**5A NC-2.3:** characterization URL/method/status/response/guard, pisahkan route dari startup bertahap. Domain konten baru memakai router sendiri, service untuk aturan bisnis/transaksi yang diperlukan. Singleton dan export existing tetap; domain operasional lain tidak di-refactor massal.
+**5B NC-2.1/2.2:** Course/Section/Lesson additive, author/slug/order/draft/published/visibility dan Course.programId nullable. Pertahankan Program dan data operasional. Migrasikan RoadmapStep menjadi Section, bodyText menjadi Lesson pembuka, MaterialItem menjadi Lesson berikutnya.
+**Gate migrasi:** author legacy, slug collision dan session-only material harus jelas; verifikasi counts/isi/relasi/idempotensi pada DB terisolasi. Tetapkan satu sumber write selama transisi; tidak membiarkan katalog lama/baru diedit independen. Contract/drop lama ditahan jika konsumen frontend belum siap; tidak mengerjakan UI untuk melewati gate.
+**5C NC-2.5/2.6:** CRUD/reorder/publish authoring; admin semua, tentor hanya course milik sendiri. Validasi hubungan parent-child dan field author/status; slug unik dan validasi link internal tanpa mengambil URL arbitrer. List bounded/pagination dan DTO eksplisit untuk endpoint baru; envelope lama dipertahankan.
+**Acceptance criteria:** tidak kehilangan bodyText, ownership tidak dapat dilewati dengan mengganti ID induk, reorder/transaksi/slug collision teruji, draft tidak terekspos. Renderer dan editor UI NC-2.4/2.7 ditunda.
+
+### Bagian 6 — member, entitlement, reading progress (backend NC-4)
+
+**6A identitas member:** perluas shared role dan phone nullable khusus akun mandiri, pertahankan kewajiban phone pada admin create existing. Provisioning idempotent memakai verified ID/email; jalur identitas-only khusus untuk profil belum ada, endpoint lain tetap fail-closed. Tolak relink/overwrite legacy berdasarkan email dan reaktivasi otomatis inactive. Tidak membuat UI signup/redirect.
+**6B akses:** entitlement melekat User/Course, sumber free/purchase/enrollment, revoke/expiry diverifikasi per request. Tentukan uniqueness/multiple sources agar pencabutan satu sumber tidak salah menghapus atau menghidupkan sumber lain. Free grant berupa operasi terautentikasi idempotent, bukan mutasi GET.
+**Gate enrollment:** arti akhir blok, expiry/revocation/cancellation wajib diputuskan; schema sekarang tidak punya tanggal akhir yang bisa diasumsikan. Assignment null tidak membuka akses.
+**6C progress:** User×Lesson unik/idempotent, user hanya membaca/mengubah milik sendiri setelah akses lesson lolos; jangan mengubah Progress murid/RoadmapStep atau laporan les.
+**Acceptance criteria:** uji empat tier, revoked/expired, inactive, multi-source dan object authorization. DB integration terisolasi untuk constraint/transaksi; mock bukan penggantinya.
+
+### Bagian 7 — API publik terlindungi (backend NC-3)
+
+- Katalog/detail/lesson slug mengirim metadata/silabus melalui DTO allowlist; body privat hanya sesudah guard; draft/author preview tidak masuk hasil publik.
+- Audit nested relations, legacy `/api/programs`, search/filter/related/prev-next sebagai jalur bypass. Metadata publik boleh disiapkan lebih awal, body berbayar tidak diluncurkan sebelum Bagian 6 siap.
+- Search sederhana PostgreSQL; tidak menambah search engine. Private responses tidak boleh shared/public cache.
+- Periksa grants/RLS Supabase Data API pada tabel baru agar guard Express tidak dapat dilewati lewat REST langsung; privileged key hanya server. Gunakan history Prisma existing, jangan membuat migration history kedua diam-diam.
+- Perubahan response legacy membutuhkan gate kompatibilitas; jika frontend dibutuhkan untuk cutover aman, tahan rollout, bukan ubah frontend.
+
+**Acceptance criteria:** negative tests membuktikan konten privat/draft tidak terkirim lewat endpoint langsung, nested/search/legacy atau Data API. Live grants/RLS hanya diverifikasi dengan izin, bukan diasumsikan dari mock.
+
+### Bagian 8 — rating dan pembelian manual (backend NC-4.5 / NC-5)
+
+**8A rating:** satu User×Course, score 1–5, entitlement aktif; peserta dihitung user unik berakses aktif (bukan jumlah grant). Kontrak menyembunyikan count <5; tanpa review teks.
+**8B purchase:** rancang record course purchase terpisah dari Invoice les yang wajib Enrollment. Server menentukan buyer/course/harga; submit bukti → verifikasi admin → grant purchase. Tentukan state machine, minimum audit trail tanpa credential, pembatalan/refund/revoke dan multiple sources sebelum implementasi.
+**Acceptance criteria:** approve+grant atomik/idempotent, concurrent approve dan retry aman, replay setelah revoke tidak mengaktifkan akses lama, buyer/price tidak bisa dipalsukan, bukti privat. Constraint/concurrency diuji DB terisolasi. Tidak gateway/subscription/bucket publik; mismatch pembayaran les DOC-PAYCHECK tetap task terpisah.
+
+### Gate verifikasi per bagian
+
+Perintah existing dari root saat perubahan relevan:
+
+```powershell
+npm run test --workspace=backend
+npm run typecheck:test --workspace=backend
+node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json
+npm run build --workspace=backend
+```
+
+Compile boleh memakai outDir temp agar artifact tidak masuk repo. Backend belum mempunyai script lint pada baseline: tentukan command pada sub-batch 4A atau minta command user; jangan menjalankan lint frontend/global diam-diam. Dependency audit dapat membutuhkan registry; suite runtime tetap mock/loopback-only. DB integration/migration replay/remote smoke memerlukan environment dan izin spesifik.
+
+Setiap checkpoint: perubahan sempit, test/compile sesuai scope, review, todo/status dan progress/hasil sinkron. Jika check gagal/tidak tersedia, catat residual; jangan mengklaim backend-only membuktikan frontend/DB live. Commit/push/deploy selalu izin terpisah. Security rollback tidak mengaktifkan metadata privilege atau versi rentan; migrasi memakai expand/backfill/verify dahulu, contract/delete belakangan.
+
+### Keputusan terbuka sebelum bagian terkait
+
+- Bagian 2: keputusan admin atas 5 Auth tanpa profil dan izin smoke nyata masih terbuka; environment/izin audit agregat/kontrak ID-only dan 401/403/500 sudah disepakati. Daftar ulang identitas sama membutuhkan admin, bukan reaktivasi otomatis; flow signup belum ada dan tidak ditambah pada NC-1.4.
+- Bagian 3: origin, kuota limiter, proxy topology, konfigurasi produksi.
+- Bagian 5: author legacy, mapping session-only, slug collision, single-writer/cutover dan rollback.
+- Bagian 6: provisioning tanpa privilege escalation, aturan akhir blok, expiry/revoke/multiple source.
+- Bagian 8: model/state pembayaran course, nominal server-side, pembatalan/refund dan audit trail.
+
+---
+
+<a id="doc-sync-scope"></a>
+## Scope dokumentasi — DOC-SYNC
+
+- **Batas perubahan:** lima dokumen `docs/` (overview, flow, ERD, roadmap, progress) serta `tasks/todo.md` dan `tasks/plan.md`. Markdown root tidak diubah.
+- **Langkah:** pisahkan task/status dari hasil; pindahkan hanya riwayat unik ke progress; pertahankan desain dan acceptance criteria yang belum dikerjakan; periksa tautan internal dan diff; lakukan review independen.
+- **Acceptance criteria:** ID/status/tanggal todo terjaga; WALI-MOB tidak dianggap selesai; satu tabel D1–D16 di [keputusan nCourse](../docs/PROGRESS.md#keputusan-ncourse); tidak ada checkbox eksekusi di plan; hasil lama memiliki rujukan progress; validasi dan review dicatat pada [sesi DOC-SYNC](../docs/PROGRESS.md#doc-sync-20260916).
+- **Larangan sesi:** tidak mengubah aplikasi/root docs, menjalankan test/lint/typecheck/build/browser/DB/install, atau melakukan Git writes/push. Izin sesi lama tidak diwarisi.
+
+<a id="rencana-security-lint-auth"></a>
+## Rencana bertahap — Dependency security, lint frontend, dan role DB
+
+### 1. Cara membaca dan approval gates
+
+- Rencana bertanggal **2026-09-16**, konteks branch `be-restruktur`; status NC-1.6h / NC-1.2g / NC-1.4 hanya di [checklist NC](./todo.md#nc--restrukturisasi-ncourse-coursesectionlesson--entitlement).
+- Tahap A/B dipertahankan sebagai **arsip desain**; bukan instruksi mengulang patch/lint. Riwayat hasil dan pembatasan QA: [penutupan backend-only](../docs/PROGRESS.md#2026-09-16--patch-dependency-dan-lint-selesai-penutupan-backend-only); riwayat Git: [commit/push A/B](../docs/PROGRESS.md#2026-09-16--commit-dan-push-patch-dependency-serta-lint).
+- Tahap C adalah rencana bersyarat. Audit staging, kontrak auth, routing frontend, akun test, dan rollout perlu persetujuan eksplisit masing-masing.
+- Semua perintah/gate di bawah adalah **target untuk eksekusi yang disetujui nanti**, bukan izin sesi DOC-SYNC. Browser lanjutan tetap ditahan; NC-1.2g-QA memerlukan izin baru dan test backend tidak menggantikan bukti frontend.
+- Arsip NC-1.6, portal admin, dan monorepo mempertahankan scope/acceptance criteria; status mengikuti ID pada todo, bukan bullet di plan.
 
 ## 2. Tujuan, urutan, dan non-goals
 
@@ -22,7 +147,7 @@
 2. **NC-1.2g — Lint frontend:** rapikan tipe, lifecycle/state, waktu, gambar, dan simbol unused secara bertahap.
 3. **NC-1.4 — Role dari DB:** audit mapping akun, kunci kontrak penolakan akses, lalu implementasi middleware dan regression test; keputusan routing frontend wajib eksplisit.
 
-Ini tiga pekerjaan dengan checkpoint terpisah, bukan satu refactor besar. Security patch tidak perlu menunggu seluruh lint bersih. Lint bukan prasyarat teknis mutlak role DB, tetapi urutan ini memudahkan isolasi regresi. NC-1.6 yang sudah selesai menjadi fondasi test untuk semua tahap.
+Ini tiga pekerjaan dengan checkpoint terpisah, bukan satu refactor besar. Security patch tidak perlu menunggu seluruh lint bersih. Lint bukan prasyarat teknis mutlak role DB, tetapi urutan ini memudahkan isolasi regresi. Harness NC-1.6 menjadi prasyarat test untuk semua tahap; status pelaksanaannya hanya di todo.
 
 ### Non-goals
 
@@ -33,39 +158,13 @@ Ini tiga pekerjaan dengan checkpoint terpisah, bukan satu refactor besar. Securi
 - Tidak menjalankan global `npm audit fix --force`, mematikan aturan ESLint, menyembunyikan temuan melalui ignore folder, atau membuat cast palsu.
 - Helmet/rate-limit/CORS/body limit (NC-1.5), RLS/index, legacy migration ordering, dan backup tetap task terpisah.
 - Tidak mengubah data akun, password, metadata, schema, atau grants sebagai efek samping audit auth.
-- Izin push sebelumnya hanya untuk NC-1.6; rencana ini tidak mewarisi izin commit/push/deploy.
+- Rencana ini tidak memberi atau mewarisi izin commit/push/deploy; persetujuan historis hanya berlaku pada sesi yang tercatat di progress.
 
-## 3. Baseline yang sudah diketahui
+## 3. Referensi baseline dan prasyarat
 
-### Dependency dan test
+Angka hasil, versi awal, dan rincian rule/file dipindahkan ke [baseline historis](../docs/PROGRESS.md#arsip-plan-baseline-20260916). Versi kandidat dan nomor baris di arsip desain A/B merujuk baseline tersebut, bukan keadaan terkini atau target upgrade otomatis.
 
-| Area | Baseline |
-|---|---|
-| Next.js / eslint-config-next | `16.2.4` / `16.2.4` |
-| React / React DOM | `19.2.4` / `19.2.4` |
-| Lingkungan verifikasi NC-1.6 | Node `24.18.0`, npm `12.0.1`, Windows |
-| Backend | Express 4, TypeScript CommonJS, Prisma 5.22.0 |
-| Test existing | 4 node:test client regression + 24 Vitest auth/API; seluruhnya lolos pada NC-1.6 |
-| Build existing | Typecheck BE/FE/test dan build frontend 35 static pages lolos pada NC-1.6 |
-| Audit terakhir | 12 findings: 1 low, 5 moderate, 5 high, 1 critical; bukan berarti 12 kerentanan independen |
-
-Versi kandidat yang sudah diperiksa dalam diskusi: Next.js `16.3.5` tersedia, peer React 19 menerima versi existing, dan eslint-config-next `16.3.5` menerima ESLint 9. **Periksa ulang advisory, release notes, dan registry saat implementasi; ini bukan alasan mengunci versi yang ternyata sudah usang saat itu.**
-
-### Baseline lint sebelum upgrade
-
-Pemeriksaan read-only sebelumnya menghasilkan 75 error + 28 warning, tersebar pada 26 file.
-
-| Rule | Severity | Jumlah |
-|---|---|---:|
-| `@typescript-eslint/no-explicit-any` | error | 58 |
-| `react-hooks/set-state-in-effect` | error | 7 |
-| `react-hooks/purity` | error | 4 |
-| `react/no-unescaped-entities` | error | 6 |
-| `@typescript-eslint/no-unused-vars` | warning | 16 |
-| `@next/next/no-img-element` | warning | 11 |
-| `react-hooks/exhaustive-deps` | warning | 1 |
-
-Nomor baris referensi di bawah mengikuti baseline ini, bukan janji tetap sama sesudah edit. Gunakan Codegraph kembali sebelum implementasi. Setelah upgrade ESLint config, ukur ulang dan jelaskan delta; jangan mengklaim penurunan error akibat aturan berubah sebagai perbaikan source.
+Sebelum implementasi lanjutan, verifikasi ulang source, advisory, release notes, registry, peer dependency, dan Node deployment. Ukur ulang lint setelah perubahan config dan jelaskan delta; jangan menganggap rule yang dilonggarkan sebagai source yang sudah diperbaiki.
 
 ## 4. Tahap A — NC-1.6h: Dependency security
 
@@ -211,25 +310,25 @@ Advisory target:
 
 **Acceptance criteria / verifikasi:** 0 error/0 warning, typecheck/build/test tetap pass, selector anak/profil/tagihan tidak mengalami perubahan UX atau loading yang tidak disepakati.
 
-### Checkpoint lint
+### Target checkpoint lint
 
 Setiap batch: targeted lint + typecheck dan smoke area yang benar-benar diubah. Setiap 2–3 batch: lint penuh serta build untuk menangkap interaksi lintas file. Akhir tahap B: semua rule aktif, full lint 0/0, suite backend pass, frontend build pass, browser smoke mobile/desktop relevan tanpa console error baru. Jangan menjalankan ulang suite unchanged tanpa alasan; lakukan ketika perubahan bisa memengaruhi hasil.
 
 ## 6. Tahap C — NC-1.4: Otorisasi role dari database
 
-### C0. Keputusan terbuka sebelum implementasi
+### C0. Keputusan kontrak dan gate rollout
 
-D5 (role dari DB) sudah diputuskan pada todo; detail berikut **masih usulan**, bukan keputusan final:
+[D5 (role dari DB)](../docs/PROGRESS.md#keputusan-ncourse) sudah terimplementasi lokal pada checkpoint NC-1.4, bukan bukti deploy. Kontrak berikut disepakati 2026-09-16; hasil audit/verifikasi di [progress](../docs/PROGRESS.md#backend-part2-20260916):
 
-1. Status/body untuk verified user tanpa record aplikasi atau role invalid: usulan `403`; kontrak existing `/api/users/me` mengembalikan `404` bila profil tidak ada, sehingga perubahan harus disengaja.
-2. Akun `active=false`: apakah harus ditolak secara global sekarang, atau mempertahankan behavior sambil task terpisah? Periksa aturan produk dan seluruh caller; jangan memasukkan deactivation policy diam-diam.
-3. Fallback email `/api/users/me`: usulan tidak dipakai untuk menentukan identitas/role; audit mapping dulu sebelum menghapus atau membatasi fallback profil.
-4. Sinkronisasi role frontend: apakah menjadi subtask eksplisit NC-1.4 atau task lanjutan? Backend-only tidak menyelesaikan stale-role redirect end-to-end.
+1. Verified user tanpa record aplikasi ditolak `403 PROFILE_NOT_FOUND`; role invalid `403 INVALID_ROLE`; perubahan missing profil dari 404 menjadi 403 disetujui. Error401/500 string lama dipertahankan; SDK status400/401/403 dianggap credential rejection, returned error lainnya/exception adalah 500 generik.
+2. Akun `active=false`: diputuskan setelah draft ini, **403 ACCOUNT_INACTIVE**, arahan daftar ulang/hubungi admin; identitas sama tidak auto-reactivate tanpa admin. Rujuk [keputusan terbaru](../docs/PROGRESS.md#backend-part1-20260916); implementasi tetap NC-1.4.
+3. Fallback email `/api/users/me` dihapus sesuai persetujuan; profil verified-ID-only, bentuk sukses tetap. Lima Auth tanpa profil tidak boleh direlink berdasarkan email; keputusan admin atas dampak akun ini tetap gate rollout.
+4. Sinkronisasi role frontend: instruksi terbaru menetapkan **di luar scope backend-only**. C5 tetap ditunda; backend-only tidak menyelesaikan stale-role redirect end-to-end.
 5. Sesi/akun test untuk smoke tiga role: siapa menyediakan dan environment mana yang boleh digunakan? Tanpa ini, test mock tidak dianggap bukti login staging.
 
 ### C1. Audit mapping akun read-only
 
-**Dependency:** persetujuan eksekusi audit pada staging yang teridentifikasi; bukan sekadar MCP sudah terkoneksi.
+**Dependency:** persetujuan audit staging/dev `akjzhktsdkbykjknkwwo` diberikan eksplisit dan audit agregat selesai. Izin ini bukan izin mutasi, login/sesi test atau deployment.
 
 - Bandingkan auth user ID dengan user Prisma, missing mapping dua arah, duplikasi/ketidaksesuaian identitas, role null/unknown, status active, serta mismatch metadata↔DB.
 - Catat count/anomali minimum yang diperlukan. Jangan menyimpan daftar email/nomor/token/full profile di Git atau log.
@@ -261,7 +360,7 @@ Alur target:
 4. Isi request user dengan identitas/role yang jelas, hapus `[key: string]: any` bila caller memang hanya membutuhkan field known; audit caller sebelum mempersempit.
 5. Tambah `requireRole(...)` dan pertahankan requireAdmin sebagai wrapper kompatibel; jangan mengganti semua route sekaligus jika tidak perlu.
 
-Kontrak usulan untuk dikunci di C0:
+Kontrak disepakati di C0 (kode/body rinci pada Bagian2 dan progress):
 
 | Kondisi | Respons/keputusan |
 |---|---|
@@ -303,7 +402,7 @@ Jika disetujui:
 
 **Acceptance criteria / verifikasi:** login/logout dan redirect tiga role, role DB berubah sementara metadata lama, API unreachable/401/403/500, cookie refresh, dan Back/Forward tidak bocor antar-user atau loop. Frontend routing bukan pengganti guard backend.
 
-### Checkpoint auth
+### Target checkpoint auth
 
 Audit mapping lolos, keputusan C0 selesai, RED→GREEN tercatat, test client/auth/API dan typecheck/build lolos. Lakukan smoke real tiga role hanya pada sesi yang disetujui; jika tidak tersedia, laporkan blocker/residual dan jangan klaim rollout aman. C5 yang belum disetujui tidak boleh diimplementasikan atau ditandai selesai.
 
@@ -355,19 +454,78 @@ Targeted lint per batch memakai path file di quote (termasuk `(wali)` dan `[invo
 
 ## 10. Persetujuan yang dibutuhkan berikutnya
 
-- Pilih izin eksekusi **tahap A saja** atau tahap berikutnya secara bertahap; rekomendasi mulai A, bukan menjalankan semua sekaligus.
+- Pilih satu follow-up berdasarkan status di todo (mis. NC-SEC-FOLLOWUP atau NC-1.4); jangan mengulang Tahap A/B hanya karena arsip desainnya masih ada.
 - Sebelum tahap C: setujui audit staging read-only, kontrak 403/500/active/fallback profil, dan apakah C5 routing frontend masuk scope.
 - Tentukan akun test, lingkungan, izin commit/push, dan release/deploy secara eksplisit ketika diperlukan.
 
 ---
 
+<a id="nc-access-design"></a>
+## Desain lanjutan NC — akses konten dan empat tier
+
+> Target desain dari grilling **2026-09-15**, dipindahkan dari todo. **Belum menjadi klaim implementasi**. Task NC-2 sampai NC-6 dan checkpoint-nya tetap di [todo.md](./todo.md#nc--restrukturisasi-ncourse-coursesectionlesson--entitlement); keputusan D1–D16 di [PROGRESS.md](../docs/PROGRESS.md#keputusan-ncourse).
+
+Satu pertanyaan akses: `lesson.visibility === "public"` **ATAU** user punya `Entitlement` aktif (`revokedAt` null **dan** (`expiresAt` null **atau** masa depan)) atas course yang memuat lesson ini. Backend menjadi penentu isi yang boleh dikirim (D6), bukan hanya penyembunyian UI.
+
+| Tier | Mekanisme target |
+|---|---|
+| Publik (blog, tanpa login) | `visibility: public` — tanpa entitlement |
+| Login + gratis | `accessTier: free` → entitlement `source: free` terbit otomatis |
+| Bayar, akses selamanya | entitlement `source: purchase`, `expiresAt: null` |
+| Bayar + dapat tentor | `Enrollment` aktif → entitlement `source: enrollment`, `expiresAt` = akhir blok |
+
+**Acceptance criteria NC-4.C4:** keempat tier, revoked/expired entitlement, dan tiga role lama diuji; konten privat tidak terkirim kepada user tanpa akses. Role menentukan portal, entitlement menentukan konten; akses melekat ke User, bukan Murid. Formula ini bukan alasan mengabaikan draft/publish/ownership yang direncanakan di NC-2.6.
+
+**Batas desain:** D11 (rename hierarki awal) **disupersede oleh D16 untuk pemisahan entitas**: `Program` tetap untuk layanan bertentor, `Course.programId` nullable menghubungkan konten mandiri. `MaterialItem.sessionId` masih ada dan seed menggunakannya menurut handoff source; NC-1.8 wajib audit sebelum penghapusan. D5 role dari DB adalah target NC-1.4, bukan fitur selesai.
+
+**Risiko/dependency:** fondasi migration harus lebih dulu agar perubahan schema Tahap 2–4 tidak kehilangan data. NC-1.4 wajib audit mapping staging berizin sebelum merge. NC-2.2 harus memindahkan `RoadmapStep.bodyText` utuh ke `Lesson` urutan 0 serta MaterialItem dan menjaga slug global unik; verifikasi konten wali di `/app/program/[slug]`. Tahap 2 menyentuh UI wali/admin: koordinasikan dengan WALI-MOB dan mulai setelah stabil, bukan melanjutkan UI yang di-pause.
+
+<a id="nc-deferred-design"></a>
+## Desain NC — fitur ditunda dan pemicu
+
+Dari **18 fitur usulan**, enam menjadi scope bertahap (#16, #14, #5, #18, #1, #9), dua belas ditunda dengan pemicu berikut. Hierarki tiga tingkat dan entitlement **direncanakan** untuk memberi ruang perluasan; belum terpasang dan bukan jaminan tidak akan perlu perubahan desain.
+
+| Fitur usulan | Baru dipertimbangkan saat |
+|---|---|
+| #2 Bookmark & highlight, #3 Note inline | Pindah ke block editor (membatalkan D12) — anchor teks stabil |
+| #4 Q&A/diskusi, #15 Engagement insight | WhatsApp sudah kewalahan menampung pertanyaan |
+| #6 Downloadable resources, #8 Sertifikat | Storage disetujui — bucket **privat + signed URL** (menjawab keberatan M4) |
+| #7 Reminder & deadline | Cron + kanal notifikasi disetujui (membatalkan D15) |
+| #10 Gift / share course | Checkout Tahap 5 sudah jadi |
+| #11 Block editor | Menulis dengan markdown terasa menyiksa |
+| #12 Quiz & assessment | Ada kebutuhan penilaian nyata (prasyarat #8) |
+| #13 Course analytics | Skala melewati D10 (<10 course / <100 artikel) |
+| #17 Subscription | Payment gateway ada (membatalkan D14) |
+
+Pemicu bukan persetujuan otomatis: catat perubahan keputusan dan task terlebih dahulu. Payment gateway Midtrans/Xendit tetap keputusan terbuka NC-5.2; D7 tidak mengunci vendor. Rename NC-6 hanya display/brand; domain placeholder `@nurmancourse.local`, package `@nurman-course/shared`, nama package dan folder repo tidak ikut. Migrasi placeholder memerlukan rencana sendiri untuk `users.email` **dan** `auth.users` agar login tidak terputus.
+
+<a id="fase-exit-design"></a>
+## Acceptance criteria fase LMS — arsip rencana
+
+Target di bawah dipindahkan dari todo, **bukan hasil atau bukti semua task fase selesai**. Status tiap F* hanya di todo. Referensi demo adalah konteks transisi lama, bukan konfigurasi untuk diaktifkan kembali setelah DMO-1/DMO-2.
+
+| Fase | Exit / acceptance criteria |
+|---|---|
+| 0 | Entity jelas, ERD ada, kandidat stack tertulis, open questions tersisa ≤ 3. |
+| 1 | Login berjalan, admin masuk shell, satu program ada di DB. |
+| 1.5 | Workspaces aktif, frontend/backend/shared terintegrasi, build monorepo dan `/api/health` serta `/api/users/me` tervalidasi. |
+| 2 | Data master lengkap terkelola; wali dapat melihat materi dan roadmap anaknya. |
+| 3 | Tentor input laporan per sesi/per blok; wali memantau perubahan secara real-time sebagai target produk. |
+| 4 | Status bayar terlihat admin/wali; konfirmasi manual berjalan lancar. |
+| 5 | Lead flow dan LMS selaras dengan keputusan A/B; funnel production tidak putus selama cutover. |
+| 3.6 | Target historis: portal tentor dapat beralih dummy/API; laporan benar-benar masuk PostgreSQL lewat Express, bukan hanya state UI. |
+| 3.7 | Target historis: portal wali terhubung backend dengan toggle demo; build/lint tanpa error/warning. |
+| 3.8 | Target historis: portal admin terhubung backend dengan toggle demo; build/lint tanpa error/warning. |
+
+---
+
 # Arsip Rencana: NC-1.6 Test Harness Backend
 
-> Selesai pada `849d7bc` + penutupan docs `104f426`. Isi di bawah adalah konteks historis; bukan instruksi mengulang implementasi.
+> Arsip desain NC-1.6; status/tanggal pada [todo.md](./todo.md), bukti pada [sesi harness](../docs/PROGRESS.md#2026-09-16--nc-16-test-harness-backend-terisolasi). Bukan instruksi mengulang implementasi atau izin push baru.
 
 ## Scope disetujui 2026-09-16
 
-User: "oke, siapkan todo yg rinci, dan eksekusi, sampai push" lalu "lanjut". Branch `be-restruktur`; NC-1.6 sebelum NC-1.4. Tidak mengubah role, schema, staging, frontend, atau funnel. Rencana portal admin lama dipertahankan di bawah sebagai arsip.
+NC-1.6 mendahului NC-1.4. Batas rancangan: tidak mengubah role, schema, staging, frontend, atau funnel. Persetujuan pelaksanaan historis tercatat di progress; tidak diwarisi sesi berikutnya.
 
 ## Urutan dan acceptance criteria
 
@@ -382,23 +540,24 @@ User: "oke, siapkan todo yg rinci, dan eksekusi, sampai push" lalu "lanjut". Bra
 - `backend/vitest.config.mts`, `backend/tsconfig.test.json`: konfigurasi test saja.
 - `backend/tests/setup.ts`, helper bila diperlukan, `auth.test.ts`, `api.test.ts`: env palsu, mock/reset/fail-fast, pembatasan network, test kasus nyata.
 - `backend/src/index.ts`: export app saja; guard `require.main === module` dan export prisma dipertahankan.
-- `tasks/todo.md`, `docs/PROGRESS.md`: hasil dan residual; rencana ini tidak menggantikan checklist.
+- `tasks/todo.md`: checklist/status; `docs/PROGRESS.md`: keputusan/hasil/verifikasi/residual. Rencana ini tidak menggantikan keduanya.
 
 ## Risiko dan gate
 
 - Native CommonJS `require()` tidak otomatis terkena mock Vitest; uji source import Vitest serta subprocess CommonJS existing, tanpa migrasi module runtime.
 - Mock default yang melempar dapat tertangkap dan terlihat sebagai 500 yang benar: track unexpected calls dan assert nol di teardown.
 - Credential palsu tidak cukup: mock dotenv/SDK sebelum import dan blok outbound, hanya izinkan loopback/port server test. Tutup listener sesudah test.
-- Versi awal Vitest 3.2.4 hasil instalasi memiliki advisory; ganti ke patched sebelum diterima. Audit existing Next.js critical menjadi follow-up terpisah.
-- Lint frontend existing 75 error/28 warning belum diperbaiki. Harness bukan bukti query SQL, otorisasi DB NC-1.4, atau login staging tiga role.
+- Pilih Vitest patched dan tinjau dependency transitif; advisory di luar scope harness harus menjadi follow-up terpisah, bukan global audit fix.
+- Hasil lint/audit historis ada di progress. Harness bukan bukti query SQL, otorisasi DB NC-1.4, atau login staging tiga role.
 - Rollback kode/config melalui revert commit NC-1.6; tidak ada rollback database karena tidak ada mutasi staging.
 
 ---
 
 # Arsip Rencana Implementasi: Portal Admin Lengkap
 
-## Status Dokumen
-- Status: **draft siap implementasi**
+## Konteks arsip
+- Desain historis ADM; bukan spesifikasi runtime terkini atau izin eksekusi. Status setiap ADM-*.*/ADM-*.C* dan ADM-Q* hanya di [todo.md](./todo.md#plan-portal-admin-lengkap--adm-draft-siap-implementasi). Bullet berikut menyatakan scope/acceptance criteria, tidak menyatakan pekerjaan selesai.
+- Referensi hasil: [perencanaan ADM](../docs/PROGRESS.md#2026-08-01--plan-lengkap-portal-admin) dan entri per domain di progress. Demo/fallback dalam arsip bukan instruksi mengaktifkan kembali demo yang dihapus DMO-1/DMO-2.
 - Scope: melengkapi portal admin `/app/admin` dengan data live, CRUD, validasi, proteksi role, dan verifikasi end-to-end.
 - Urutan implementasi wajib mengikuti dependensi data: fondasi API → Program → User/Murid → Enrollment → Roadmap/Materi → Session → Invoice → polish.
 - Tidak mengubah funnel `/course/*` dan tidak membangun fitur di luar MVP LMS.
@@ -406,12 +565,10 @@ User: "oke, siapkan todo yg rinci, dan eksekusi, sampai push" lalu "lanjut". Bra
 ## Tujuan
 Admin dapat mengelola seluruh data operasional Nurman Course dari satu portal: program, akun tentor/wali, murid, enrollment, roadmap, materi teks, jadwal sesi, dan invoice.
 
-## Kondisi Awal
-- Portal admin saat ini hanya memiliki Dashboard.
-- Endpoint admin yang sudah ada: `GET /api/admin/murids` dan `GET /api/admin/tentors`.
-- Auth memakai Supabase; backend Express memverifikasi Bearer JWT.
-- Prisma schema sudah memiliki model `User`, `Murid`, `Program`, `RoadmapStep`, `MaterialItem`, `Enrollment`, `Session`, dan `Invoice`.
-- Mode live memakai `NEXT_PUBLIC_DEMO_MODE="false"`; fallback dummy tetap dipertahankan hanya selama transisi tiap slice.
+## Batas rancangan historis
+- Pengembangan dirancang dari dashboard/pilot admin menuju CRUD lengkap atas User, Murid, Program, RoadmapStep, MaterialItem, Enrollment, Session, dan Invoice.
+- Identitas Supabase diteruskan sebagai Bearer JWT ke API Express.
+- Fallback dummy semula direncanakan hanya selama transisi slice; rujuk DMO-1/DMO-2 sebelum menafsirkan scope ADM-7.1. Jangan membuat demo mode baru dari arsip ini.
 
 ## Keputusan Arsitektur
 1. **API-first dan role guard di backend.** Semua operasi mutasi admin wajib melalui endpoint Express dengan `requireAuth` dan pemeriksaan role `admin`; UI bukan boundary keamanan.
@@ -435,238 +592,238 @@ Admin dapat mengelola seluruh data operasional Nurman Course dari satu portal: p
 ### Phase 0 — Persiapan dan Kontrak
 
 #### ADM-0.1: Audit dan baseline portal admin
-- [x] Petakan route, layout, komponen UI, helper API, tipe frontend, dan endpoint yang sudah ada.
-- [x] Catat field Prisma yang benar-benar dipakai tiap domain.
-- [x] Definisikan status loading/error/empty dan pola form untuk semua halaman admin.
-- [x] Pastikan tidak ada task aktif lain yang konflik dengan portal admin.
+- Petakan route, layout, komponen UI, helper API, tipe frontend, dan endpoint yang sudah ada.
+- Catat field Prisma yang benar-benar dipakai tiap domain.
+- Definisikan status loading/error/empty dan pola form untuk semua halaman admin.
+- Pastikan tidak ada task aktif lain yang konflik dengan portal admin.
 
 **Acceptance criteria:** baseline file map dan dependency graph tercatat; tidak ada asumsi field yang bertentangan dengan Prisma.
 
 #### ADM-0.2: Definisikan kontrak API dan schema validasi bersama
-- [x] Tambahkan enum/status type untuk role, program, enrollment, session, invoice.
-- [x] Tambahkan Zod schema create/update/list filter untuk domain yang akan dikerjakan.
-- [x] Tetapkan format error dan response list/mutation.
-- [x] Tambahkan tipe response frontend tanpa `any`.
+- Tambahkan enum/status type untuk role, program, enrollment, session, invoice.
+- Tambahkan Zod schema create/update/list filter untuk domain yang akan dikerjakan.
+- Tetapkan format error dan response list/mutation.
+- Tambahkan tipe response frontend tanpa `any`.
 
 **Acceptance criteria:** kontrak dapat dipakai backend dan frontend; input invalid menghasilkan error terstruktur.
 
 #### ADM-0.3: Siapkan helper admin API dan query state
-- [x] Buat helper request admin atau perluas `apiFetch` dengan method/body/query params.
-- [x] Standarkan handling `401`, `403`, `404`, `409`, dan `422/400` di UI.
-- [x] Siapkan komponen/pola reusable untuk table, filter, form, confirm dialog, toast, dan pagination bila memang belum ada.
+- Buat helper request admin atau perluas `apiFetch` dengan method/body/query params.
+- Standarkan handling `401`, `403`, `404`, `409`, dan `422/400` di UI.
+- Siapkan komponen/pola reusable untuk table, filter, form, confirm dialog, toast, dan pagination bila memang belum ada.
 
 **Acceptance criteria:** domain berikutnya tidak mengulang helper fetch dan pola error secara manual.
 
-### Checkpoint 0 — Kontrak
-- [x] Backend tsc sukses.
-- [x] Frontend lint dan typecheck sukses.
-- [x] Endpoint contract dan status code terdokumentasi di source/type.
+### Target checkpoint 0 — Kontrak
+- Backend tsc sukses.
+- Frontend lint dan typecheck sukses.
+- Endpoint contract dan status code terdokumentasi di source/type.
 
 ### Phase 1 — Program Catalog
 
 #### ADM-1.1: API CRUD Program
-- [x] `GET /api/admin/programs` dengan search, category, active, page, limit.
-- [x] `POST /api/admin/programs` dengan validasi slug unik, name, description, category, basePrice, sessionsPerBlock, active.
-- [x] `GET /api/admin/programs/:id` dengan ringkasan roadmap/enrollment/session.
-- [x] `PATCH /api/admin/programs/:id` dengan validasi partial update.
-- [x] `DELETE` atau deactivate program sesuai relasi; cegah penghapusan yang merusak histori.
-- [x] Tambahkan admin role guard dan error conflict slug.
+- `GET /api/admin/programs` dengan search, category, active, page, limit.
+- `POST /api/admin/programs` dengan validasi slug unik, name, description, category, basePrice, sessionsPerBlock, active.
+- `GET /api/admin/programs/:id` dengan ringkasan roadmap/enrollment/session.
+- `PATCH /api/admin/programs/:id` dengan validasi partial update.
+- `DELETE` atau deactivate program sesuai relasi; cegah penghapusan yang merusak histori.
+- Tambahkan admin role guard dan error conflict slug.
 
 #### ADM-1.2: UI Program
-- [x] Tambahkan menu **Program** di desktop sidebar dan mobile nav.
-- [x] Buat list program live dengan search/filter status/kategori.
-- [x] Buat form create/edit dengan validasi field dan format harga.
-- [x] Tambahkan detail program dan ringkasan relasi.
-- [x] Tambahkan konfirmasi deactivate/delete dan feedback sukses/gagal.
+- Tambahkan menu **Program** di desktop sidebar dan mobile nav.
+- Buat list program live dengan search/filter status/kategori.
+- Buat form create/edit dengan validasi field dan format harga.
+- Tambahkan detail program dan ringkasan relasi.
+- Tambahkan konfirmasi deactivate/delete dan feedback sukses/gagal.
 
 #### ADM-1.3: Seed dan verifikasi Program
-- [ ] Pastikan seed memiliki minimal dua program dengan kategori berbeda.
-- [ ] Uji slug duplicate, angka negatif, sessionsPerBlock invalid, dan program nonaktif.
-- [ ] Uji create → list → edit → deactivate melalui API dan UI.
+- Pastikan seed memiliki minimal dua program dengan kategori berbeda.
+- Uji slug duplicate, angka negatif, sessionsPerBlock invalid, dan program nonaktif.
+- Uji create → list → edit → deactivate melalui API dan UI.
 
 **Acceptance criteria:** admin dapat membuat, melihat, mengubah, dan menonaktifkan program live tanpa merusak enrollment historis.
 
-### Checkpoint 1 — Program
-- [ ] API integration test/manual curl untuk seluruh endpoint program.
-- [ ] UI desktop dan mobile dapat dipakai.
-- [ ] `npm run lint`, backend `tsc`, dan frontend `npm run build` sukses.
+### Target checkpoint 1 — Program
+- API integration test/manual curl untuk seluruh endpoint program.
+- UI desktop dan mobile dapat dipakai.
+- `npm run lint`, backend `tsc`, dan frontend `npm run build` sukses.
 
 ### Phase 2 — User, Wali, Tentor, dan Murid
 
 #### ADM-2.1: API User Tentor dan Wali
-- [x] `GET /api/admin/users` dengan filter role/search/status bila status tersedia.
-- [x] `POST /api/admin/users` membuat user Supabase Auth terkonfirmasi dan row Prisma dalam transaction-safe flow.
-- [x] `PATCH /api/admin/users/:id` mengubah profil dan role hanya melalui aturan yang aman.
-- [x] Deactivate user tanpa menghapus histori session/enrollment.
-- [x] Jangan expose password; gunakan temporary password flow atau instruksi reset yang aman.
-- [x] Cegah admin menghapus/deactivate dirinya sendiri tanpa recovery flow.
+- `GET /api/admin/users` dengan filter role/search/status bila status tersedia.
+- `POST /api/admin/users` membuat user Supabase Auth terkonfirmasi dan row Prisma dalam transaction-safe flow.
+- `PATCH /api/admin/users/:id` mengubah profil dan role hanya melalui aturan yang aman.
+- Deactivate user tanpa menghapus histori session/enrollment.
+- Jangan expose password; gunakan temporary password flow atau instruksi reset yang aman.
+- Cegah admin menghapus/deactivate dirinya sendiri tanpa recovery flow.
 
 #### ADM-2.2: UI User
-- [x] Tambahkan menu **Pengguna** atau submenu Tentor/Wali.
-- [x] Buat table dengan role badge, nama, email, phone, status, dan relasi ringkas.
-- [x] Buat form tambah/edit tentor dan wali.
-- [x] Tampilkan hasil pembuatan akun tanpa menampilkan secret.
-- [x] Tambahkan deactivate dan confirm dialog.
+- Tambahkan menu **Pengguna** atau submenu Tentor/Wali.
+- Buat table dengan role badge, nama, email, phone, status, dan relasi ringkas.
+- Buat form tambah/edit tentor dan wali.
+- Tampilkan hasil pembuatan akun tanpa menampilkan secret.
+- Tambahkan deactivate dan confirm dialog.
 
 #### ADM-2.3: API Murid
-- [x] `GET /api/admin/murids` perluas dengan search, wali filter, pagination, dan relasi ringkas.
-- [x] `POST /api/admin/murids` dengan waliId valid dan field murid tervalidasi.
-- [x] `GET /api/admin/murids/:id` dengan enrollment, session, dan laporan ringkas.
-- [x] `PATCH /api/admin/murids/:id` untuk profil dan wali.
-- [x] Deactivate/delete mengikuti relasi historis dan cascade policy yang eksplisit.
+- `GET /api/admin/murids` perluas dengan search, wali filter, pagination, dan relasi ringkas.
+- `POST /api/admin/murids` dengan waliId valid dan field murid tervalidasi.
+- `GET /api/admin/murids/:id` dengan enrollment, session, dan laporan ringkas.
+- `PATCH /api/admin/murids/:id` untuk profil dan wali.
+- Deactivate/delete mengikuti relasi historis dan cascade policy yang eksplisit.
 
 #### ADM-2.4: UI Murid
-- [x] Tambahkan menu **Murid**.
-- [x] Buat list/search/filter wali.
-- [x] Buat form create/edit dan pemilihan wali dari data live.
-- [x] Buat detail murid dengan tab/ringkasan enrollment, sesi, dan laporan.
+- Tambahkan menu **Murid**.
+- Buat list/search/filter wali.
+- Buat form create/edit dan pemilihan wali dari data live.
+- Buat detail murid dengan tab/ringkasan enrollment, sesi, dan laporan.
 
 **Acceptance criteria:** admin dapat mengelola tentor, wali, dan murid; relasi wali-murid valid; secret auth tidak bocor; user non-admin tetap mendapat `403`.
 
-### Checkpoint 2 — User dan Murid
-- [x] Uji role guard admin/non-admin.
-- [x] Uji duplicate email dan waliId invalid.
-- [x] Uji deactivate user dengan histori.
-- [x] Build/lint backend dan frontend sukses.
+### Target checkpoint 2 — User dan Murid
+- Uji role guard admin/non-admin.
+- Uji duplicate email dan waliId invalid.
+- Uji deactivate user dengan histori.
+- Build/lint backend dan frontend sukses.
 
 ### Phase 3 — Enrollment
 
 #### ADM-3.1: API Enrollment
-- [x] `GET /api/admin/enrollments` dengan filter status, murid, program, pagination.
-- [x] `POST /api/admin/enrollments` memvalidasi murid dan program aktif.
-- [x] `PATCH /api/admin/enrollments/:id` untuk status dan tanggal mulai.
-- [x] Cegah enrollment duplicate aktif untuk pasangan murid-program bila aturan bisnis mengharuskan unik.
-- [x] Sediakan endpoint detail dengan invoice dan progress ringkas.
+- `GET /api/admin/enrollments` dengan filter status, murid, program, pagination.
+- `POST /api/admin/enrollments` memvalidasi murid dan program aktif.
+- `PATCH /api/admin/enrollments/:id` untuk status dan tanggal mulai.
+- Cegah enrollment duplicate aktif untuk pasangan murid-program bila aturan bisnis mengharuskan unik.
+- Sediakan endpoint detail dengan invoice dan progress ringkas.
 
 #### ADM-3.2: UI Enrollment
-- [x] Tambahkan menu **Enrollment**.
-- [x] Buat form pilih murid, program, status, dan startedAt.
-- [x] Buat list/filter status dan link ke detail murid/program.
-- [x] Tambahkan aksi cancel/complete dengan konfirmasi.
+- Tambahkan menu **Enrollment**.
+- Buat form pilih murid, program, status, dan startedAt.
+- Buat list/filter status dan link ke detail murid/program.
+- Tambahkan aksi cancel/complete dengan konfirmasi.
 
 **Acceptance criteria:** admin dapat menghubungkan murid ke program secara live dan status enrollment konsisten dengan relasi database.
 
-### Checkpoint 3 — Enrollment
-- [x] Uji transaction dan duplicate active enrollment.
-- [x] Uji program nonaktif tidak dapat dipilih untuk enrollment baru.
-- [x] UI menampilkan state kosong/error/loading.
+### Target checkpoint 3 — Enrollment
+- Uji transaction dan duplicate active enrollment.
+- Uji program nonaktif tidak dapat dipilih untuk enrollment baru.
+- UI menampilkan state kosong/error/loading.
 
 ### Phase 4 — Roadmap dan Materi Teks
 
 #### ADM-4.1: API RoadmapStep
-- [x] `GET /api/admin/programs/:programId/roadmap` terurut berdasarkan `order`.
-- [x] `POST /api/admin/programs/:programId/roadmap` dengan order/title/bodyText/level.
-- [x] `PATCH /api/admin/roadmap-steps/:id`.
-- [x] `DELETE /api/admin/roadmap-steps/:id` dengan aturan cascade material yang jelas.
-- [x] Tambahkan reorder endpoint atau strategi normalisasi order.
+- `GET /api/admin/programs/:programId/roadmap` terurut berdasarkan `order`.
+- `POST /api/admin/programs/:programId/roadmap` dengan order/title/bodyText/level.
+- `PATCH /api/admin/roadmap-steps/:id`.
+- `DELETE /api/admin/roadmap-steps/:id` dengan aturan cascade material yang jelas.
+- Tambahkan reorder endpoint atau strategi normalisasi order.
 
 #### ADM-4.2: API MaterialItem
-- [ ] `GET /api/admin/roadmap-steps/:stepId/materials`.
-- [ ] `POST /api/admin/roadmap-steps/:stepId/materials`.
-- [ ] `PATCH /api/admin/material-items/:id`.
-- [ ] `DELETE /api/admin/material-items/:id`.
-- [ ] Validasi bodyText, title, order, dan kepemilikan relasi.
+- `GET /api/admin/roadmap-steps/:stepId/materials`.
+- `POST /api/admin/roadmap-steps/:stepId/materials`.
+- `PATCH /api/admin/material-items/:id`.
+- `DELETE /api/admin/material-items/:id`.
+- Validasi bodyText, title, order, dan kepemilikan relasi.
 
 #### ADM-4.3: UI Roadmap dan Materi
-- [ ] Tambahkan menu **Roadmap & Materi**.
-- [ ] Pilih program lalu tampilkan timeline langkah belajar.
-- [ ] Form edit body teks/markdown sederhana.
-- [ ] Kelola material per langkah dengan reorder.
-- [ ] Preview konten sebagai teks/markdown aman; sanitasi bila renderer HTML dipakai.
+- Tambahkan menu **Roadmap & Materi**.
+- Pilih program lalu tampilkan timeline langkah belajar.
+- Form edit body teks/markdown sederhana.
+- Kelola material per langkah dengan reorder.
+- Preview konten sebagai teks/markdown aman; sanitasi bila renderer HTML dipakai.
 
 **Acceptance criteria:** admin dapat membuat roadmap berurutan dan materi teks; wali dapat membaca hasilnya melalui endpoint existing tanpa data corrupt.
 
-### Checkpoint 4 — Roadmap
-- [ ] Uji order/reorder dan delete cascade.
-- [ ] Uji konten kosong/terlalu panjang dan input tidak valid.
-- [ ] Verifikasi halaman wali tetap dapat membaca roadmap/materi.
+### Target checkpoint 4 — Roadmap
+- Uji order/reorder dan delete cascade.
+- Uji konten kosong/terlalu panjang dan input tidak valid.
+- Verifikasi halaman wali tetap dapat membaca roadmap/materi.
 
 ### Phase 5 — Session dan Jadwal
 
 #### ADM-5.1: API Session
-- [ ] `GET /api/admin/sessions` dengan filter tanggal, status, tentor, murid, program.
-- [ ] `POST /api/admin/sessions` validasi startsAt < endsAt dan relasi aktif.
-- [ ] `GET /api/admin/sessions/:id`.
-- [ ] `PATCH /api/admin/sessions/:id` untuk jadwal, assignment, lokasi, status.
-- [ ] Cancel session tanpa menghapus laporan historis.
-- [ ] Cegah konflik jadwal tentor/murid sesuai aturan bisnis yang disepakati.
+- `GET /api/admin/sessions` dengan filter tanggal, status, tentor, murid, program.
+- `POST /api/admin/sessions` validasi startsAt < endsAt dan relasi aktif.
+- `GET /api/admin/sessions/:id`.
+- `PATCH /api/admin/sessions/:id` untuk jadwal, assignment, lokasi, status.
+- Cancel session tanpa menghapus laporan historis.
+- Cegah konflik jadwal tentor/murid sesuai aturan bisnis yang disepakati.
 
 #### ADM-5.2: UI Session
-- [ ] Tambahkan menu **Jadwal Sesi**.
-- [ ] Buat list hari/minggu dengan filter.
-- [ ] Form assign program, tentor, murid, start/end, lokasi, status.
-- [ ] Tambahkan detail sesi dan link laporan terkait.
-- [ ] Tambahkan confirm cancel dan feedback konflik jadwal.
+- Tambahkan menu **Jadwal Sesi**.
+- Buat list hari/minggu dengan filter.
+- Form assign program, tentor, murid, start/end, lokasi, status.
+- Tambahkan detail sesi dan link laporan terkait.
+- Tambahkan confirm cancel dan feedback konflik jadwal.
 
 **Acceptance criteria:** admin dapat membuat dan mengubah sesi; tentor dan wali melihat perubahan live; sesi completed/cancelled menjaga histori laporan.
 
-### Checkpoint 5 — Session
-- [ ] Uji waktu invalid, relasi invalid, dan overlap.
-- [ ] Verifikasi endpoint tentor/wali setelah sesi dibuat/diubah.
-- [ ] Build/lint sukses.
+### Target checkpoint 5 — Session
+- Uji waktu invalid, relasi invalid, dan overlap.
+- Verifikasi endpoint tentor/wali setelah sesi dibuat/diubah.
+- Build/lint sukses.
 
 ### Phase 6 — Invoice dan Status Pembayaran
 
 #### ADM-6.1: API Invoice
-- [x] `GET /api/admin/invoices` dengan filter status, murid, program, dueAt, pagination.
-- [x] `POST /api/admin/invoices` terkait enrollment aktif.
-- [x] `GET /api/admin/invoices/:id`.
-- [x] `PATCH /api/admin/invoices/:id/status` dengan transition `unpaid → waiting → paid` dan aturan koreksi.
-- [x] Set/clear `paidAt` secara konsisten saat status berubah.
-- [x] Catat note admin tanpa menyimpan data pembayaran sensitif.
+- `GET /api/admin/invoices` dengan filter status, murid, program, dueAt, pagination.
+- `POST /api/admin/invoices` terkait enrollment aktif.
+- `GET /api/admin/invoices/:id`.
+- `PATCH /api/admin/invoices/:id/status` dengan transition `unpaid → waiting → paid` dan aturan koreksi.
+- Set/clear `paidAt` secara konsisten saat status berubah.
+- Catat note admin tanpa menyimpan data pembayaran sensitif.
 
 #### ADM-6.2: UI Invoice
-- [x] Tambahkan menu **Tagihan**.
-- [x] Buat table status, nominal, jatuh tempo, murid, program.
-- [x] Buat form terbitkan invoice dari enrollment.
-- [x] Tambahkan aksi ubah status dan detail invoice.
-- [x] Tampilkan konfirmasi status dan link instruksi WhatsApp wali bila sudah ada.
+- Tambahkan menu **Tagihan**.
+- Buat table status, nominal, jatuh tempo, murid, program.
+- Buat form terbitkan invoice dari enrollment.
+- Tambahkan aksi ubah status dan detail invoice.
+- Tampilkan konfirmasi status dan link instruksi WhatsApp wali bila sudah ada.
 
 **Acceptance criteria:** admin dapat menerbitkan invoice dan mengelola status; wali membaca status yang sama; nilai dan tanggal tervalidasi.
 
-### Checkpoint 6 — Invoice
-- [x] Uji status transition dan paidAt.
-- [x] Uji nominal negatif/zero, enrollment invalid, dan duplicate request.
-- [x] Verifikasi halaman wali tagihan.
+### Target checkpoint 6 — Invoice
+- Uji status transition dan paidAt.
+- Uji nominal negatif/zero, enrollment invalid, dan duplicate request.
+- Verifikasi halaman wali tagihan.
 
 #### ADM-6.5: Data Master Rekening Bank (PaymentAccount)
-- [x] Model `PaymentAccount` + `prisma db push`/`generate`.
-- [x] CRUD admin `GET/POST/PATCH/DELETE /api/admin/payment-accounts` (auto-clear `isDefault`, tolak hapus rekening default).
-- [x] `GET /api/payment-accounts` (auth wali, filter `isActive`).
-- [x] UI admin `/app/admin/rekening`: list, form, set default, hapus.
-- [x] Halaman wali `/app/(wali)/tagihan` membaca rekening dari API (fallback bila kosong); hapus hardcode Mandiri.
-- [x] Seed PaymentAccount default Mandiri + BSI.
+- Model `PaymentAccount` + `prisma db push`/`generate`.
+- CRUD admin `GET/POST/PATCH/DELETE /api/admin/payment-accounts` (auto-clear `isDefault`, tolak hapus rekening default).
+- `GET /api/payment-accounts` (auth wali, filter `isActive`).
+- UI admin `/app/admin/rekening`: list, form, set default, hapus.
+- Halaman wali `/app/(wali)/tagihan` membaca rekening dari API (fallback bila kosong); hapus hardcode Mandiri.
+- Seed PaymentAccount default Mandiri + BSI.
 
 ### Phase 7 — Integrasi Portal dan Polish
 
 #### ADM-7.1: Sinkronisasi navigasi dan dashboard
-- [ ] Tambahkan semua menu final ke desktop sidebar/mobile nav.
-- [ ] Dashboard memakai endpoint list/stat yang stabil tanpa fetch duplikat berlebihan.
-- [ ] Link antar detail domain konsisten.
-- [ ] Banner demo hanya tampil saat demo mode aktif.
+- Tambahkan semua menu final ke desktop sidebar/mobile nav.
+- Dashboard memakai endpoint list/stat yang stabil tanpa fetch duplikat berlebihan.
+- Link antar detail domain konsisten.
+- Banner demo hanya tampil saat demo mode aktif.
 
 #### ADM-7.2: UX, aksesibilitas, dan security hardening
-- [ ] Semua form punya label, keyboard navigation, focus state, dan error message.
-- [ ] Semua mutasi punya disabled/loading state dan confirm untuk aksi destruktif.
-- [ ] Tidak ada secret/token/password pada client response atau log.
-- [ ] Rate/size limit dan validasi server untuk input teks panjang.
-- [ ] Audit role guard seluruh endpoint admin.
+- Semua form punya label, keyboard navigation, focus state, dan error message.
+- Semua mutasi punya disabled/loading state dan confirm untuk aksi destruktif.
+- Tidak ada secret/token/password pada client response atau log.
+- Rate/size limit dan validasi server untuk input teks panjang.
+- Audit role guard seluruh endpoint admin.
 
 #### ADM-7.3: Test dan dokumentasi
-- [ ] Tambahkan test endpoint untuk auth, validation, relation, status transition, dan conflict.
-- [ ] Tambahkan smoke test UI untuk navigasi dan happy path tiap domain.
-- [ ] Jalankan backend tsc, frontend lint/build, dan test monorepo.
-- [ ] Update `docs/PROGRESS.md`, `tasks/todo.md`, `SYSTEM_MAP.md`, dan API documentation jika endpoint bertambah.
+- Tambahkan test endpoint untuk auth, validation, relation, status transition, dan conflict.
+- Tambahkan smoke test UI untuk navigasi dan happy path tiap domain.
+- Jalankan backend tsc, frontend lint/build, dan test monorepo.
+- Update `docs/PROGRESS.md`, `tasks/todo.md`, `SYSTEM_MAP.md`, dan API documentation jika endpoint bertambah.
 
 **Acceptance criteria:** portal admin lengkap dan usable di desktop/mobile; seluruh domain live; regression tenant/wali tidak ditemukan; docs sinkron.
 
-### Checkpoint 7 — Definition of Done
-- [ ] Semua task ADM-0 sampai ADM-7 selesai atau explicitly deferred.
-- [ ] Tidak ada endpoint admin tanpa role guard.
-- [ ] Tidak ada form admin tanpa loading/error/empty/validation state.
-- [ ] Database migration, seed, API, UI, dan docs konsisten.
-- [ ] Lint, typecheck, build, dan test sukses.
-- [ ] Review security dan code quality selesai sebelum merge.
+### Target checkpoint 7 — Definition of Done
+- Semua task ADM-0 sampai ADM-7 selesai atau explicitly deferred.
+- Tidak ada endpoint admin tanpa role guard.
+- Tidak ada form admin tanpa loading/error/empty/validation state.
+- Database migration, seed, API, UI, dan docs konsisten.
+- Lint, typecheck, build, dan test sukses.
+- Review security dan code quality selesai sebelum merge.
 
 ## Dependency Graph
 ```text
@@ -691,16 +848,21 @@ ADM-0 contract/helper
 | Konten materi mengandung HTML berbahaya | Sedang | Simpan plain/markdown; sanitasi sebelum render HTML. |
 | Status invoice tidak konsisten dengan `paidAt` | Sedang | Satu endpoint status transition dengan aturan atomik dan test. |
 
-## Open Questions Sebelum Implementasi Domain Terkait
-- ~~Apakah satu murid boleh memiliki lebih dari satu enrollment aktif untuk program yang sama?~~ → **Ditolak 409** (ADM-3, keputusan 2026-08-01)
-- Apakah konflik jadwal tentor/murid harus ditolak keras atau hanya diberi warning?
-- Untuk pembuatan akun wali/tentor, apakah admin memasukkan password sementara atau sistem mengirim reset/invite email?
-- Apakah admin boleh mengubah role akun existing, atau role dikunci setelah akun dibuat?
+## Pertanyaan desain historis dan rujukan keputusan
+
+Status keputusan mengikuti ADM-Q1–Q4 di [todo.md](./todo.md#keputusan-terbuka), bukan membuka ulang keputusan dari arsip ini.
+
+- **ADM-Q1:** duplikasi enrollment aktif murid-program; acuan desain berikutnya memakai penolakan 409 — [keputusan 2026-08-01](../docs/PROGRESS.md#2026-08-01--adm-3-enrollment--adm-6-tagihan--adm-65-rekening-api--ui-live).
+- **ADM-Q2:** konflik jadwal tentor/murid, hard reject versus warning — [keputusan 2026-08-24](../docs/PROGRESS.md#2026-08-24--penguatan-validasi-bisnis-backend-bentrok-murid-lock-role-relasi-dan-transisi-invoice).
+- **ADM-Q3:** password sementara oleh admin versus reset/invite email; pertahankan kebutuhan keputusan sebelum mengubah flow.
+- **ADM-Q4:** perubahan role existing versus role terkunci; rujuk batas relasi pada keputusan 2026-08-24 yang sama.
 
 ---
 
 # Arsip: Rencana Restrukturisasi Monorepo
 
+> Desain historis; status pelaksanaan hanya pada F1.5.1–F1.5.8 di [todo.md](./todo.md#fase-15--restrukturisasi-monorepo--express-api-selesai). Task bernomor di bawah adalah rincian desain, bukan checklist baru. Pemetaan: persiapan/workspace → F1.5.1–2; frontend → F1.5.3; shared → F1.5.4; backend/auth/route → F1.5.5–7; dokumentasi → F1.5.8.
+> Langkah DB/Git/hosting di arsip memerlukan approval baru. Rujukan `db push` historis **tidak berlaku** untuk staging ter-baseline; aturan migration NC-1.2 di [Tabel Keputusan](../docs/PROGRESS.md#tabel-keputusan-arsitektur--stack--ab--aturan-penting) mendahuluinya.
 
 ## Overview
 Melakukan restrukturisasi arsitektur proyek dari satu repository monolithic Next.js menjadi arsitektur monorepo terpisah menggunakan **npm workspaces** dan **Turborepo**. Frontend Next.js akan dipindahkan ke folder `frontend/`, sedangkan backend API server Express akan tetap berada di folder `backend/` yang akan di-upgrade untuk mendukung model data 3-role (Admin, Tentor, Wali Murid) menggunakan Prisma & Supabase Auth. Paket bersama untuk validasi data & tipe data akan dibuat di `packages/shared`.
@@ -718,92 +880,92 @@ Melakukan restrukturisasi arsitektur proyek dari satu repository monolithic Next
 ## Daftar Tugas (Task List)
 
 ### Phase 1: Persiapan & Arsip (Setup Root Workspace)
-- [ ] **Task 1.1: Arsipkan backend existing & hapus duplikat desain**
+- **Task 1.1: Arsipkan backend existing & hapus duplikat desain**
   - Membuat branch baru `restructure/monorepo` (opsional) atau memastikan perubahan di-commit di `dev`.
   - Mengarsipkan `backend/` lama (salin isi schema & seed ke folder backup temporer `archive/backend-v1` jika perlu, atau mengandalkan git history).
   - Menghapus folder duplikat `prompt-google-stitch/` (mempertahankan `desain-ui-frontend/`).
-- [ ] **Task 1.2: Inisialisasi npm workspaces di root**
+- **Task 1.2: Inisialisasi npm workspaces di root**
   - Mengubah `package.json` di root menjadi minimalis, bertindak sebagai workspace root.
   - Menambahkan workspaces: `["frontend", "backend", "packages/*"]`.
-- [ ] **Task 1.3: Konfigurasi Turborepo**
+- **Task 1.3: Konfigurasi Turborepo**
   - Membuat file `turbo.json` di root untuk konfigurasi task pipeline (`build`, `dev`, `lint`).
   - Mengatur target dependencies (mis. `build` di frontend butuh shared package dibuild lebih dulu).
-- [ ] **Task 1.4: Update `.gitignore`**
+- **Task 1.4: Update `.gitignore`**
   - Memastikan ignore rules mencakup file-file temporer monorepo, build output `dist`, dll.
 
-### Checkpoint 1: Workspace & Workspace Manager
-- [ ] Root dependencies terinstall dengan `npm install`.
-- [ ] Perintah `npx turbo` dapat mendeteksi workspaces (akan dievaluasi setelah workspaces terisi package).
+### Target checkpoint 1: Workspace & Workspace Manager
+- Root dependencies terinstall dengan `npm install`.
+- Perintah `npx turbo` dapat mendeteksi workspaces (akan dievaluasi setelah workspaces terisi package).
 
 ---
 
 ### Phase 2: Restrukturisasi & Migrasi Frontend
-- [ ] **Task 2.1: Buat folder `frontend/` & pindahkan kode Next.js**
+- **Task 2.1: Buat folder `frontend/` & pindahkan kode Next.js**
   - Membuat folder `frontend/`.
   - Memindahkan: `app/`, `components/`, `data/`, `lib/` (kecuali backend helper), `utils/`, `public/`, `middleware.ts`, `next-env.d.ts`.
   - Memindahkan file konfigurasi: `next.config.ts`, `eslint.config.mjs`, `postcss.config.mjs`, `tailwind.config.ts` (jika ada), dan `tsconfig.json`.
-- [ ] **Task 2.2: Konfigurasi package & path di `frontend/`**
+- **Task 2.2: Konfigurasi package & path di `frontend/`**
   - Memindahkan `package.json` dari root ke `frontend/package.json` dan menyesuaikan name menjadi `"frontend"` atau `"web"`.
   - Menyesuaikan `tsconfig.json` path alias `@/*` di `frontend/` agar merujuk ke `./*` relatif terhadap folder `frontend/`.
   - Pindahkan `.env.local` ke `frontend/.env.local`.
-- [ ] **Task 2.3: Verifikasi Build Frontend**
+- **Task 2.3: Verifikasi Build Frontend**
   - Menjalankan `npm run build` di dalam folder `frontend/` atau via root `npx turbo build --filter=frontend` untuk memastikan tidak ada import path error.
   - Memastikan linter dan TypeScript typecheck bersih.
 
-### Checkpoint 2: Frontend Migrated
-- [ ] Folder root bersih dari file runtime frontend.
-- [ ] Frontend berhasil di-build tanpa error lint/typecheck.
-- [ ] Vercel configuration siap (Root Directory diubah ke `frontend/`).
+### Target checkpoint 2: Frontend Migrated
+- Folder root bersih dari file runtime frontend.
+- Frontend berhasil di-build tanpa error lint/typecheck.
+- Vercel configuration siap (Root Directory diubah ke `frontend/`).
 
 ---
 
 ### Phase 3: Setup Shared Package
-- [ ] **Task 3.1: Inisialisasi `packages/shared/`**
+- **Task 3.1: Inisialisasi `packages/shared/`**
   - Membuat folder `packages/shared` dengan file minimal: `package.json`, `tsconfig.json`, dan file entry point `src/index.ts`.
-- [ ] **Task 3.2: Definisikan tipe & schema validasi**
+- **Task 3.2: Definisikan tipe & schema validasi**
   - Menambahkan tipe user roles (`admin` | `tentor` | `wali`), status invoice (`unpaid`, `waiting`, `paid`), status sesi, dll.
   - Membuat Zod schema untuk input validation (mis. Laporan Harian, Laporan Perkembangan, data Murid).
-- [ ] **Task 3.3: Hubungkan Shared Package ke Frontend & Backend**
+- **Task 3.3: Hubungkan Shared Package ke Frontend & Backend**
   - Menambahkan dependency `@nurman-course/shared` (atau nama package workspace) ke `frontend/package.json` dan `backend/package.json`.
 
-### Checkpoint 3: Shared Package Linked
-- [ ] Shared package ter-link otomatis lewat npm workspaces.
-- [ ] Tipe dari shared package berhasil diimport di frontend.
+### Target checkpoint 3: Shared Package Linked
+- Shared package ter-link otomatis lewat npm workspaces.
+- Tipe dari shared package berhasil diimport di frontend.
 
 ---
 
 ### Phase 4: Upgrade Backend Express (model 3-role & API Server)
-- [ ] **Task 4.1: Setup Express server boilerplate di `backend/`**
+- **Task 4.1: Setup Express server boilerplate di `backend/`**
   - Inisialisasi Express server di `backend/src/index.ts`.
   - Install dev dependencies dan production dependencies baru (`express`, `cors`, `dotenv`, `@supabase/supabase-js`, `zod`, `morgan`, `@types/express`, `@types/cors`, dll.).
   - Setup routing dasar (health-check endpoint `/api/health`).
-- [ ] **Task 4.2: Update Skema Prisma ke Model 3-role**
+- **Task 4.2: Update Skema Prisma ke Model 3-role**
   - Membuka `backend/prisma/schema.prisma` dan memperbarui skema database sesuai dengan `docs/erd-lms.md` (menambahkan entitas `murids`, `daily_reports`, `progress_reports`, dan menyesuaikan relasi user roles).
-- [ ] **Task 4.3: Perbarui Script Seeding & Migrasi DB**
+- **Task 4.3: Perbarui Script Seeding & Migrasi DB**
   - Menyesuaikan `backend/prisma/seed.ts` untuk mengisi data dummy yang kompatibel dengan model 3-role baru.
   - Menjalankan migrasi database ke database Supabase (dev branch/project) via `npx prisma db push` atau migration.
-- [ ] **Task 4.4: Implementasi Middleware Autentikasi JWT Supabase**
+- **Task 4.4: Implementasi Middleware Autentikasi JWT Supabase**
   - Membuat middleware Express `authMiddleware` untuk mengekstrak token Bearer JWT dari header Authorization.
   - Memverifikasi JWT menggunakan Supabase Admin Client (`supabase.auth.getUser(token)`) untuk mengidentifikasi ID dan role user.
-- [ ] **Task 4.5: Buat Route Dasar & Integrasi API**
+- **Task 4.5: Buat Route Dasar & Integrasi API**
   - Membuat boilerplate routing untuk user profile `/api/users/me` guna memverifikasi auth middleware berfungsi penuh.
 
-### Checkpoint 4: Backend API Operational
-- [ ] Database Supabase menggunakan schema 3-role baru.
-- [ ] Script seeding berhasil dijalankan tanpa error.
-- [ ] Express server API `/api/health` dan `/api/users/me` dapat diakses dan merespon dengan benar.
+### Target checkpoint 4: Backend API Operational
+- Database Supabase menggunakan schema 3-role baru.
+- Script seeding berhasil dijalankan tanpa error.
+- Express server API `/api/health` dan `/api/users/me` dapat diakses dan merespon dengan benar.
 
 ---
 
 ### Phase 5: Dokumentasi & Sync Project Rules
-- [ ] **Task 5.1: Sinkronisasi aturan kerja & deskripsi file**
+- **Task 5.1: Sinkronisasi aturan kerja & deskripsi file**
   - Mengubah panduan di `AGENTS.md` untuk merefleksikan arsitektur monorepo baru.
   - Memperbarui `SYSTEM_MAP.md` dengan peta routing/file monorepo baru (frontend/ & backend/).
   - Mengupdate `docs/PROGRESS.md` untuk mencatat log restrukturisasi ini.
 
-### Checkpoint 5: Project Synced
-- [ ] Semua dokumentasi sinkron dengan struktur repositori.
-- [ ] Linting & Typecheck di seluruh workspaces bersih.
+### Target checkpoint 5: Project Synced
+- Semua dokumentasi sinkron dengan struktur repositori.
+- Linting & Typecheck di seluruh workspaces bersih.
 
 ---
 
