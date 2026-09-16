@@ -9,6 +9,7 @@ import GlassCard from "@/components/ui/GlassCard";
 import PageHeader from "@/components/ui/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import ProofModal, { ProofInvoiceData } from "@/components/ui/ProofModal";
+import Image from "next/image";
 import { apiFetch, buildQuery } from "@/lib/api";
 import { formatSessionDateTime } from "@/lib/format";
 
@@ -441,9 +442,12 @@ export default function AdminTagihanPage() {
                                     title="Lihat bukti transfer"
                                     className="shrink-0"
                                   >
-                                    <img
+                                    <Image
                                       src={invoice.paymentProof}
                                       alt="Bukti transfer"
+                                      width={64}
+                                      height={64}
+                                      unoptimized
                                       className="h-16 w-16 rounded-lg object-cover border border-gray-200 shadow-sm hover:opacity-80 transition-opacity"
                                     />
                                   </button>
@@ -555,9 +559,12 @@ export default function AdminTagihanPage() {
                                     title="Lihat bukti transfer"
                                     className="shrink-0"
                                   >
-                                    <img
+                                    <Image
                                       src={prepayment.paymentProof}
                                       alt="Bukti transfer prabayar"
+                                      width={64}
+                                      height={64}
+                                      unoptimized
                                       className="h-16 w-16 rounded-lg object-cover border border-gray-200 shadow-sm hover:opacity-80 transition-opacity"
                                     />
                                   </button>

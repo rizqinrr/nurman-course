@@ -13,7 +13,21 @@ export interface FetchLogEntry {
 }
 
 export const fetchLogs: FetchLogEntry[] = [];
+let logSnapshot: readonly FetchLogEntry[] = [];
 let logListeners: (() => void)[] = [];
+
+export function getLogSnapshot() {
+  return logSnapshot;
+}
+
+export function getServerLogSnapshot(): null {
+  return null;
+}
+
+export function clearFetchLogs() {
+  fetchLogs.length = 0;
+  notifyLogListeners();
+}
 
 export function addLogListener(listener: () => void) {
   logListeners.push(listener);
@@ -23,11 +37,12 @@ export function addLogListener(listener: () => void) {
 }
 
 function notifyLogListeners() {
+  logSnapshot = [...fetchLogs];
   logListeners.forEach(l => l());
 }
 
 interface CacheEntry {
-  data: any;
+  data: unknown;
   timestamp: number;
 }
 

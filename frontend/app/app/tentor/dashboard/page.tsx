@@ -7,10 +7,12 @@ import {
   Session,
   DailyReport,
   Murid,
+  DbMurid,
   Program,
   ProgressReport
 } from "@/data/lms";
 import { apiFetch } from "@/lib/api";
+import useClock from "@/hooks/useClock";
 import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
 import { 
@@ -24,23 +26,8 @@ import {
   TrendingUp
 } from "lucide-react";
 
-function RealtimeClock() {
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    const initTimer = setTimeout(() => {
-      setNow(new Date());
-    }, 0);
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-    return () => {
-      clearTimeout(initTimer);
-      clearInterval(timer);
-    };
-  }, []);
-
-  if (!now) {
+function RealtimeClock({ nowMs }: { nowMs: number | null }) {
+  if (nowMs === null) {
     return (
       <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0 animate-pulse">
         <div className="h-6 w-44 bg-white/20 rounded-full"></div>
@@ -55,7 +42,7 @@ function RealtimeClock() {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(now);
+  }).format(nowMs);
 
   const timeStr = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Jakarta",
@@ -63,7 +50,7 @@ function RealtimeClock() {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
-  }).format(now);
+  }).format(nowMs);
 
   return (
     <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0">
@@ -104,7 +91,7 @@ const formatSessionDateTime = (isoString: string) => {
 };
 
 interface SessionWithRelations extends Session {
-  murid?: Murid;
+  murid?: DbMurid | null;
   program?: Program;
   rawEndsAt?: string;
 }
@@ -125,7 +112,7 @@ function detectCompletedBlocksPending(
     perPair.get(key)!.push(s);
   });
 
-  const pending: { murid: Murid; program: Program; blockNumber: number }[] = [];
+  const pending: { murid: DbMurid; program: Program; blockNumber: number }[] = [];
 
   perPair.forEach((pairSessions) => {
     const first = pairSessions[0];
@@ -148,28 +135,20 @@ export default function TentorDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [profileName, setProfileName] = useState("Tentor");
   const [sessionsData, setSessionsData] = useState<SessionWithRelations[]>([]);
-  const [pendingCount, setPendingCount] = useState(0);
+  const nowMs = useClock(1000);
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
   const [muridsList, setMuridsList] = useState<Murid[]>([]);
-  const [progressReports, setProgressReports] = useState<ProgressReport[]>([]);
   const [completedBlocksPending, setCompletedBlocksPending] = useState<{
-    murid: Murid;
+    murid: DbMurid;
     program: Program;
     blockNumber: number;
   }[]>([]);
 
   useEffect(() => {
+    let active = true;
     async function loadData() {
       try {
         // Live mode — enrollments is primary source for assigned students
-        interface DbMurid {
-          id: string;
-          waliId: string;
-          name: string;
-          birthDate?: string | null;
-          schoolLevel?: string | null;
-          avatarUrl?: string | null;
-        }
         interface EnrollmentBundle {
           id: string;
           muridId: string;
@@ -197,9 +176,8 @@ export default function TentorDashboardPage() {
           });
         }
 
-        const profileRes = (await apiFetch("/api/users/me")) as {
-          user: { name: string };
-        };
+        const profileRes = await apiFetch<{ user: { name: string } }>("/api/users/me");
+        if (!active) return;
         setProfileName(profileRes.user.name);
 
         const [sessionsRes, reportsRes, enrollmentsRes, progressRes] = await Promise.all([
@@ -207,12 +185,13 @@ export default function TentorDashboardPage() {
           apiFetch<{ reports: DailyReport[] }>("/api/me/daily-reports"),
           apiFetch<{ enrollments: EnrollmentBundle[] }>(
             "/api/me/enrollments",
-          ).catch(() => ({ enrollments: [] as EnrollmentBundle[] }) as any),
+          ).catch((): { enrollments: EnrollmentBundle[] } => ({ enrollments: [] })),
           apiFetch<{ reports: ProgressReport[] }>(
             "/api/me/progress-reports",
-          ).catch(() => ({ reports: [] as ProgressReport[] }) as any),
+          ).catch((): { reports: ProgressReport[] } => ({ reports: [] })),
         ]);
 
+        if (!active) return;
         const mappedSessions = sessionsRes.sessions.map((s) => ({
           ...s,
           startsAt: formatSessionDateTime(s.startsAt),
@@ -221,29 +200,14 @@ export default function TentorDashboardPage() {
         }));
         setSessionsData(mappedSessions);
         setDailyReports(reportsRes.reports);
-        setProgressReports(progressRes.reports);
-
-        // Laporan pending = sesi yang sudah lewat waktunya (endsAt <= now),
-        // tidak dibatalkan, dan belum memiliki laporan harian.
-        const nowMs = Date.now();
-        const reportedSessionIds = new Set(
-          reportsRes.reports.map((rep) => rep.sessionId),
-        );
-        const pending = sessionsRes.sessions.filter(
-          (s) =>
-            s.status !== "cancelled" &&
-            !reportedSessionIds.has(s.id) &&
-            new Date(s.endsAt).getTime() <= nowMs,
-        );
-        setPendingCount(pending.length);
 
         const uniqueMuridsMap = new Map<string, Murid>();
-        const enrollmentData = (enrollmentsRes as any).enrollments || [];
+        const enrollmentData = enrollmentsRes.enrollments || [];
         enrollmentData.forEach((enr: EnrollmentBundle) => {
-          if (enr.murid) mapMuridToList(enr.murid as DbMurid, uniqueMuridsMap);
+          if (enr.murid) mapMuridToList(enr.murid, uniqueMuridsMap);
         });
         mappedSessions.forEach((s) => {
-          if (s.murid) mapMuridToList(s.murid as unknown as DbMurid, uniqueMuridsMap);
+          if (s.murid) mapMuridToList(s.murid, uniqueMuridsMap);
         });
         setMuridsList(Array.from(uniqueMuridsMap.values()));
 
@@ -253,12 +217,13 @@ export default function TentorDashboardPage() {
         );
         setCompletedBlocksPending(completedBlocks);
       } catch (err) {
-        console.error("Error loading dashboard data:", err);
+        if (active) console.error("Error loading dashboard data:", err);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
-    loadData();
+    void loadData();
+    return () => { active = false; };
   }, []);
 
   // Dapatkan string tanggal hari ini di WIB
@@ -268,7 +233,7 @@ export default function TentorDashboardPage() {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(new Date());
+  }).format(nowMs ?? 0);
 
   // Filter sesi hari ini
   const todaySessions = sessionsData.filter(
@@ -276,12 +241,19 @@ export default function TentorDashboardPage() {
   );
   
   const sessions = todaySessions;
+  const reportedSessionIds = new Set(dailyReports.map((rep) => rep.sessionId));
+  const pendingCount = sessionsData.filter((s) =>
+    s.status !== "cancelled" &&
+    !reportedSessionIds.has(s.id) &&
+    nowMs !== null &&
+    s.rawEndsAt && new Date(s.rawEndsAt).getTime() <= nowMs
+  ).length;
   
   const getSessionStatusInfo = (sessionId: string, status: string, rawEndsAt?: string) => {
     const hasReport = dailyReports.some(rep => rep.sessionId === sessionId);
     // Sesi dianggap "lewat" jika status completed ATAU waktunya sudah berlalu,
     // karena status completed baru ter-set setelah laporan ditulis.
-    const isPast = rawEndsAt ? new Date(rawEndsAt).getTime() <= Date.now() : false;
+    const isPast = rawEndsAt && nowMs !== null ? new Date(rawEndsAt).getTime() <= nowMs : false;
 
     if (status === "completed" || isPast) {
       if (hasReport) {
@@ -311,7 +283,7 @@ export default function TentorDashboardPage() {
     };
   };
 
-  if (loading) {
+  if (loading || nowMs === null) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col justify-center items-center gap-4">
         <div className="text-gray-500 font-semibold animate-pulse">Memuat data dashboard...</div>
@@ -326,7 +298,7 @@ export default function TentorDashboardPage() {
           <h2 className="text-[22px] sm:text-2xl font-extrabold text-gray-800 tracking-tight leading-tight">Halo, {profileName}!</h2>
           <p className="text-[12px] sm:text-sm text-gray-600 mt-1 leading-relaxed">Portal Tentor • Agenda mengajar privat & laporan hari ini</p>
         </div>
-        <RealtimeClock />
+        <RealtimeClock nowMs={nowMs} />
       </header>
 
       {/* Statistics Row */}

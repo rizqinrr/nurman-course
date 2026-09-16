@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
-import GlassCard from "@/components/ui/GlassCard";
 import Reveal from "@/components/course/Reveal";
 import { landingCategories } from "@/data/landing";
 

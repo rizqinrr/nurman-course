@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowDown,
@@ -71,7 +71,7 @@ export default function RoadmapClient() {
   const [programsLoading, setProgramsLoading] = useState(true);
   const [selectedProgramId, setSelectedProgramId] = useState<string>(programParam || "");
   const [steps, setSteps] = useState<RoadmapStep[]>([]);
-  const [stepsLoading, setStepsLoading] = useState(false);
+  const [stepsLoading, setStepsLoading] = useState(true);
   const [materialsMap, setMaterialsMap] = useState<Record<string, MaterialItem[]>>({});
   const [materialsLoading, setMaterialsLoading] = useState<string | null>(null);
   const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
@@ -91,6 +91,7 @@ export default function RoadmapClient() {
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [reordering, setReordering] = useState<Record<string, boolean>>({});
 
   const roadmapPrograms = useMemo(
     () => programs.filter((p) => p.hasRoadmap),
@@ -102,72 +103,109 @@ export default function RoadmapClient() {
     [roadmapPrograms, selectedProgramId],
   );
 
-  const loadPrograms = useCallback(async () => {
-    setProgramsLoading(true);
-    setErrorMsg(null);
-    try {
-      const res = await apiFetch<{ data: AdminProgram[] }>("/api/admin/programs");
-      const list = res.data || [];
-      setPrograms(list);
-      if (!selectedProgramId && list.length > 0) {
-        const firstRoadmap = list.find((p) => p.hasRoadmap);
-        setSelectedProgramId(firstRoadmap?.id || "");
-      }
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal memuat daftar program.");
-    } finally {
-      setProgramsLoading(false);
-    }
-  }, [selectedProgramId]);
+  const mounted = useRef(false);
+  const requests = useRef<Record<string, symbol>>({});
+  const reorderRequests = useRef<Partial<Record<string, Promise<void>>>>({});
 
   useEffect(() => {
-    void loadPrograms();
-  }, [loadPrograms]);
-
-  const loadSteps = useCallback(async (programId: string) => {
-    if (!programId) return;
-    setStepsLoading(true);
-    setErrorMsg(null);
-    setExpandedStepId(null);
-    setMaterialsMap({});
-    try {
-      const res = await apiFetch<{ data: RoadmapStep[] }>(
-        `/api/admin/programs/${programId}/roadmap`,
-      );
-      setSteps(res.data || []);
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal memuat roadmap.");
-    } finally {
-      setStepsLoading(false);
-    }
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      requests.current = {};
+    };
   }, []);
+
+  const beginRequest = useCallback((key: string) => {
+    const request = Symbol();
+    requests.current[key] = request;
+    return () => mounted.current && requests.current[key] === request;
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPrograms = async () => {
+      try {
+        const res = await apiFetch<{ data: AdminProgram[] }>("/api/admin/programs");
+        if (cancelled) return;
+        const list = res.data || [];
+        setPrograms(list);
+        setSelectedProgramId((current) => current || list.find((p) => p.hasRoadmap)?.id || "");
+      } catch (err) {
+        if (!cancelled) setErrorMsg(err instanceof Error ? err.message : "Gagal memuat daftar program.");
+      } finally {
+        if (!cancelled) setProgramsLoading(false);
+      }
+    };
+    void loadPrograms();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const loadSteps = useCallback((programId: string) => {
+    if (!programId) return;
+    const isCurrent = beginRequest("steps");
+    const pending = reorderRequests.current[`steps:${programId}`];
+    const fetchSteps = () => apiFetch<{ data: RoadmapStep[] }>(`/api/admin/programs/${programId}/roadmap`);
+    return (pending ? pending.then(() => isCurrent() ? fetchSteps() : undefined) : fetchSteps())
+      .then((res) => {
+        if (isCurrent() && res) setSteps(res.data || []);
+      })
+      .catch((err) => {
+        if (isCurrent()) setErrorMsg(err instanceof Error ? err.message : "Gagal memuat roadmap.");
+      })
+      .finally(() => {
+        if (isCurrent()) setStepsLoading(false);
+      });
+  }, [beginRequest]);
 
   useEffect(() => {
     void loadSteps(selectedProgramId);
+    return () => {
+      delete requests.current.steps;
+    };
   }, [selectedProgramId, loadSteps]);
 
+  const resetMaterials = () => {
+    for (const key of Object.keys(requests.current)) {
+      if (key.startsWith("materials:")) delete requests.current[key];
+    }
+    setExpandedStepId(null);
+    setMaterialsMap({});
+    setMaterialsLoading(null);
+  };
+
+  const refreshSteps = (programId: string) => {
+    setStepsLoading(true);
+    setErrorMsg(null);
+    resetMaterials();
+    return loadSteps(programId);
+  };
+
   const loadMaterials = useCallback(async (stepId: string) => {
+    const isCurrent = beginRequest(`materials:${stepId}`);
     setMaterialsLoading(stepId);
     try {
+      const pending = reorderRequests.current[`materials:${stepId}`];
+      if (pending) await pending;
+      if (!isCurrent()) return;
       const res = await apiFetch<{ data: MaterialItem[] }>(
         `/api/admin/roadmap-steps/${stepId}/materials`,
       );
-      setMaterialsMap((prev) => ({ ...prev, [stepId]: res.data || [] }));
+      if (isCurrent()) setMaterialsMap((prev) => ({ ...prev, [stepId]: res.data || [] }));
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal memuat materi.");
+      if (isCurrent()) setErrorMsg(err instanceof Error ? err.message : "Gagal memuat materi.");
     } finally {
-      setMaterialsLoading((prev) => (prev === stepId ? null : prev));
+      if (isCurrent()) setMaterialsLoading((prev) => (prev === stepId ? null : prev));
     }
-  }, []);
+  }, [beginRequest]);
 
   const toggleStep = (stepId: string) => {
-    setExpandedStepId((prev) => {
-      const next = prev === stepId ? null : stepId;
-      if (next && !(next in materialsMap)) {
-        void loadMaterials(next);
-      }
-      return next;
-    });
+    const next = expandedStepId === stepId ? null : stepId;
+    setExpandedStepId(next);
+    if (next && !(next in materialsMap)) {
+      void loadMaterials(next);
+    }
   };
 
   const resetStepModal = () => {
@@ -206,6 +244,7 @@ export default function RoadmapClient() {
       return;
     }
 
+    const isCurrent = beginRequest("saveStep");
     setStepSaving(true);
     try {
       if (editingStep) {
@@ -213,20 +252,22 @@ export default function RoadmapClient() {
           method: "PATCH",
           body: JSON.stringify(parsed.data),
         });
+        if (!isCurrent()) return;
         setNotice("Langkah roadmap diperbarui.");
       } else {
         await apiFetch<{ data: RoadmapStep }>(`/api/admin/programs/${selectedProgram.id}/roadmap`, {
           method: "POST",
           body: JSON.stringify(parsed.data),
         });
+        if (!isCurrent()) return;
         setNotice("Langkah roadmap ditambahkan.");
       }
       resetStepModal();
-      await loadSteps(selectedProgram.id);
+      await refreshSteps(selectedProgram.id);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal menyimpan langkah.");
+      if (isCurrent()) setErrorMsg(err instanceof Error ? err.message : "Gagal menyimpan langkah.");
     } finally {
-      setStepSaving(false);
+      if (isCurrent()) setStepSaving(false);
     }
   };
 
@@ -265,6 +306,7 @@ export default function RoadmapClient() {
       return;
     }
 
+    const isCurrent = beginRequest("saveMaterial");
     setMaterialSaving(true);
     try {
       if (editingMaterial) {
@@ -272,35 +314,52 @@ export default function RoadmapClient() {
           method: "PATCH",
           body: JSON.stringify(parsed.data),
         });
+        if (!isCurrent()) return;
         setNotice("Materi diperbarui.");
       } else {
         await apiFetch<{ data: MaterialItem }>(`/api/admin/roadmap-steps/${materialStepId}/materials`, {
           method: "POST",
           body: JSON.stringify(parsed.data),
         });
+        if (!isCurrent()) return;
         setNotice("Materi ditambahkan.");
       }
       resetMaterialModal();
       await loadMaterials(materialStepId);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal menyimpan materi.");
+      if (isCurrent()) setErrorMsg(err instanceof Error ? err.message : "Gagal menyimpan materi.");
     } finally {
-      setMaterialSaving(false);
+      if (isCurrent()) setMaterialSaving(false);
     }
   };
 
   const handleReorderSteps = async (stepIds: string[]) => {
     if (!selectedProgram) return;
+    const key = `steps:${selectedProgram.id}`;
+    if (reorderRequests.current[key]) return;
+    const isCurrent = beginRequest("steps");
+    setReordering((prev) => ({ ...prev, [key]: true }));
     setErrorMsg(null);
     setNotice(null);
+    const request = apiFetch<{ data: RoadmapStep[] }>(
+      `/api/admin/programs/${selectedProgram.id}/roadmap/reorder`,
+      { method: "POST", body: JSON.stringify({ stepIds }) },
+    )
+      .then((res) => {
+        if (isCurrent()) setSteps(res.data || []);
+      })
+      .catch((err) => {
+        if (isCurrent()) setErrorMsg(err instanceof Error ? err.message : "Gagal mengubah urutan langkah.");
+      });
+    reorderRequests.current[key] = request;
     try {
-      const res = await apiFetch<{ data: RoadmapStep[] }>(
-        `/api/admin/programs/${selectedProgram.id}/roadmap/reorder`,
-        { method: "POST", body: JSON.stringify({ stepIds }) },
-      );
-      setSteps(res.data || []);
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal mengubah urutan langkah.");
+      await request;
+    } finally {
+      if (reorderRequests.current[key] === request) {
+        delete reorderRequests.current[key];
+        if (mounted.current) setReordering((prev) => ({ ...prev, [key]: false }));
+      }
+      if (isCurrent()) setStepsLoading(false);
     }
   };
 
@@ -313,16 +372,31 @@ export default function RoadmapClient() {
   };
 
   const handleReorderMaterials = async (stepId: string, materialIds: string[]) => {
+    const key = `materials:${stepId}`;
+    if (reorderRequests.current[key]) return;
+    const isCurrent = beginRequest(key);
+    setReordering((prev) => ({ ...prev, [key]: true }));
     setErrorMsg(null);
     setNotice(null);
+    const request = apiFetch<{ data: MaterialItem[] }>(
+      `/api/admin/roadmap-steps/${stepId}/materials/reorder`,
+      { method: "POST", body: JSON.stringify({ materialIds }) },
+    )
+      .then((res) => {
+        if (isCurrent()) setMaterialsMap((prev) => ({ ...prev, [stepId]: res.data || [] }));
+      })
+      .catch((err) => {
+        if (isCurrent()) setErrorMsg(err instanceof Error ? err.message : "Gagal mengubah urutan materi.");
+      });
+    reorderRequests.current[key] = request;
     try {
-      const res = await apiFetch<{ data: MaterialItem[] }>(
-        `/api/admin/roadmap-steps/${stepId}/materials/reorder`,
-        { method: "POST", body: JSON.stringify({ materialIds }) },
-      );
-      setMaterialsMap((prev) => ({ ...prev, [stepId]: res.data || [] }));
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal mengubah urutan materi.");
+      await request;
+    } finally {
+      if (reorderRequests.current[key] === request) {
+        delete reorderRequests.current[key];
+        if (mounted.current) setReordering((prev) => ({ ...prev, [key]: false }));
+      }
+      if (isCurrent()) setMaterialsLoading((prev) => (prev === stepId ? null : prev));
     }
   };
 
@@ -337,26 +411,48 @@ export default function RoadmapClient() {
 
   const handleDelete = async () => {
     if (!confirmTarget) return;
+    const isCurrent = beginRequest("delete");
     setErrorMsg(null);
     setNotice(null);
     setDeleting(true);
     try {
       if (confirmTarget.type === "step") {
         await apiFetch(`/api/admin/roadmap-steps/${confirmTarget.id}`, { method: "DELETE" });
-        if (selectedProgram) await loadSteps(selectedProgram.id);
-        setNotice("Langkah roadmap dihapus.");
+        if (!isCurrent()) return;
+        if (selectedProgram) await refreshSteps(selectedProgram.id);
+        if (isCurrent()) setNotice("Langkah roadmap dihapus.");
       } else {
         const stepId = confirmTarget.stepId;
         await apiFetch(`/api/admin/material-items/${confirmTarget.id}`, { method: "DELETE" });
+        if (!isCurrent()) return;
         if (stepId) await loadMaterials(stepId);
-        setNotice("Materi dihapus.");
+        if (isCurrent()) setNotice("Materi dihapus.");
       }
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Gagal menghapus.");
+      if (isCurrent()) setErrorMsg(err instanceof Error ? err.message : "Gagal menghapus.");
     } finally {
-      setDeleting(false);
-      setConfirmTarget(null);
+      if (isCurrent()) {
+        setDeleting(false);
+        setConfirmTarget(null);
+      }
     }
+  };
+
+  const selectProgram = (programId: string) => {
+    if (programId === selectedProgramId) return;
+    requests.current = {};
+    setSelectedProgramId(programId);
+    setSteps([]);
+    setStepsLoading(true);
+    resetMaterials();
+    resetStepModal();
+    resetMaterialModal();
+    setStepSaving(false);
+    setMaterialSaving(false);
+    setConfirmTarget(null);
+    setDeleting(false);
+    setErrorMsg(null);
+    setNotice(null);
   };
 
   const materialsOf = (stepId: string) => materialsMap[stepId] || [];
@@ -389,7 +485,7 @@ export default function RoadmapClient() {
             </span>
             <select
               value={selectedProgramId}
-              onChange={(e) => setSelectedProgramId(e.target.value)}
+              onChange={(e) => selectProgram(e.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9]"
               aria-label="Pilih program"
             >
@@ -474,7 +570,7 @@ export default function RoadmapClient() {
                         <button
                           type="button"
                           onClick={() => moveStep(index, -1)}
-                          disabled={index === 0}
+                          disabled={index === 0 || Boolean(reordering[`steps:${selectedProgramId}`])}
                           className="inline-flex items-center justify-center rounded-lg bg-white/70 p-2 text-gray-500 ring-1 ring-gray-200 hover:bg-white disabled:opacity-30"
                           aria-label="Naikkan urutan"
                         >
@@ -483,7 +579,7 @@ export default function RoadmapClient() {
                         <button
                           type="button"
                           onClick={() => moveStep(index, 1)}
-                          disabled={index === steps.length - 1}
+                          disabled={index === steps.length - 1 || Boolean(reordering[`steps:${selectedProgramId}`])}
                           className="inline-flex items-center justify-center rounded-lg bg-white/70 p-2 text-gray-500 ring-1 ring-gray-200 hover:bg-white disabled:opacity-30"
                           aria-label="Turunkan urutan"
                         >
@@ -558,7 +654,7 @@ export default function RoadmapClient() {
                                   <button
                                     type="button"
                                     onClick={() => moveMaterial(step.id, mi, -1)}
-                                    disabled={mi === 0}
+                                    disabled={mi === 0 || Boolean(reordering[`materials:${step.id}`])}
                                     className="inline-flex items-center justify-center rounded-lg bg-white/70 p-1.5 text-gray-500 ring-1 ring-gray-200 hover:bg-white disabled:opacity-30"
                                     aria-label="Naikkan materi"
                                   >
@@ -567,7 +663,7 @@ export default function RoadmapClient() {
                                   <button
                                     type="button"
                                     onClick={() => moveMaterial(step.id, mi, 1)}
-                                    disabled={mi === materials.length - 1}
+                                    disabled={mi === materials.length - 1 || Boolean(reordering[`materials:${step.id}`])}
                                     className="inline-flex items-center justify-center rounded-lg bg-white/70 p-1.5 text-gray-500 ring-1 ring-gray-200 hover:bg-white disabled:opacity-30"
                                     aria-label="Turunkan materi"
                                   >

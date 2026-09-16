@@ -87,7 +87,7 @@ function LaporanPerkembanganForm({ murid, program, blockNumber, onSubmit, onCanc
 
 const calculateAge = (birthDateString: string) => { try { const birth = new Date(birthDateString); const ageDifMs = Date.now() - birth.getTime(); const ageDate = new Date(ageDifMs); return Math.abs(ageDate.getUTCFullYear() - 1970); } catch { return 7; } };
 interface DbMurid { id: string; waliId: string; name: string; birthDate?: string | null; schoolLevel?: string | null; avatarUrl?: string | null; }
-interface SessionWithRelations extends Session { murid?: DbMurid; program?: Program; }
+interface SessionWithRelations extends Session { murid?: DbMurid | null; program?: Program | null; }
 interface ProgressReportWithRelations { id: string; muridId: string; programId: string; blockNumber: number; achievements: string[]; masteredMaterials: string[]; weakMaterials: string[]; notes?: string | null; program?: Program | null; murid?: DbMurid | null; createdAt: string; }
 
 export default function LaporanPerkembanganClient() {
@@ -109,23 +109,23 @@ export default function LaporanPerkembanganClient() {
 
   const refreshData = async () => {
     try {
-      interface EnrollmentWithMurid { id: string; muridId: string; murid?: { id: string; waliId: string; name: string; birthDate?: string | null; schoolLevel?: string | null; avatarUrl?: string | null }; }
+      interface EnrollmentWithMurid { id: string; muridId: string; murid?: DbMurid | null; }
       const [reportsRes, sessionsRes, enrollmentsRes, profileRes] = await Promise.all([
         apiFetch<{ reports: ProgressReportWithRelations[] }>("/api/me/progress-reports"),
         apiFetch<{ sessions: SessionWithRelations[] }>("/api/me/sessions"),
-        apiFetch<{ enrollments: EnrollmentWithMurid[] }>("/api/me/enrollments").catch(() => ({ enrollments: [] as any } as any)),
-        apiFetch<{ user: { name: string } }>("/api/users/me").catch(() => ({ user: { name: "Tentor" } } as any)),
+        apiFetch<{ enrollments: EnrollmentWithMurid[] }>("/api/me/enrollments").catch((): { enrollments: EnrollmentWithMurid[] } => ({ enrollments: [] })),
+        apiFetch<{ user: { name: string } }>("/api/users/me").catch(() => ({ user: { name: "Tentor" } })),
       ]);
       if (profileRes?.user?.name) setTentorName(profileRes.user.name);
 
-      const mappedReports = reportsRes.reports.map((r) => ({ id: r.id, muridId: r.muridId, programId: r.programId, blockNumber: r.blockNumber, achievements: r.achievements, masteredMaterials: r.masteredMaterials, weakMaterials: r.weakMaterials, notes: r.notes || "", programName: r.program?.name || "Program General", muridName: r.murid?.name || "Siswa", muridAge: r.murid?.birthDate ? calculateAge(new Date(r.murid.birthDate).toISOString()) : 7, sessionsPerBlock: (r.program as any)?.sessionsPerBlock || 12 }));
+      const mappedReports = reportsRes.reports.map((r) => ({ id: r.id, muridId: r.muridId, programId: r.programId, blockNumber: r.blockNumber, achievements: r.achievements, masteredMaterials: r.masteredMaterials, weakMaterials: r.weakMaterials, notes: r.notes || "", programName: r.program?.name || "Program General", muridName: r.murid?.name || "Siswa", muridAge: r.murid?.birthDate ? calculateAge(new Date(r.murid.birthDate).toISOString()) : 7, sessionsPerBlock: r.program?.sessionsPerBlock || 12 }));
       setReports(mappedReports);
       setSessions(sessionsRes.sessions);
 
       const uniqueMuridsMap = new Map<string, Murid>();
-      const enrList: EnrollmentWithMurid[] = (enrollmentsRes as any).enrollments || [];
-      enrList.forEach((enr) => { const m = enr.murid; if (m && !uniqueMuridsMap.has(m.id)) { uniqueMuridsMap.set(m.id, { id: m.id, waliId: m.waliId, name: m.name, age: m.birthDate ? calculateAge(new Date(m.birthDate).toISOString()) : 7, schoolLevel: m.schoolLevel || "TK B", avatarUrl: m.avatarUrl || "" } as any); } });
-      sessionsRes.sessions.forEach((s) => { if (s.murid && !uniqueMuridsMap.has(s.murid.id)) { const m = s.murid; uniqueMuridsMap.set(m.id, { id: m.id, waliId: m.waliId, name: m.name, age: m.birthDate ? calculateAge(new Date(m.birthDate).toISOString()) : 7, schoolLevel: m.schoolLevel || "TK B", avatarUrl: m.avatarUrl || "" } as any); } });
+      const enrList: EnrollmentWithMurid[] = enrollmentsRes.enrollments || [];
+      enrList.forEach((enr) => { const m = enr.murid; if (m && !uniqueMuridsMap.has(m.id)) { uniqueMuridsMap.set(m.id, { id: m.id, waliId: m.waliId, name: m.name, age: m.birthDate ? calculateAge(new Date(m.birthDate).toISOString()) : 7, schoolLevel: m.schoolLevel || "TK B", avatarUrl: m.avatarUrl || "" }); } });
+      sessionsRes.sessions.forEach((s) => { if (s.murid && !uniqueMuridsMap.has(s.murid.id)) { const m = s.murid; uniqueMuridsMap.set(m.id, { id: m.id, waliId: m.waliId, name: m.name, age: m.birthDate ? calculateAge(new Date(m.birthDate).toISOString()) : 7, schoolLevel: m.schoolLevel || "TK B", avatarUrl: m.avatarUrl || "" }); } });
       setMurids(Array.from(uniqueMuridsMap.values()));
 
       const uniqueProgramsMap = new Map<string, Program>();
@@ -203,7 +203,7 @@ export default function LaporanPerkembanganClient() {
                       <div className="flex flex-col gap-2"><h4 className="font-bold text-gray-800 flex items-center gap-1.5"><Award size={16} className="text-[#4a70a9]" /> Pencapaian Utama</h4><ul className="list-disc list-inside text-gray-600 space-y-1 pl-1">{report.achievements.map((ach, idx) => (<li key={idx} className="leading-relaxed">{ach}</li>))}</ul></div>
                       <div className="flex flex-col gap-4"><div className="flex flex-col gap-1 border-l-2 border-emerald-500/40 pl-3"><h4 className="font-bold text-[10px] uppercase tracking-wider text-emerald-800">Materi Dikuasai</h4><ul className="list-disc list-inside text-gray-600 space-y-0.5 mt-0.5">{report.masteredMaterials.map((item, idx) => (<li key={idx} className="leading-relaxed">{item}</li>))}</ul></div><div className="flex flex-col gap-1 border-l-2 border-amber-500/40 pl-3"><h4 className="font-bold text-[10px] uppercase tracking-wider text-amber-800">Butuh Pengulangan</h4><ul className="list-disc list-inside text-gray-600 space-y-0.5 mt-0.5">{report.weakMaterials.map((item, idx) => (<li key={idx} className="leading-relaxed">{item}</li>))}</ul></div></div>
                     </div>
-                    <div className="border-t border-gray-200/30 pt-3 mt-1"><span className="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-wider">Catatan & Saran Tentor</span><p className="text-xs italic text-gray-600 leading-relaxed">"{report.notes}"</p></div>
+                    <div className="border-t border-gray-200/30 pt-3 mt-1"><span className="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-wider">Catatan & Saran Tentor</span><p className="text-xs italic text-gray-600 leading-relaxed">&quot;{report.notes}&quot;</p></div>
                   </GlassCard>
                 ))
               ) : (<div className="flex flex-col items-center justify-center p-8 bg-white/40 border border-white/60 rounded-3xl text-center gap-3"><AlertCircle className="text-[#4a70a9]" size={36} /><div><h3 className="font-bold text-gray-800 text-sm">Belum Ada Rapor Perkembangan</h3><p className="text-xs text-gray-500 mt-1 max-w-sm">Buat rapor setelah murid menyelesaikan satu blok.</p></div></div>)}
@@ -231,7 +231,7 @@ export default function LaporanPerkembanganClient() {
             <div><h3 className="text-[10px] font-black uppercase tracking-wider mb-2">Butuh Pengulangan</h3><table className="w-full border border-black text-[9.5px]"><thead><tr className="bg-amber-50"><th className="border border-black px-2 py-1.5 w-[28px]">No</th><th className="border border-black px-2 py-1.5 text-left">Materi</th></tr></thead><tbody>{printProgressReport.weakMaterials.map((m, i) => (<tr key={i} className="print-avoid-break"><td className="border border-black px-2 py-1.5 text-center">{i+1}</td><td className="border border-black px-2 py-1.5">{m}</td></tr>))}</tbody></table></div>
           </div>
 
-          <div className="border border-black p-3 rounded-[8px] mb-8"><p className="font-black text-[10px] uppercase tracking-wider mb-1">Catatan & Saran Tentor</p><p className="text-[10px] leading-relaxed italic">"{printProgressReport.notes}"</p></div>
+          <div className="border border-black p-3 rounded-[8px] mb-8"><p className="font-black text-[10px] uppercase tracking-wider mb-1">Catatan & Saran Tentor</p><p className="text-[10px] leading-relaxed italic">&quot;{printProgressReport.notes}&quot;</p></div>
 
           <div className="flex justify-between items-start pt-4 text-[10px] mt-10"><div className="text-center w-[160px] flex flex-col gap-14"><span>Orang Tua / Wali Murid</span><div className="border-b border-black w-full"></div></div><div className="text-center w-[160px] flex flex-col gap-14"><span>Tentor</span><div className="flex flex-col items-center"><span className="font-bold">{tentorName}</span><div className="border-b border-black w-full mt-1"></div><span className="text-[8px] text-gray-500 mt-1">Nurman Course • {NURMAN_ADDR}</span></div></div></div>
         </div>

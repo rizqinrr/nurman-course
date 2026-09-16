@@ -10,6 +10,7 @@ import {
 } from "@/data/lms";
 import { WHATSAPP_NUMBER } from "@/lib/constants";
 import { apiFetch } from "@/lib/api";
+import useClock from "@/hooks/useClock";
 import { formatSessionDateTime } from "@/lib/format";
 import {
   ArrowLeft,
@@ -39,6 +40,7 @@ interface DbSession extends Session {
 
 export default function JadwalSesiPage() {
   const [loading, setLoading] = useState(true);
+  const nowMs = useClock();
   const [murids, setMurids] = useState<DbMurid[]>([]);
   const [selectedMuridId, setSelectedMuridId] = useState("");
 
@@ -47,9 +49,11 @@ export default function JadwalSesiPage() {
   const [historyDisplayLimit, setHistoryDisplayLimit] = useState(3);
 
   useEffect(() => {
+    let active = true;
     async function loadData() {
       try {
         const meRes = await apiFetch<{ user: { name: string; murids: DbMurid[] } }>("/api/users/me");
+        if (!active) return;
         setMurids(meRes.user.murids || []);
         if (meRes.user.murids?.length > 0) {
           setSelectedMuridId(meRes.user.murids[0].id);
@@ -60,22 +64,21 @@ export default function JadwalSesiPage() {
           apiFetch<{ reports: DailyReport[] }>("/api/me/daily-reports")
         ]);
 
+        if (!active) return;
         setSessions(sessionsRes.sessions || []);
         setDailyReports(dailyRes.reports || []);
-        setLoading(false);
       } catch (err) {
-        console.error("Failed to load jadwal data:", err);
-        setLoading(false);
+        if (active) console.error("Failed to load jadwal data:", err);
+      } finally {
+        if (active) setLoading(false);
       }
     }
 
-    const timer = setTimeout(() => {
-      loadData();
-    }, 0);
-    return () => clearTimeout(timer);
+    void loadData();
+    return () => { active = false; };
   }, []);
 
-  if (loading) {
+  if (loading || nowMs === null) {
     return (
       <div className="p-6 w-full flex-grow flex flex-col gap-4 items-center justify-center min-h-[50vh]">
         <div className="w-10 h-10 rounded-full border-3 border-[#4a70a9]/20 border-t-[#4a70a9] animate-spin"></div>
@@ -97,7 +100,7 @@ export default function JadwalSesiPage() {
 
   const activeSessions = sessions.filter((s) => s.muridId === selectedMuridId);
   const passedIds = new Set(
-    activeSessions.filter((s) => new Date(s.endsAt).getTime() <= Date.now()).map((s) => s.id)
+    activeSessions.filter((s) => new Date(s.endsAt).getTime() <= nowMs).map((s) => s.id)
   );
 
   const upcomingSessions = activeSessions

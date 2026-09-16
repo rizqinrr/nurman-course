@@ -2,7 +2,6 @@
 
 import { Quote, Star } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import GlassCard from "@/components/ui/GlassCard";
 import Reveal from "@/components/course/Reveal";
 import { testimonials } from "@/data/landing";
 

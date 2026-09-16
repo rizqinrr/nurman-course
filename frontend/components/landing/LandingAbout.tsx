@@ -8,7 +8,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import GlassCard from "@/components/ui/GlassCard";
 import Reveal from "@/components/course/Reveal";
 import { aboutPoints } from "@/data/landing";
 

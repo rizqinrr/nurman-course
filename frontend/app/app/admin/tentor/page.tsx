@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import NextImage from "next/image";
 import { Camera, Copy, Check, Edit3, KeyRound, Plus, Search, UserRound, XCircle, Trash2 } from "lucide-react";
 import { createUserSchema } from "@nurman-course/shared";
 import Button from "@/components/ui/Button";
@@ -43,8 +44,8 @@ function toForm(tutor: AdminTutor): TutorForm {
     name: tutor.name,
     phone: tutor.phone,
     email: tutor.email || "",
-    address: (tutor as any).address || "",
-    photoPath: (tutor as any).photoPath || "",
+    address: tutor.address || "",
+    photoPath: tutor.photoPath || "",
     password: "",
   };
 }
@@ -332,8 +333,8 @@ export default function AdminTutorPage() {
                 <GlassCard key={tutor.id} className="p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-3 min-w-0">
-                      {(tutor as any).photoPath ? (
-                        <img src={(tutor as any).photoPath} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/70" />
+                      {tutor.photoPath ? (
+                        <NextImage src={tutor.photoPath} alt="" width={48} height={48} unoptimized className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/70" />
                       ) : (
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#4a70a9]/15 text-[#4a70a9]">
                           <UserRound size={22} />
@@ -350,7 +351,7 @@ export default function AdminTutorPage() {
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                           {tutor.email && !tutor.email.includes("@nurmancourse.local") && <span>{tutor.email}</span>}
                           <span>{tutor.phone}</span>
-                          {(tutor as any).address && <span className="truncate max-w-[220px]">📍 {(tutor as any).address}</span>}
+                          {tutor.address && <span className="truncate max-w-[220px]">📍 {tutor.address}</span>}
                         </div>
                         {tutor._count && (
                           <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
@@ -389,7 +390,7 @@ export default function AdminTutorPage() {
             <div className="flex flex-col items-center gap-2 pb-2 border-b border-gray-100">
               <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 {form.photoPath ? (
-                  <img src={form.photoPath} alt="Preview" className="h-20 w-20 rounded-full object-cover border-2 border-[#4a70a9]/35" />
+                  <NextImage src={form.photoPath} alt="Preview" width={80} height={80} unoptimized className="h-20 w-20 rounded-full object-cover border-2 border-[#4a70a9]/35" />
                 ) : (
                   <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 group-hover:border-[#4a70a9] transition-colors">
                     <Camera size={24} />
@@ -464,8 +465,8 @@ export default function AdminTutorPage() {
             <GlassCard className="p-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  {(selectedTutor as any).photoPath ? (
-                    <img src={(selectedTutor as any).photoPath} alt="" className="h-14 w-14 rounded-full object-cover ring-2 ring-white/70" />
+                  {selectedTutor.photoPath ? (
+                    <NextImage src={selectedTutor.photoPath} alt="" width={56} height={56} unoptimized className="h-14 w-14 rounded-full object-cover ring-2 ring-white/70" />
                   ) : (
                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#4a70a9]/15 text-[#4a70a9]"><UserRound size={26} /></div>
                   )}
@@ -478,7 +479,7 @@ export default function AdminTutorPage() {
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-xl bg-white/60 p-3 col-span-2"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Email</p><p className="mt-1 font-semibold text-gray-800 break-all">{selectedTutor.email && !selectedTutor.email.includes("@nurmancourse.local") ? selectedTutor.email : "-"}</p>{selectedTutor.email?.includes("@nurmancourse.local") && <p className="mt-1 text-[10px] text-gray-500">Login via nomor WA (placeholder email)</p>}</div>
-                <div className="rounded-xl bg-white/60 p-3 col-span-2"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Alamat</p><p className="mt-1 font-semibold text-gray-800">{(selectedTutor as any).address || "-"}</p></div>
+                <div className="rounded-xl bg-white/60 p-3 col-span-2"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Alamat</p><p className="mt-1 font-semibold text-gray-800">{selectedTutor.address || "-"}</p></div>
                 <div className="rounded-xl bg-white/60 p-3"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Status</p><p className="mt-1 font-semibold text-gray-800">{selectedTutor.active === false ? "Nonaktif" : "Aktif"}</p></div>
                 <div className="rounded-xl bg-white/60 p-3"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Bergabung</p><p className="mt-1 font-semibold text-gray-800">{selectedTutor.createdAt ? new Date(selectedTutor.createdAt).toLocaleDateString("id-ID") : "-"}</p></div>
                 <div className="rounded-xl bg-white/60 p-3"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Murid</p><p className="mt-1 font-semibold text-gray-800">{selectedTutor._count?.murids ?? "-"}</p></div>

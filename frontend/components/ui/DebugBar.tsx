@@ -1,33 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchLogs, addLogListener, FetchLogEntry } from "@/lib/api";
+import { useState, useSyncExternalStore } from "react";
+import { addLogListener, getLogSnapshot, getServerLogSnapshot, clearFetchLogs } from "@/lib/api";
 import { Terminal, Trash2, ChevronDown, Activity, Copy, Check } from "lucide-react";
 
 export default function DebugBar() {
-  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [logs, setLogs] = useState<FetchLogEntry[]>([]);
+  const logs = useSyncExternalStore(addLogListener, getLogSnapshot, getServerLogSnapshot);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    if (process.env.NODE_ENV === "development") {
-      setLogs([...fetchLogs]);
-      const unsubscribe = addLogListener(() => {
-        setLogs([...fetchLogs]);
-      });
-      return unsubscribe;
-    }
-  }, []);
-
-  if (!mounted || process.env.NODE_ENV !== "development") {
+  if (logs === null || process.env.NODE_ENV !== "development") {
     return null;
   }
 
   const handleClear = () => {
-    fetchLogs.length = 0;
-    setLogs([]);
+    clearFetchLogs();
     setCopied(false);
   };
 

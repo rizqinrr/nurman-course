@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { Session, DailyReport, Murid, Program } from "@/data/lms";
-import { apiFetch, buildQuery } from "@/lib/api";
+import { Session, DailyReport, DbMurid, Program } from "@/data/lms";
+import useClock from "@/hooks/useClock";
+import { apiFetch } from "@/lib/api";
 import { addOneHour } from "@/utils/format";
 import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import PageHeader from "@/components/ui/PageHeader";
 import {
   CalendarDays, Clock, User, MapPin, BookOpen,
   CheckCircle2, AlertTriangle, History, Plus, X, Edit3, Trash2, GraduationCap, Ban,
@@ -24,7 +24,7 @@ const formatSessionDateTime = (isoString: string) => {
 };
 
 interface SessionWithRelations extends Session {
-  murid?: Murid;
+  murid?: DbMurid | null;
   program?: Program;
   tentor?: { id: string; name: string };
 }
@@ -33,7 +33,7 @@ interface EnrollmentWithMurid {
   id: string;
   muridId: string;
   programId: string;
-  murid?: Murid & { address?: string | null; avatarUrl?: string | null };
+  murid?: DbMurid | null;
   program?: Program & { id: string; name: string };
   tentor?: { id: string; name: string };
 }
@@ -54,7 +54,7 @@ export default function TentorJadwalPage() {
   const [sessionsDataRaw, setSessionsDataRaw] = useState<SessionWithRelations[]>([]);
   const [sessionsFormatted, setSessionsFormatted] = useState<SessionWithRelations[]>([]);
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
-  const [muridsList, setMuridsList] = useState<Murid[]>([]);
+  const [muridsList, setMuridsList] = useState<DbMurid[]>([]);
   const [enrollments, setEnrollments] = useState<EnrollmentWithMurid[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingSession, setEditingSession] = useState<SessionWithRelations | null>(null);
@@ -66,16 +66,20 @@ export default function TentorJadwalPage() {
   const [deleteTarget, setDeleteTarget] = useState<SessionWithRelations | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setErrorMsg(null);
-    try {
-      const [sessionsRes, reportsRes, enrollmentsRes] = await Promise.all([
-        apiFetch<{ sessions: SessionWithRelations[] }>("/api/me/sessions"),
-        apiFetch<{ reports: DailyReport[] }>("/api/me/daily-reports"),
-        apiFetch<{ enrollments: EnrollmentWithMurid[] }>("/api/me/enrollments").catch(() => ({ enrollments: [] as any } as any)),
-      ]);
+  const nowMs = useClock();
+  const requestId = useRef(0);
+  const saveId = useRef(0);
+  const mutationId = useRef(0);
+  const mounted = useRef(false);
 
+  const loadData = useCallback(() => {
+    const currentRequest = ++requestId.current;
+    return Promise.all([
+      apiFetch<{ sessions: SessionWithRelations[] }>("/api/me/sessions"),
+      apiFetch<{ reports: DailyReport[] }>("/api/me/daily-reports"),
+      apiFetch<{ enrollments?: EnrollmentWithMurid[]; data?: EnrollmentWithMurid[] }>("/api/me/enrollments").catch(() => ({ enrollments: [], data: [] })),
+    ]).then(([sessionsRes, reportsRes, enrollmentsRes]) => {
+      if (!mounted.current || currentRequest !== requestId.current) return;
       setSessionsDataRaw(sessionsRes.sessions);
       const mapped = sessionsRes.sessions.map((s) => ({
         ...s,
@@ -85,35 +89,48 @@ export default function TentorJadwalPage() {
       setSessionsFormatted(mapped);
       setDailyReports(reportsRes.reports);
 
-      const enrList: EnrollmentWithMurid[] = (enrollmentsRes as any).enrollments || (enrollmentsRes as any).data || [];
+      const enrList = enrollmentsRes.enrollments || enrollmentsRes.data || [];
       setEnrollments(enrList);
 
-      const uniqueMap = new Map<string, Murid>();
+      const uniqueMap = new Map<string, DbMurid>();
       enrList.forEach((e) => {
         if (e.murid && !uniqueMap.has(e.murid.id)) {
-          uniqueMap.set(e.murid.id, { ...(e.murid as any), avatarUrl: (e.murid as any).avatarUrl || "" } as Murid);
+          uniqueMap.set(e.murid.id, { ...e.murid, avatarUrl: e.murid.avatarUrl || "" });
         }
       });
       sessionsRes.sessions.forEach((s) => {
         if (s.murid && !uniqueMap.has(s.murid.id)) {
-          uniqueMap.set(s.murid.id, { ...(s.murid as any), avatarUrl: (s.murid as any).avatarUrl || "" } as Murid);
+          uniqueMap.set(s.murid.id, { ...s.murid, avatarUrl: s.murid.avatarUrl || "" });
         }
       });
       setMuridsList(Array.from(uniqueMap.values()));
-    } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : "Gagal memuat jadwal");
-    } finally {
-      setLoading(false);
-    }
+    }).catch((e: unknown) => {
+      if (mounted.current && currentRequest === requestId.current) {
+        setErrorMsg(e instanceof Error ? e.message : "Gagal memuat jadwal");
+      }
+    }).finally(() => {
+      if (mounted.current && currentRequest === requestId.current) setLoading(false);
+    });
   }, []);
 
-  useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => {
+    mounted.current = true;
+    void loadData();
+    return () => {
+      mounted.current = false;
+    };
+  }, [loadData]);
+
+  const reloadData = () => {
+    setLoading(true);
+    setErrorMsg(null);
+    return loadData();
+  };
 
   const filteredSessions = selectedMuridId === "all" ? sessionsFormatted : sessionsFormatted.filter(s => s.muridId === selectedMuridId);
 
-  const nowMs = Date.now();
   const passedIds = new Set(
-    sessionsDataRaw.filter((s) => new Date(s.endsAt).getTime() <= nowMs).map((s) => s.id),
+    sessionsDataRaw.filter((s) => nowMs !== null && new Date(s.endsAt).getTime() <= nowMs).map((s) => s.id),
   );
 
   const upcomingSessions = filteredSessions
@@ -133,7 +150,7 @@ export default function TentorJadwalPage() {
       date: new Date().toISOString().slice(0,10),
       startTime: "15:00",
       endTime: "16:00",
-      location: (firstEnr?.murid as any)?.address || "",
+      location: firstEnr?.murid?.address || "",
     });
     setShowForm(true);
     setErrorMsg(null);
@@ -172,6 +189,7 @@ export default function TentorJadwalPage() {
       return;
     }
     setSaving(true);
+    const currentSave = ++saveId.current;
     try {
       if (editingSession) {
         await apiFetch<{ data: SessionWithRelations }>(`/api/me/sessions/${editingSession.id}`, {
@@ -183,6 +201,7 @@ export default function TentorJadwalPage() {
             location: form.location || null,
           }),
         });
+        if (!mounted.current || currentSave !== saveId.current) return;
         setNotice("Jadwal berhasil diperbarui");
       } else {
         await apiFetch<{ data: SessionWithRelations }>(`/api/me/sessions`, {
@@ -195,17 +214,19 @@ export default function TentorJadwalPage() {
             location: form.location || null,
           }),
         });
+        if (!mounted.current || currentSave !== saveId.current) return;
         setNotice("Jadwal berhasil dibuat. Muncul di dashboard & halaman wali murid.");
       }
       setShowForm(false);
       setEditingSession(null);
       setForm(emptyForm);
-      await loadData();
+      await reloadData();
     } catch (err) {
+      if (!mounted.current || currentSave !== saveId.current) return;
       const msg = err instanceof Error ? err.message : "Gagal simpan jadwal";
       setErrorMsg(msg.includes("404") ? `Backend belum restart — endpoint baru belum aktif. Jalankan: npm run dev --workspace=backend. Detail: ${msg}` : msg);
     } finally {
-      setSaving(false);
+      if (mounted.current && currentSave === saveId.current) setSaving(false);
     }
   };
 
@@ -213,15 +234,18 @@ export default function TentorJadwalPage() {
     if (!cancelTarget) return;
     const id = cancelTarget.id;
     setConfirmBusy(true);
+    const currentMutation = ++mutationId.current;
     try {
       await apiFetch(`/api/me/sessions/${id}`, { method: "PATCH", body: JSON.stringify({ status: "cancelled" }) });
+      if (!mounted.current || currentMutation !== mutationId.current) return;
       setNotice("Sesi dibatalkan");
       setCancelTarget(null);
-      await loadData();
+      await reloadData();
     } catch (err) {
+      if (!mounted.current || currentMutation !== mutationId.current) return;
       setErrorMsg(err instanceof Error ? err.message : "Gagal batalkan");
     } finally {
-      setConfirmBusy(false);
+      if (mounted.current && currentMutation === mutationId.current) setConfirmBusy(false);
     }
   };
 
@@ -229,19 +253,22 @@ export default function TentorJadwalPage() {
     if (!deleteTarget) return;
     const id = deleteTarget.id;
     setConfirmBusy(true);
+    const currentMutation = ++mutationId.current;
     try {
       await apiFetch(`/api/me/sessions/${id}`, { method: "DELETE" });
+      if (!mounted.current || currentMutation !== mutationId.current) return;
       setNotice("Jadwal dihapus");
       setDeleteTarget(null);
-      await loadData();
+      await reloadData();
     } catch (err) {
+      if (!mounted.current || currentMutation !== mutationId.current) return;
       setErrorMsg(err instanceof Error ? err.message : "Gagal hapus");
     } finally {
-      setConfirmBusy(false);
+      if (mounted.current && currentMutation === mutationId.current) setConfirmBusy(false);
     }
   };
 
-  if (loading) {
+  if (loading || nowMs === null) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col justify-center items-center gap-4">
         <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-[#4a70a9] animate-spin" />
@@ -292,7 +319,7 @@ export default function TentorJadwalPage() {
                 Murid & Program (enrollment)
                 <select required value={form.enrollmentId} onChange={(e) => {
                   const enr = enrollments.find(x => x.id === e.target.value);
-                  setForm({ ...form, enrollmentId: e.target.value, location: (enr?.murid as any)?.address || form.location });
+                  setForm({ ...form, enrollmentId: e.target.value, location: enr?.murid?.address || form.location });
                 }} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none focus:border-[#4a70a9]">
                   <option value="">Pilih murid...</option>
                   {enrollments.map((enr) => (
@@ -332,8 +359,8 @@ export default function TentorJadwalPage() {
         {upcomingSessions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {upcomingSessions.map((session) => {
-              const murid = muridsList.find((m) => m.id === session.muridId) || session.murid || { name: "Siswa", schoolLevel: "SD" } as any;
-              const program = session.program || { id: session.programId, name: "Program Bimbingan" } as any;
+              const murid = muridsList.find((m) => m.id === session.muridId) || session.murid || { name: "Siswa", schoolLevel: "SD" };
+              const program = session.program || { id: session.programId, name: "Program Bimbingan" };
               return (
                 <GlassCard key={session.id} className="p-5 flex flex-col justify-between gap-4 border border-white/80 shadow-sm">
                   <div>
@@ -343,7 +370,7 @@ export default function TentorJadwalPage() {
                     </div>
                     <h4 className="font-bold text-gray-800 text-base">{murid.name}</h4>
                     <div className="flex flex-col gap-1.5 text-xs text-gray-500 mt-2">
-                      <div className="flex items-center gap-1.5"><BookOpen size={14} className="text-[#4a70a9] shrink-0" /><span>{program?.name} • {(murid as any).schoolLevel || "-"}</span></div>
+                      <div className="flex items-center gap-1.5"><BookOpen size={14} className="text-[#4a70a9] shrink-0" /><span>{program?.name} • {murid.schoolLevel || "-"}</span></div>
                       <div className="flex items-center gap-1.5"><Clock size={14} className="text-[#4a70a9] shrink-0" /><span>{session.startsAt.split(" • ")[1] || "WIB"} - {session.endsAt.split(" • ")[1] || ""}</span></div>
                     </div>
                     <div className="flex items-start gap-1.5 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-200/30">
@@ -383,8 +410,8 @@ export default function TentorJadwalPage() {
         {pastSessions.length > 0 ? (
           <div className="flex flex-col gap-3">
             {pastSessions.map((session) => {
-              const murid = muridsList.find((m) => m.id === session.muridId) || session.murid || { name: "Siswa" } as any;
-              const program = session.program || { id: session.programId, name: "Program" } as any;
+              const murid = muridsList.find((m) => m.id === session.muridId) || session.murid || { name: "Siswa" };
+              const program = session.program || { id: session.programId, name: "Program" };
               const reported = hasReport(session.id);
               const isCancelled = session.status === "cancelled";
               return (

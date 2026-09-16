@@ -9,7 +9,6 @@ import {
   Program,
   Murid
 } from "@/data/lms";
-import { WHATSAPP_NUMBER } from "@/lib/constants";
 import { apiFetch } from "@/lib/api";
 import { formatSessionDateTime } from "@/lib/format";
 import ProofModal, { ProofInvoiceData } from "@/components/ui/ProofModal";
@@ -26,12 +25,9 @@ import {
   ChevronDown,
   ChevronUp,
   Wallet,
-  Building,
-  FileText,
   ChevronRight,
   ShieldCheck,
   Send,
-  MessageCircle,
   Paperclip
 } from "lucide-react";
 
@@ -79,7 +75,7 @@ interface DbPrepayment {
 
 export default function TagihanWaliPage() {
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("Wali");
+  const [, setUserName] = useState("Wali");
   const [murids, setMurids] = useState<DbMurid[]>([]);
   const [selectedMuridId, setSelectedMuridId] = useState("");
 

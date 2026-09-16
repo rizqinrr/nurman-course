@@ -40,15 +40,18 @@ interface DbMurid {
 
 interface DbDailyReport extends DailyReport {
   session?: {
-    program?: Program;
-    tentor?: { name: string; phone?: string | null };
-  };
+    program?: Program | null;
+    tentor?: { name: string; phone?: string | null } | null;
+  } | null;
 }
 
 interface DbProgressReport extends ProgressReport {
-  program?: Program;
+  program?: Program | null;
   tentor?: { id: string; name: string; phone?: string | null } | null;
 }
+
+type DailyReportView = DailyReportDetailed & Pick<DbDailyReport, "session">;
+type ProgressReportView = ProgressReportDetailed & Pick<DbProgressReport, "tentor">;
 
 export default function LaporanPage() {
   const [loading, setLoading] = useState(true);
@@ -109,7 +112,7 @@ export default function LaporanPage() {
       .toUpperCase();
   };
 
-  const getFilteredDailyReports = (): DailyReportDetailed[] => {
+  const getFilteredDailyReports = (): DailyReportView[] => {
     const filtered = dailyReports.filter((r) => r.muridId === selectedMuridId);
     return filtered.map((r) => ({
       ...r,
@@ -119,7 +122,7 @@ export default function LaporanPage() {
     }));
   };
 
-  const getFilteredProgressReports = (): ProgressReportDetailed[] => {
+  const getFilteredProgressReports = (): ProgressReportView[] => {
     const filtered = progressReports.filter((r) => r.muridId === selectedMuridId);
     return filtered.map((r) => ({
       ...r,
@@ -131,18 +134,18 @@ export default function LaporanPage() {
   const filteredDailyReports = getFilteredDailyReports();
   const filteredProgressReports = getFilteredProgressReports();
 
-  const handleContactTutorWA = (report: DailyReportDetailed) => {
+  const handleContactTutorWA = (report: DailyReportView) => {
     if (!selectedMurid) return;
     const text = encodeURIComponent(
       `Halo ${report.tentorName}, saya wali murid dari *${selectedMurid.name}*. Ingin bertanya mengenai laporan harian tanggal *${report.date}* materi *${report.activity}*. Terima kasih.`
     );
-    const phone = (report as any).session?.tentor?.phone || WHATSAPP_NUMBER;
+    const phone = report.session?.tentor?.phone || WHATSAPP_NUMBER;
     window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
   };
 
-  const handleContactAdminProgressWA = (report: ProgressReportDetailed) => {
+  const handleContactAdminProgressWA = (report: ProgressReportView) => {
     if (!selectedMurid) return;
-    const mentor = (report as any).tentor;
+    const mentor = report.tentor;
     const text = encodeURIComponent(
       `Halo ${mentor?.name || "Admin Nurman Course"}, saya wali murid dari *${selectedMurid.name}*. Ingin berkonsultasi mengenai laporan perkembangan blok *${report.blockNumber}* untuk program *${report.programName}*. Terima kasih.`
     );

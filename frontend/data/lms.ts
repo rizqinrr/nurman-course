@@ -19,6 +19,16 @@ export interface Murid {
   active?: boolean;
 }
 
+export interface DbMurid {
+  id: string;
+  waliId: string;
+  name: string;
+  birthDate?: string | null;
+  schoolLevel?: string | null;
+  avatarUrl?: string | null;
+  address?: string | null;
+}
+
 export interface Program {
   id: string;
   slug: string;

@@ -16,7 +16,7 @@ export default function LandingTutors() {
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
   const isJumpingRef = useRef(false);
   const loopedIndexRef = useRef(n);
-  const reduceMotion = useReducedMotion();
+  useReducedMotion();
 
   const loopedTutors = useMemo(
     () =>
@@ -27,7 +27,7 @@ export default function LandingTutors() {
           logicalIndex: i,
         })),
       ).flat(),
-    [tutors],
+    [],
   );
 
   const scrollCardIntoView = useCallback(
@@ -221,6 +221,7 @@ export default function LandingTutors() {
                     src={tutor.photo}
                     alt={tutor.nickname}
                     fill
+                    sizes="(min-width: 1152px) 294px, (min-width: 640px) calc(31vw - 62px), calc(85vw - 88px)"
                     className="object-cover"
                   />
                 </div>

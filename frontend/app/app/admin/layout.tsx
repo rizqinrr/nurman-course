@@ -32,9 +32,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [waitingCount, setWaitingCount] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  useEffect(() => {
+  const [navPathname, setNavPathname] = useState(pathname);
+
+  if (navPathname !== pathname) {
+    setNavPathname(pathname);
     setMobileNavOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

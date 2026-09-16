@@ -62,7 +62,7 @@ export default function DashboardWaliPage() {
   const [enrollments, setEnrollments] = useState<DbEnrollment[]>([]);
   const [sessions, setSessions] = useState<DbSession[]>([]);
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
-  const [progressReports, setProgressReports] = useState<ProgressReport[]>([]);
+  const [, setProgressReports] = useState<ProgressReport[]>([]);
   const [invoices, setInvoices] = useState<DbInvoice[]>([]);
 
   useEffect(() => {

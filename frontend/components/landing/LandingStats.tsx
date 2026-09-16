@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import GlassCard from "@/components/ui/GlassCard";
 import CountUp from "@/components/course/CountUp";
 import Reveal from "@/components/course/Reveal";
 import { landingStats } from "@/data/landing";

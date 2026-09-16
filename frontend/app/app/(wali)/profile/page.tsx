@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useLogout } from "@/lib/useLogout";
 import {
   ArrowLeft,
-  User,
   Phone,
   Mail,
   GraduationCap,

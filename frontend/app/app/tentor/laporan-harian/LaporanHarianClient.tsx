@@ -89,9 +89,10 @@ const calculateAge = (birthDateString: string) => {
   try { const birth = new Date(birthDateString); const ageDifMs = Date.now() - birth.getTime(); const ageDate = new Date(ageDifMs); return Math.abs(ageDate.getUTCFullYear() - 1970); } catch { return 7; }
 };
 
-interface DbMurid { id: string; waliId: string; name: string; birthDate?: string | null; schoolLevel?: string | null; avatarUrl?: string | null; }
-interface SessionWithRelations extends Session { murid?: DbMurid; program?: Program; }
-interface DailyReportWithRelations extends DailyReport { session: Session & { program?: Program; tentor?: User }; murid?: DbMurid; }
+interface DbMurid { id: string; waliId: string; name: string; birthDate?: string | null; schoolLevel?: string | null; avatarUrl?: string | null; address?: string | null; }
+interface SessionWithRelations extends Session { murid?: DbMurid | null; program?: Program | null; }
+interface DailyReportWithRelations extends DailyReport { session: Session & { program?: Program | null; tentor?: User | null }; murid?: DbMurid | null; }
+interface DailyReportView extends DailyReportForTentorDetailed { rawStartsAt: Session["startsAt"]; rawEndsAt: Session["endsAt"]; location: string; }
 
 export default function LaporanHarianClient() {
   const router = useRouter();
@@ -100,44 +101,44 @@ export default function LaporanHarianClient() {
   const editSessionId = searchParams.get("editSessionId");
 
   const [loading, setLoading] = useState(true);
-  const [reports, setReports] = useState<DailyReportForTentorDetailed[]>([]);
+  const [reports, setReports] = useState<DailyReportView[]>([]);
   const [sessions, setSessions] = useState<SessionWithRelations[]>([]);
   const [murids, setMurids] = useState<Murid[]>([]);
   const [selectedMuridId, setSelectedMuridId] = useState<string>("all");
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [tentorName, setTentorName] = useState("Tentor");
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [detailReport, setDetailReport] = useState<DailyReportForTentorDetailed | null>(null);
+  const [, setProfileLoading] = useState(true);
+  const [detailReport, setDetailReport] = useState<DailyReportView | null>(null);
 
   const refreshData = async () => {
     try {
-      interface EnrollmentWithMurid { id: string; muridId: string; murid?: { id: string; waliId: string; name: string; birthDate?: string | null; schoolLevel?: string | null; avatarUrl?: string | null }; }
+      interface EnrollmentWithMurid { id: string; muridId: string; murid?: DbMurid | null; }
       const [reportsRes, sessionsRes, enrollmentsRes, profileRes] = await Promise.all([
         apiFetch<{ reports: DailyReportWithRelations[] }>("/api/me/daily-reports"),
         apiFetch<{ sessions: SessionWithRelations[] }>("/api/me/sessions"),
-        apiFetch<{ enrollments: EnrollmentWithMurid[] }>("/api/me/enrollments").catch(() => ({ enrollments: [] as any } as any)),
-        apiFetch<{ user: { name: string } }>("/api/users/me").catch(() => ({ user: { name: "Tentor" } } as any)),
+        apiFetch<{ enrollments: EnrollmentWithMurid[] }>("/api/me/enrollments").catch((): { enrollments: EnrollmentWithMurid[] } => ({ enrollments: [] })),
+        apiFetch<{ user: { name: string } }>("/api/users/me").catch(() => ({ user: { name: "Tentor" } })),
       ]);
       if (profileRes?.user?.name) { setTentorName(profileRes.user.name); setProfileLoading(false); }
 
-      const mappedReports = reportsRes.reports.map((r) => ({
+      const mappedReports = reportsRes.reports.map((r): DailyReportView => ({
         id: r.id, sessionId: r.sessionId, muridId: r.muridId,
         date: formatSessionDateTime(r.session.startsAt).split(" • ")[0],
         startTime: r.startTime, endTime: r.endTime, activity: r.activity, notes: r.notes || "",
         programName: r.session.program?.name || "Program General",
         muridName: r.murid?.name || "Siswa", muridAge: r.murid?.birthDate ? calculateAge(r.murid.birthDate) : 7,
-        rawStartsAt: r.session.startsAt, rawEndsAt: r.session.endsAt, location: (r.session as any).location || (r.murid as any)?.address || "",
-      } as any));
-      setReports(mappedReports as any);
+        rawStartsAt: r.session.startsAt, rawEndsAt: r.session.endsAt, location: r.session.location || r.murid?.address || "",
+      }));
+      setReports(mappedReports);
 
       const mappedSessions = sessionsRes.sessions.map((s) => ({ ...s, startsAt: formatSessionDateTime(s.startsAt), endsAt: formatSessionDateTime(s.endsAt) }));
       setSessions(mappedSessions);
 
       const uniqueMuridsMap = new Map<string, Murid>();
-      const enrList: EnrollmentWithMurid[] = (enrollmentsRes as any).enrollments || [];
-      enrList.forEach((enr) => { const m = enr.murid; if (m && !uniqueMuridsMap.has(m.id)) { uniqueMuridsMap.set(m.id, { id: m.id, waliId: m.waliId || "wali-1", name: m.name, age: m.birthDate ? calculateAge(m.birthDate) : 7, schoolLevel: m.schoolLevel || "TK B", avatarUrl: m.avatarUrl || "" } as any); } });
-      mappedSessions.forEach((s) => { if (s.murid && !uniqueMuridsMap.has(s.murid.id)) { uniqueMuridsMap.set(s.murid.id, { id: s.murid.id, waliId: s.murid.waliId || "wali-1", name: s.murid.name, age: s.murid.birthDate ? calculateAge(s.murid.birthDate) : 7, schoolLevel: s.murid.schoolLevel || "TK B", avatarUrl: s.murid.avatarUrl || "" } as any); } });
+      const enrList: EnrollmentWithMurid[] = enrollmentsRes.enrollments || [];
+      enrList.forEach((enr) => { const m = enr.murid; if (m && !uniqueMuridsMap.has(m.id)) { uniqueMuridsMap.set(m.id, { id: m.id, waliId: m.waliId || "wali-1", name: m.name, age: m.birthDate ? calculateAge(m.birthDate) : 7, schoolLevel: m.schoolLevel || "TK B", avatarUrl: m.avatarUrl || "" }); } });
+      mappedSessions.forEach((s) => { if (s.murid && !uniqueMuridsMap.has(s.murid.id)) { uniqueMuridsMap.set(s.murid.id, { id: s.murid.id, waliId: s.murid.waliId || "wali-1", name: s.murid.name, age: s.murid.birthDate ? calculateAge(s.murid.birthDate) : 7, schoolLevel: s.murid.schoolLevel || "TK B", avatarUrl: s.murid.avatarUrl || "" }); } });
       setMurids(Array.from(uniqueMuridsMap.values()));
     } catch (err) { console.error("Error refreshing daily reports data:", err); } finally { setLoading(false); }
   };
@@ -159,7 +160,7 @@ export default function LaporanHarianClient() {
   const muridReports = reports.filter(r => r.muridId === selectedMuridId);
   const chronologicalReports = [...muridReports].reverse();
   const programOfMurid = selectedMurid ? sessions.find(s => s.muridId === selectedMurid.id)?.program || null : null;
-  const sessionsPerBlock = programOfMurid ? (programOfMurid as any).sessionsPerBlock || 12 : 12;
+  const sessionsPerBlock = programOfMurid ? programOfMurid.sessionsPerBlock || 12 : 12;
   const totalBlocks = Math.ceil(chronologicalReports.length / sessionsPerBlock) || 1;
   const startIndex = (selectedBlock - 1) * sessionsPerBlock;
   const printReports = chronologicalReports.slice(startIndex, startIndex + sessionsPerBlock);
@@ -261,7 +262,7 @@ export default function LaporanHarianClient() {
                           <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">{report.programName}</td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-1.5">
-                              <button onClick={() => setDetailReport(report as any)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4a70a9]/10 text-[#4a70a9] border border-[#4a70a9]/20 hover:bg-[#4a70a9]/20 font-semibold text-[11px] transition-colors"><Eye size={13} /> Detail</button>
+                              <button onClick={() => setDetailReport(report)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4a70a9]/10 text-[#4a70a9] border border-[#4a70a9]/20 hover:bg-[#4a70a9]/20 font-semibold text-[11px] transition-colors"><Eye size={13} /> Detail</button>
                               <button onClick={() => router.push(`/app/tentor/laporan-harian?editSessionId=${report.sessionId}`)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/70 text-gray-600 border border-gray-200/60 hover:bg-white font-semibold text-[11px] transition-colors">Edit</button>
                             </div>
                           </td>
@@ -318,15 +319,15 @@ export default function LaporanHarianClient() {
 
           <div className="grid grid-cols-2 gap-3 text-[10px] mb-4 border border-black p-3 rounded-[8px]">
             <div><table className="w-full"><tbody><tr><td className="font-bold py-0.5 w-[88px]">Nama Siswa</td><td className="py-0.5">: {selectedMurid.name}</td></tr><tr><td className="font-bold py-0.5">Umur</td><td className="py-0.5">: {selectedMurid.age} Th</td></tr><tr><td className="font-bold py-0.5">Jenjang</td><td className="py-0.5">: {selectedMurid.schoolLevel}</td></tr><tr><td className="font-bold py-0.5">Tanggal Cetak</td><td className="py-0.5">: {todayWib}</td></tr></tbody></table></div>
-            <div><table className="w-full"><tbody><tr><td className="font-bold py-0.5 w-[88px]">Program</td><td className="py-0.5">: {programOfMurid?.name || (printReports[0] as any)?.programName || "Program"}</td></tr><tr><td className="font-bold py-0.5">Periode</td><td className="py-0.5">: Blok {selectedBlock} / {totalBlocks} (Target {sessionsPerBlock} Sesi)</td></tr><tr><td className="font-bold py-0.5">Tentor</td><td className="py-0.5">: {tentorName}</td></tr><tr><td className="font-bold py-0.5">Jumlah Sesi</td><td className="py-0.5">: {printReports.length} sesi di blok ini</td></tr></tbody></table></div>
+            <div><table className="w-full"><tbody><tr><td className="font-bold py-0.5 w-[88px]">Program</td><td className="py-0.5">: {programOfMurid?.name || printReports[0]?.programName || "Program"}</td></tr><tr><td className="font-bold py-0.5">Periode</td><td className="py-0.5">: Blok {selectedBlock} / {totalBlocks} (Target {sessionsPerBlock} Sesi)</td></tr><tr><td className="font-bold py-0.5">Tentor</td><td className="py-0.5">: {tentorName}</td></tr><tr><td className="font-bold py-0.5">Jumlah Sesi</td><td className="py-0.5">: {printReports.length} sesi di blok ini</td></tr></tbody></table></div>
           </div>
 
           <h2 className="text-[11px] font-black uppercase tracking-wider mb-2 text-black">Detail Pertemuan</h2>
           <table className="w-full border border-black text-[9.5px] mb-6">
             <thead><tr className="bg-gray-100 text-black"><th className="border border-black px-2 py-2 w-[28px] text-center font-bold">No</th><th className="border border-black px-2 py-2 w-[90px] text-left font-bold">Hari & Tanggal</th><th className="border border-black px-2 py-2 w-[70px] text-left font-bold">Jam</th><th className="border border-black px-2 py-2 text-left font-bold">Materi / Aktivitas</th><th className="border border-black px-2 py-2 text-left font-bold w-[28%]">Catatan Evaluasi Tentor</th></tr></thead>
             <tbody>
-              {printReports.length > 0 ? printReports.map((rep: any, index: number) => (
-                <tr key={rep.id} className="print-avoid-break"><td className="border border-black px-2 py-2 text-center align-top">{startIndex + index + 1}</td><td className="border border-black px-2 py-2 align-top font-semibold">{rep.date}</td><td className="border border-black px-2 py-2 align-top">{rep.startTime} - {rep.endTime}</td><td className="border border-black px-2 py-2 align-top">{rep.activity}</td><td className="border border-black px-2 py-2 align-top italic">"{rep.notes}"</td></tr>
+              {printReports.length > 0 ? printReports.map((rep, index) => (
+                <tr key={rep.id} className="print-avoid-break"><td className="border border-black px-2 py-2 text-center align-top">{startIndex + index + 1}</td><td className="border border-black px-2 py-2 align-top font-semibold">{rep.date}</td><td className="border border-black px-2 py-2 align-top">{rep.startTime} - {rep.endTime}</td><td className="border border-black px-2 py-2 align-top">{rep.activity}</td><td className="border border-black px-2 py-2 align-top italic">&quot;{rep.notes}&quot;</td></tr>
               )) : (<tr><td colSpan={5} className="border border-black px-3 py-6 text-center text-gray-500">Belum ada laporan harian di blok ini.</td></tr>)}
             </tbody>
           </table>
