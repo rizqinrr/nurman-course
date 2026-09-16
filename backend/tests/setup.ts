@@ -35,18 +35,40 @@ const boundary = vi.hoisted(() => {
     unexpected, fail, strict,
     getUser: stub('supabase.auth.getUser'),
     findUnique: stub('prisma.user.findUnique'),
+    sessionFindMany: stub('prisma.session.findMany'),
+    sessionFindUnique: stub('prisma.session.findUnique'),
     createUser: stub('supabase.admin.createUser'),
     prismaCreate: stub('prisma.user.create'),
     connect: stub('prisma.$connect'),
   };
 });
 
-export const { getUser, findUnique, createUser, prismaCreate } = boundary;
+export const { getUser, findUnique, sessionFindMany, sessionFindUnique, createUser, prismaCreate } = boundary;
+
+export const authLookup = (id: string) => ({
+  where: { id },
+  select: { id: true, email: true, role: true, active: true },
+});
+
+export const accountErrors = {
+  missing: { error: { code: 'PROFILE_NOT_FOUND', message: 'Profil akun tidak ditemukan. Hubungi admin.' } },
+  inactive: {
+    error: {
+      code: 'ACCOUNT_INACTIVE',
+      message: 'Akun nonaktif. Silakan daftar ulang atau hubungi admin. Penggunaan email atau nomor yang sama memerlukan persetujuan admin.',
+    },
+  },
+  role: { error: { code: 'INVALID_ROLE', message: 'Role akun tidak valid. Hubungi admin.' } },
+};
 
 vi.mock('dotenv', () => ({ default: { config: () => ({ parsed: {} }) } }));
 vi.mock('../src/lib/prisma', () => ({
   prisma: boundary.strict('prisma', {
     user: boundary.strict('prisma.user', { findUnique, create: prismaCreate }),
+    session: boundary.strict('prisma.session', {
+      findMany: sessionFindMany,
+      findUnique: sessionFindUnique,
+    }),
     $connect: boundary.connect,
   }),
 }));
@@ -115,9 +137,9 @@ export async function openTestServer(app: Express): Promise<Server> {
 }
 
 beforeEach(() => {
-  expect(boundary.unexpected).toEqual([]);
+  expect([...boundary.unexpected]).toEqual([]);
   for (const [name, mock] of Object.entries({
-    getUser, findUnique, createUser, prismaCreate, connect: boundary.connect,
+    getUser, findUnique, sessionFindMany, sessionFindUnique, createUser, prismaCreate, connect: boundary.connect,
   })) {
     mock.mockReset().mockImplementation(async () => boundary.fail(name));
   }
@@ -131,7 +153,7 @@ afterEach(async () => {
         await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
       }
     }));
-    expect(boundary.unexpected).toEqual([]);
+    expect([...boundary.unexpected]).toEqual([]);
   } finally {
     servers.clear();
     ports.clear();

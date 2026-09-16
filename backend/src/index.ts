@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import { z } from 'zod';
 import { prisma } from './lib/prisma';
 import { supabaseAdmin } from './lib/supabase-admin';
-import { requireAuth, requireAdmin, AuthenticatedRequest } from './middleware/auth';
+import { requireAuth, requireAdmin, validateAccountAccess, AuthenticatedRequest } from './middleware/auth';
 import {
   createEnrollmentSchema,
   createInvoiceSchema,
@@ -99,37 +99,21 @@ app.get('/api/users/me', requireAuth, async (req: AuthenticatedRequest, res) => 
       return;
     }
 
-    // Ambil data user dari database Prisma
-    let dbUser = await prisma.user.findUnique({
+    const dbUser = await prisma.user.findUnique({
       where: { id: authUser.id },
-      include: {
-        murids: true // wali murid data
-      }
+      include: { murids: true },
     });
-
-    // Fallback: Jika tidak ketemu via ID, cari via email
-    if (!dbUser && authUser.email) {
-      dbUser = await prisma.user.findUnique({
-        where: { email: authUser.email },
-        include: {
-          murids: true
-        }
-      });
-      if (dbUser) {
-        console.log(`Reconciled user ${authUser.email} via email (auth ID: ${authUser.id}, DB ID: ${dbUser.id})`);
-      }
-    }
-
-    if (!dbUser) {
-      res.status(404).json({ error: 'User not found in application database' });
+    const access = validateAccountAccess(dbUser);
+    if (!access.ok) {
+      res.status(403).json({ error: access.error });
       return;
     }
 
     res.json({
       user: dbUser
     });
-  } catch (error) {
-    console.error('Error fetching current user profile:', error);
+  } catch {
+    console.error('Error fetching current user profile');
     res.status(500).json({ error: 'Internal server error' });
   }
 });
