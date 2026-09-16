@@ -47,6 +47,89 @@
 
 ---
 
+### 2026-09-16 — Commit dan push patch dependency serta lint
+
+**Fase:** NC-1.6h / NC-1.2g — Git-only, branch `be-restruktur`
+**Status sesi:** selesai — Commit dependency `164337f` dan perbaikan lint `9655324` sudah dipush; HEAD remote cocok dengan `96553247043adfba5c7491180ac90b475b8f1d43`. Dokumentasi rencana/hasil/penutupan dikirim dalam commit docs terpisah.
+
+**Request user:** "push aja dulu".
+
+**Keputusan (klarifikasi):** Izin commit/push mencakup hasil patch dependency, lint, regression tests dan dokumen rencana yang sudah selesai. Tidak memulai NC-1.4, tidak deploy, tidak melanjutkan Playwright atau mengubah database.
+
+**Dikerjakan:** Pisahkan commit dua file dependency dari 30 file source/tests lint. Stage hanya file hasil sesi; tidak menyertakan .env, generated client, build output, atau fixture temp. Sinkronkan status `tasks/plan.md` dan `tasks/todo.md`; entri sebelumnya dipertahankan sebagai riwayat sebelum izin push.
+
+**Verifikasi:** `git status`, diff, `git log --oneline -10`, staged diff/check, dan remote diperiksa. Push dua commit berhasil dan `git ls-remote` sesuai HEAD. Test/build tidak diulang untuk Git-only karena source sama dengan hasil verifikasi sebelumnya: backend28/28, FE regression12/12, lint0/0, typecheck/build pass. Tidak menjalankan Playwright.
+
+**Residual:** Audit9 findings existing dan QA browser yang dihentikan tetap berlaku, lihat entri sebelumnya. Push bukan approval deploy. NC-1.4 dan keputusan auth belum dikerjakan.
+
+---
+
+### 2026-09-16 — Patch dependency dan lint selesai, penutupan backend-only
+
+**Fase:** NC-1.6h + NC-1.2g — Tahap A/B rencana perbaikan, branch `be-restruktur`
+**Status sesi:** selesai sesuai scope penutupan terbaru — Patch Next/config dan perbaikan lint sudah dibuat lokal; frontend lint0/0 dan build lolos sebelum user meminta menghentikan Playwright. Verifikasi final backend28/28, typecheck BE/test dan compile lulus. Belum commit/push/deploy; NC-1.4 belum dimulai.
+
+**Request user:** "oke letsgo kerjakan pake todo yg rinci" → beberapa "lanjut" → "kenapa malah sampe frontend sih, ga usah pake playwright, cukup testing backend aja, kelarin".
+
+**Keputusan (klarifikasi):** Perubahan frontend sebelumnya berasal dari Tahap A/B plan, bukan implementasi fitur baru. Setelah instruksi terakhir, tidak ada Playwright/fixture baru atau perubahan source frontend tambahan; hanya shutdown proses test, verifikasi backend, dan sinkronisasi docs. Perubahan yang sudah dibuat dipertahankan, tidak di-revert tanpa permintaan. Kontrak role DB, akun nonaktif, mapping email, dan routing frontend tetap terbuka untuk NC-1.4. Tidak ada query/mutasi staging atau perubahan auth.
+
+**Dikerjakan:**
+- **Dependency:** `frontend/package.json` pin Next/eslint-config-next16.3.5 (dari16.2.4); `package-lock.json` mengikuti. React/ReactDOM19.2.4 tetap. Next/env/plugin/SWC16.3.5, helpers0.5.23, nested PostCSS8.5.23, sharp0.35.4 dan binary pendampingnya mengikuti parent; root PostCSS8.5.28 tetap. Fastq1.20.1→1.20.3 collateral patch tooling, dicatat bukan kebutuhan security langsung.
+- **B1:** `frontend/lib/api.ts` cache unknown, snapshot immutable/stabil, getter servernull, clear notifications; `DebugBar.tsx` memakai useSyncExternalStore tanpa setState sinkron effect. `frontend/tests/api.test.mjs` menguji snapshot, unsubscribe, MISS/HIT, bypass, TTL, invalidation dan error. Node:test/TypeScript existing, tanpa framework frontend baru.
+- **B2:** roadmap loader latest-request/unmount guard, drawer admin/tentor reset state pathname tanpa remount portal. Reviewer menemukan guard respons reorder tidak menyerialisasi write; diperbaiki lock per list/pending flag, disable tombol, dan reader menunggu write selesai. Regression permanen `frontend/tests/roadmap-reorder.test.mjs` mengunci delayed success/second attempt, A→B→A, failure/retry, independent locks, unmount.
+- **B3/B4:** mapper jadwal/dashboard/profil bertipe, `DbMurid` pada `frontend/data/lms.ts`; `frontend/hooks/useClock.ts` initialnull lalu callback clock, cleanup interval/focus/visibility. Cadence jadwal60detik, dashboard1detik; klasifikasi bisa tertunda satu interval, bukan realtime tepat `endsAt`.
+- **B5/B8:** tipe laporan harian/perkembangan/wali, relasi kontak tentor, raw time/location dan fallback dipertahankan; enam kutip JSX di-escape, unused binding/import dibersihkan tanpa menghapus request existing.
+- **B6/B7:** sebelas img diganti Next Image unoptimized untuk foto/bukti privat; ProofImage membaca dimensi natural dan membersihkan handler, PDF tidak dimigrasikan; import/dependency statis landing dirapikan tanpa redesign. Tidak mengubah Storage/URL publik/remotePatterns.
+- **Dokumentasi:** plan/todo mencatat hasil A/B dan override instruksi penutupan backend-only; arsip rencana sebelumnya dipertahankan. Backend source/tests/schema/shared runtime, frontend auth/middleware/ESLint config tidak diubah.
+
+**Verifikasi sebelum instruksi backend-only:**
+- Targeted lint/typecheck tiap batch lulus. Full strict `npm run lint --workspace=frontend -- --max-warnings=0`: exit0, dari75error/28warning menjadi0/0, tanpa suppression atau penurunan rule.
+- `node --test frontend/tests/api.test.mjs frontend/tests/roadmap-reorder.test.mjs`:12/12 pass. Snapshot test RED missing API→GREEN2; reorder RED6→GREEN10. Harness reorder memakai mock hooks/source transform, bukan bukti lifecycle React penuh. Versi awal test CJS kena6no-require-imports; diubah menjadi ESM, strict lint final lulus.
+- `npm run build --workspace=frontend`: Next16.3.5 compile/typecheck/static35/35 pass; warning middleware convention deprecated existing tetap, tidak menjalankan codemod. FE tsc noEmit incrementalfalse exit0.
+- `npm ci --ignore-scripts --no-audit --no-fund` pada salinan manifest/lockfile saja di temp:530 packages berhasil; native sharp PNG buffer smoke lulus. Tidak menyalin .env/source/credential. Bukan pengujian deployment seluruh monorepo.
+- Security review approve patch, code review approve setelah fix reorder; tidak ada blocker baru. Review tidak menjadi approval deploy.
+- Browser sempat menguji localhost landing/course/program/login200, admin tanpa sesi redirectlogin, klik calistung→ngaji→config, logo loaded; tidak mengirim WA atau login. Fixture temp lain menguji actual React/Next Image/api.ts dengan sesi/fetch palsu, DebugBar MISS/HIT/error/clear, proof portrait/modal dan clock unmount; evidence errors/warnings0 dan timer/listener setelah unmount0. Bukan QA seluruh portal atau auth staging.
+- Beberapa percobaan fixture terinterupsi; satu server port3110 sudah aktif dari agent sehingga server duplikat gagal EADDRINUSE. Script temp lain memakai3111; keduanya dihentikan pada penutupan. Tidak menyalin fixture/server ke repo. Probe export package.json ESLint dan URL constructor Playwright sempat gagal karena environment tool, bukan error aplikasi.
+
+**Verifikasi final setelah instruksi backend-only:**
+- `npm run test --workspace=backend`:4 node:test +24 Vitest pass, nol skip/fail.
+- `npm run typecheck:test --workspace=backend` dan `node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json`: exit0.
+- Compile backend `tsc --project backend/tsconfig.json --outDir <temp>/nc-final-backend-build`: exit0; artifact di luar repo, tidak menjalankan server DB/seed.
+- Proses milik sesi PID14460 (Next3106),12656 (fixture3110),4716 (fixture3111) dihentikan dan diverifikasi tidak ada. Log frontend/.turbo hasil lint dibersihkan. `git diff --check` lulus; tidak ada git staging/commit/push.
+
+**Audit residual / tindak lanjut:** audit full12→9 (0critical/3high/5moderate/1low), omitdev5moderate. Tidak ada advisory target Next/sharp/PostCSS pada resolved versions saat review; bukan jaminan bebas kerentanan baru. Owner tindak lanjut maintainer; jadwal di bawah target review usulan, bukan izin upgrade otomatis.
+
+| Kelompok | Konteks / advisory | Target review |
+|---|---|---|
+| qs/Express/body-parser | Runtime, input parsing/serialization; reachability spesifik belum diaudit. [qs DoS](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g) | 2026-09-17 / sebelum deploy |
+| morgan | Runtime log forging, bergantung format dan consumer. [Advisory](https://github.com/advisories/GHSA-jxfw-x594-9x9m) | 2026-09-17 / sebelum deploy |
+| baseline-browser-mapping | Dependency Next/tooling, invalid input termination; jalur HTTP belum terbukti. [Advisory](https://github.com/advisories/GHSA-w5vr-8v7q-w6rv) | 2026-09-23 |
+| brace-expansion, browserslist, js-yaml | High pada tooling/dev/CI; malicious glob/query/stats/YAML memerlukan input terkait. [Brace](https://github.com/advisories/GHSA-rgw5-rvv9-x895), [Browserslist](https://github.com/advisories/GHSA-73wf-gq98-2v4g), [YAML](https://github.com/advisories/GHSA-2883-xcg3-v3hh) | 2026-09-23 |
+| Babel core | Low, hostile source map pada tooling. [Advisory](https://github.com/advisories/GHSA-4x5r-pxfx-6jf8) | 2026-09-30 |
+
+**Residual:** QA visual/print/jadwal/drawer seluruh portal dan login nyata tiga role belum lengkap; user menghentikan pengujian browser dan menerima penutupan dengan backend testing. Test backend tidak membuktikan frontend atau DB staging. ProofImage menunggu decode sebelum gambar tampil (placeholder loading opsional belum ditambah). Tidak mengubah otorisasi berbasis metadata pada NC-1.4 atau mengklaimnya aman. Temp manifest-only install/fixture tetap di temp lokal tanpa credential. Seluruh hasil source/docs belum committed; tidak ada deploy, dan pembatasan/patch dependency tersisa memerlukan task terpisah.
+
+---
+
+### 2026-09-16 — Rencana rinci security, lint, dan role DB
+
+**Fase:** NC-PLAN — Dokumentasi rencana NC-1.6h / NC-1.2g / NC-1.4
+**Status sesi:** selesai (docs only) — Rencana rinci dan sinkronisasi dokumentasi selesai; review konsistensi dilakukan, satu ambiguitas test mismatch role diperjelas. Tidak ada implementasi perbaikan.
+
+**Request user:** "tulis perbaikan ini di file plan dulu aja, jangan eksekusi, tulis rinci ya".
+
+**Keputusan (klarifikasi):** Sesi hanya menulis rencana dan sinkronisasi dokumentasi wajib. Urutan security dependency → lint → role DB masih rencana; kandidat Next 16.3.5, kontrak penolakan akses, status akun nonaktif, fallback profil email, dan sinkronisasi routing frontend tidak dianggap izin eksekusi atau keputusan implementasi final. Izin commit/push NC-1.6 sebelumnya tidak berlaku untuk sesi ini.
+
+**Dikerjakan:**
+- `tasks/plan.md`: rencana aktif rinci dengan baseline, non-goals, dependency triage/upgrade/checkpoint, delapan batch lint, audit mapping akun, RED/GREEN role DB, matriks status/tests, subtask frontend bersyarat, acceptance criteria per slice, risiko/rollback, perintah verifikasi untuk nanti, serta approval gates. Arsip NC-1.6 dan portal admin dipertahankan.
+- `tasks/todo.md`: task dokumentasi dan pointer ke rencana; ketiga task perbaikan tetap pending, bukan ditandai selesai.
+
+**Verifikasi:** Review dokumentasi independen dan `git diff --check` lolos; perubahan hanya `tasks/plan.md`, `tasks/todo.md`, dan `docs/PROGRESS.md`. Test mismatch role diperjelas: metadata admin/DB wali diterima sebagai wali oleh requireAuth, ditolak hanya pada endpoint admin. Tidak menjalankan lint/typecheck/test/build/audit baru karena scope hanya dokumentasi dan user melarang eksekusi perbaikan. Angka 75/28, 26 file, hasil harness, dan advisory berasal dari pemeriksaan sebelumnya, bukan hasil baru sesi ini.
+
+**Residual:** Belum memperbaiki vulnerability, lint, atau auth. Semua implementasi, instalasi, query staging, perubahan akun, commit/push, dan deploy menunggu persetujuan berikutnya. Status keputusan produk existing di tabel Keputusan tidak diubah oleh draft ini.
+
+---
+
 ### 2026-09-16 — NC-1.6 test harness backend terisolasi
 
 **Fase:** NC-1.6 — Fondasi testing, branch `be-restruktur`

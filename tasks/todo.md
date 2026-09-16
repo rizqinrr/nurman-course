@@ -18,6 +18,8 @@
 
 ## Meta — dokumentasi & proses
 
+- [x] 2026-09-16 NC-PLAN: Rencana rinci dependency security (NC-1.6h), lint (NC-1.2g), dan role DB (NC-1.4) ditulis di `tasks/plan.md`; review konsistensi selesai. Hanya dokumentasi, tanpa implementasi/instalasi/query staging/commit/push; task perbaikan tetap pending.
+
 - [ ] 2026-09-06 WALI-MOB: Redesign Mobile-First Portal Wali Murid (Adopsi Google Stitch Warm Academic Portal, hapus SideNavBar desktop, layout universal frame max-w-md, sinkronisasi tampilan Dashboard, Jadwal, Laporan, Tagihan, Program, Profile) — lihat detail di `tasks/plan-wali-mobile.md` (in_progress)
 - [x] 2026-07-29 Tulis `docs/ROADMAP-LMS.md` (MVP, fase, opsi A/B)
 - [x] 2026-07-29 Buat `docs/PROGRESS.md` + template log
@@ -408,6 +410,8 @@ Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
 
 ### Tahap 1 — Fondasi (WAJIB, tidak boleh dilewati)
 
+> **Status perbaikan (2026-09-16):** Tahap A/B selesai dan dipush sesuai "push aja dulu": `164337f` (dependency), `9655324` (lint/tests); hash remote terverifikasi. Docs disimpan terpisah. Pembatasan Playwright tetap; NC-1.4 belum dimulai dan keputusan auth tetap terbuka. Catatan belum commit/push pada subtask di bawah adalah riwayat checkpoint sebelum izin Git ini.
+
 > Alasan tak boleh dilewati: schema akan berubah berkali-kali di Tahap 2–4. Melakukan itu tanpa migration history di staging = cara tercepat kehilangan data.
 
 - [x] 2026-09-15 NC-1.1 Simpan pekerjaan wali dan rencana NC: commit `97ee4bb` + `9d3879c` sudah di-push ke `dev`; branch `be-restruktur` dibuat, di-push, dan tracking `origin/be-restruktur` terverifikasi.
@@ -418,7 +422,16 @@ Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
   - [x] 2026-09-15 NC-1.2d `migrate deploy` pada DB kosong `nc_replay` lokal berhasil menjalankan `0_init` + legacy; schema diff kosong, deploy kedua no-op. Backup direstore terpisah ke `nc_restore`; cluster PostgreSQL 18.6 di loopback, staging 17.6. UPDATE legacy hanya dijalankan pada DB replay kosong, tidak diulang pada staging.
   - [x] 2026-09-15 NC-1.2e `resolve --applied 0_init` sekali di staging: tepat dua migration applied, checksum baseline cocok, record/checksum legacy tetap. `migrate status` up-to-date, schema diff kosong, fingerprint/count 13 tabel aplikasi tetap.
   - [x] 2026-09-15 NC-1.2f Verifikasi schema, typecheck BE/FE, backup/restore/replay dan review independen lolos; dokumentasi disinkronkan. Lint existing masih gagal (NC-1.2g), tidak ada perubahan runtime aplikasi.
-  - [ ] NC-1.2g Follow-up verifikasi: `npm run lint` gagal pada kode frontend existing (75 error, 28 warning); tangani pada task terpisah, bukan bagian baseline. Typecheck backend/frontend dan `prisma validate` lolos.
+  - [x] 2026-09-16 NC-1.2g Lint frontend — selesai lokal: 75 error/28 warning menjadi 0/0 tanpa suppression; typecheck/build lolos. User menghentikan QA Playwright lanjutan dan meminta penutupan dengan test backend saja; batas QA dicatat di progress. Tidak mengubah auth/data staging, belum commit/push.
+    - [x] 2026-09-16 B1 Cache unknown + stable snapshot/subscription DebugBar, clear notifies; regression Node RED missing snapshot API → GREEN2/2. Test ada di `frontend/tests/api.test.mjs`.
+    - [x] 2026-09-16 B2 Roadmap latest-request/unmount guard + drawer reset pathname tanpa remount portal. Review menemukan concurrent reorder regression; diperbaiki per-list lock/pending dan reader menunggu write. `roadmap-reorder.test.mjs` RED6 → GREEN10/10.
+    - [x] 2026-09-16 B3/B4 Tipe jadwal/dashboard/profil, `DbMurid`, shared `useClock` initialnull + cleanup interval/focus/visibility. Jadwal cadence60detik, dashboard1detik; tipe/targeted lint lolos, probe21 kasus terisolasi oleh implementer bukan browser penuh.
+    - [x] 2026-09-16 B5 Tipe laporan harian/perkembangan/wali, pertahankan relasi WA dan fallback; enam kutip JSX di-escape, targeted lint/typecheck lolos.
+    - [x] 2026-09-16 B6 Sebelas img warning diselesaikan dengan next/image unoptimized untuk foto/proof; ProofImage decode natural dimensions, cabang PDF tetap. Targeted lint/typecheck/probe dimensi lolos; QA visual semua portal belum dilakukan.
+    - [x] 2026-09-16 B7/B8 Cleanup unused/deps static tanpa menghapus request existing; ESLint preset/rules tidak diubah.
+    - [x] 2026-09-16 B9 `npm run lint --workspace=frontend -- --max-warnings=0` exit0, frontend build35/35/typecheck pass;12 regression Node pass. Setelah instruksi terakhir hanya test backend28/28 + typecheck BE/test + compile temp dijalankan. Browser lanjutan dibatalkan per user.
+    - [x] 2026-09-16 B10 Review approve setelah fix reorder; docs disinkronkan, tiga server sementara dihentikan, log Turbo dibersihkan. Tidak commit/push.
+    - [ ] NC-1.2g-QA Residual opsional setelah persetujuan: regression visual penuh portal tiga role, print laporan, kalender/timezone, drawer navigasi nyata, proof portrait/landscape/PDF. Jangan lanjut Playwright sekarang; user meminta backend-only testing.
   - [ ] NC-1.2h Sebelum migration lanjutan yang mengubah `users.email/phone/role`, rekonsiliasi ordering legacy `fix-null-email` (nama alfabetis akan berada setelah migration timestamp pada fresh replay). Jangan rename/edit migration applied tanpa strategi history; selalu replay seluruh history.
   - [ ] NC-1.2i Backup jangka panjang dan restore pada versi PostgreSQL yang sama: bukti saat ini public-only di folder temp lokal ber-ACL user-only, direstore ke 18.6 dari staging 17.6, bukan backup penuh Auth/Storage/roles Supabase. Tidak cukup sebagai strategi disaster recovery.
   - [ ] NC-1.2j Follow-up hardening/performance terpisah: evaluasi RLS defense-in-depth (saat ini anon/authenticated tidak punya akses), leaked-password protection nonaktif, 17 FK tanpa covering index. Jangan ubah security/grant global lewat baseline.
@@ -433,7 +446,14 @@ Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
   - [x] 2026-09-16 NC-1.6e RED 6 API tests gagal karena export app belum ada; GREEN sesudah satu baris `export const app`. Health200, me401/me200, dua nonadmin403, validasi admin400; response contract dan nol mutasi diuji. Guard startup/export Prisma tetap.
   - [x] 2026-09-16 NC-1.6f Empat node:test lama + 24 Vitest lolos, typecheck BE/FE/test, compile CJS ke temp, smoke compiled startup (Prisma stub, SDK asli, health200/token-absen401) lolos dan proses dihentikan. Frontend build 35 static pages lolos. Lint tetap 75 error/28 warning; audit 12 dependency findings existing (termasuk Next critical), bukan audit bersih. Review independen approve tanpa blocker.
   - [x] 2026-09-16 NC-1.6g Docs/staged review selesai; commit implementasi `849d7bc` dipush ke `be-restruktur`, hash remote sama HEAD dan working tree bersih. Penutupan status ini dicatat dalam commit docs terpisah. NC-1.4 tidak dimulai.
-  - [ ] NC-1.6h Follow-up dependency security existing: audit 2026-09-16 juga melaporkan Next.js 16.2.4 critical dan dependency lama lain; evaluasi patch frontend/backend pada task terpisah, jangan upgrade runtime global melalui pemasangan harness.
+  - [x] 2026-09-16 NC-1.6h Patch Next.js/config selesai lokal16.3.5; dua advisory critical target tertutup, audit masih9 findings existing (0critical/3high/5moderate/1low). Bukan audit bersih atau approval deploy. Residual di NC-SEC-FOLLOWUP, tanpa audit fix global/commit/push.
+    - [x] 2026-09-16 A1 Baseline: branch `be-restruktur`, tiga docs rencana belum committed dipertahankan; Next/config16.2.4, React19.2.4, audit12 (1critical/5high/5moderate/1low). Kandidat Next/config16.3.5 tersedia dan peer/Node sesuai.
+    - [x] 2026-09-16 A2 Next/config16.3.5 pinned; resolved sharp0.35.4/PostCSS nested8.5.23, SWC/optional binaries mengikuti parent, fastq patch collateral. React19.2.4 tetap; install dengan ignore-scripts.
+    - [x] 2026-09-16 A3 `npm ci --ignore-scripts --no-audit --no-fund` temp manifest-only tanpa env/source:530 packages berhasil, native sharp PNG smoke pass. Audit9, omitdev5moderate tanpa critical/high; runtime reachability tidak diasumsikan.
+    - [x] 2026-09-16 A4 Typecheck BE/FE/test, backend28test, frontend build35/35 pass; baseline lint setelah upgrade75/28 kemudian diselesaikan NC-1.2g. Compile backend final ke temp exit0.
+    - [x] 2026-09-16 A5 Sebelum pembatasan user: localhost landing/course/program/login200, admin tanpa sesi redirectlogin; klik calistung→ngaji→config dan logo loaded, console bersih. Tidak mengirim WA/login nyata/mutasi staging. Browser selanjutnya dihentikan per user.
+    - [x] 2026-09-16 A6 Review security approve patch (bukan deploy); delta dependency/residual dicatat, docs/proses diselesaikan. NC-1.4 belum dimulai.
+    - [ ] NC-SEC-FOLLOWUP Audit residual: qs/Express/body-parser dan morgan runtime (review sebelum deploy, target2026-09-17); baseline-browser-mapping, brace-expansion/browserslist/js-yaml tooling/transitive (target2026-09-23), Babel low (target2026-09-30). Owner tindak lanjut: maintainer, belum dijadwalkan eksekusi. Patch parent kompatibel/triage reachability dalam scope terpisah; jangan audit fix global.
 - [ ] NC-1.7 `.gitignore` untuk `backend/src/generated/` — saat ini 5 file `query_engine-windows.dll.node` @~18MB ikut ter-commit, 4 di antaranya file sampah `.tmp*`
 - [ ] NC-1.8 Buang `MaterialItem.sessionId` (FK nullable yang tak pernah diisi endpoint mana pun — fitur mati)
 - [ ] NC-1.C1 Checkpoint: `tsc --noEmit` BE+FE, `vitest run`, `next build`, smoke Playwright login 3 role (pastikan NC-1.4 tidak memutus akses siapa pun)
@@ -525,4 +545,4 @@ Empat tier user jatuh ke rumus yang sama, hanya beda `source`:
 
 ## In progress (maks 1 fokus utama)
 
-- (none) — NC-1.6 selesai dan implementasi dipush (`849d7bc`). NC-1.4 belum dimulai. **WALI-MOB di-pause** (per keputusan user 2026-09-15: fokus pindah ke backend).
+- (none) — Patch dependency/lint dipush (`164337f`, `9655324`) ke `be-restruktur`; QA browser lanjutan dihentikan per user. NC-1.4 belum dimulai. **WALI-MOB di-pause**; fokus berikutnya backend setelah scope auth disepakati.
