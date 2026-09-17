@@ -23,6 +23,142 @@
 
 ## Fokus aktif berikutnya
 
+## Fokus terpilih — Materi/blog mudah dibaca
+
+> **Status: planning only.** Belum ada implementasi, migration deploy, atau perubahan DB. Eksekusi dimulai hanya setelah checklist dan keputusan MTR-0 disetujui user.
+>
+> Target produk: konten `Course → Section → Lesson` dengan tiga akses: **publik**, **login gratis**, dan **wajib beli**. Backend selalu menentukan apakah `bodyText` boleh dikirim.
+
+### MTR-0 — Kunci kontrak produk dan akses (blocking)
+
+- [x] **MTR-0.1** Course `free`: lesson `entitled` dapat dibaca langsung oleh user login yang valid; tidak membuat entitlement otomatis dari GET.
+- [x] **MTR-0.2** Respons reader: anonymous/akses login diperlukan → `401 LOGIN_REQUIRED`; user login tanpa entitlement purchase → `403 PURCHASE_REQUIRED`; draft/inactive/tidak ada → `404`; respons gagal tidak membawa `bodyText`.
+- [x] **MTR-0.3** Purchase default lifetime dengan `expiresAt=null`; dukungan expiry tetap disiapkan di schema untuk kebutuhan berikutnya.
+- [x] **MTR-0.4** Entitlement memakai multi-baris per `(user, course, source)`; akses tetap aktif jika minimal satu source belum revoked dan belum expired.
+- [x] **MTR-0.5** Fase awal memakai role existing (`admin`, `tentor`, `wali`) sebagai pembaca; role `member` dan signup ditunda.
+- [x] **MTR-0.6** Namespace disetujui: `/api/catalog/*` untuk metadata publik, `/api/reader/*` untuk body terjaga, `/api/me/*` untuk library/progress.
+
+**Gate MTR-0:** selesai 2026-09-18. Implementasi schema/API tetap mengikuti urutan MTR-1 dan checkpoint berikutnya.
+
+### MTR-1 — Kontrak API dan threat model
+
+- [x] **MTR-1.1** DTO allowlist katalog Course, outline Section/Lesson, reader success, login-required, dan purchase-required ditambahkan ke `packages/shared`; reader DTO success saja yang membawa `bodyText`.
+- [x] **MTR-1.2** Zod query `page`, `limit`, `search`, `category`, `level`, dan `accessTier` ditambahkan; limit server-side maksimal 100.
+- [x] **MTR-1.3** Kontrak optional-auth ditetapkan: anonymous boleh untuk catalog/public reader; malformed/invalid/expired bearer tidak boleh diam-diam dianggap anonymous.
+- [x] **MTR-1.4** Threat model ditetapkan untuk catalog, detail, reader, nested relation, legacy `/api/programs*`, search/navigation, cache, dan Supabase Data API.
+- [x] **MTR-1.5** Cache contract ditetapkan: metadata publik boleh public cache; reader authenticated/paid wajib private/no-store.
+
+**Acceptance:** kontrak input/output/error tersedia di shared types; `bodyText` hanya boleh muncul pada `ReaderLessonDto` success.
+
+### MTR-2 — Identity prerequisite pembaca
+
+- [x] **MTR-2.1** Keputusan MTR-0.5 memilih role existing; audit role/auth middleware/caller dilakukan dan tidak ada role `member` baru.
+- [x] **MTR-2.2** `User.phone` tidak diubah menjadi nullable pada fase ini; tidak ada akun email-only/member signup yang diaktifkan.
+- [x] **MTR-2.3** Provisioning profile baru tidak diperlukan untuk role existing; verified Supabase ID + profile DB tetap menjadi authority.
+- [x] **MTR-2.4** Role DB tetap authority; `user_metadata` tidak dipakai untuk access decision.
+
+**Gate MTR-2:** selesai 2026-09-18 tanpa schema/auth mutation. Optional-auth runtime dan access policy dikerjakan pada MTR-4.
+
+### MTR-3 — Entitlement schema dan migration offline
+
+- [x] **MTR-3.1** Model `Entitlement` additive: `userId`, `courseId`, `source`, `sourceRef`, `expiresAt`, `revokedAt`, timestamps, relasi, dan index akses.
+- [x] **MTR-3.2** Constraint multi-source/idempotensi: `@@unique([userId, courseId, source, sourceRef])`; revoke satu source tidak menghapus source lain; `sourceRef` wajib stabil (`free` sentinel, purchase/enrollment reference).
+- [x] **MTR-3.3** Enum/source `free|purchase|enrollment` ditambahkan setelah MTR-0.4 final.
+- [x] **MTR-3.4** Migration SQL offline `nc4_entitlements` dibuat dengan RLS enabled default-deny; grants/policy Data API belum dilakukan.
+- [x] **MTR-3.5** Prisma format/validate/generate dan review SQL migration berhasil offline; tidak `migrate deploy`, `db push`, atau query live.
+
+**Acceptance:** schema mendukung entitlement aktif jika `revokedAt=null` dan `expiresAt=null|future`; source lain tetap berlaku saat satu source direvoke.
+
+### MTR-4 — Access policy dan optional authentication
+
+- [x] **MTR-4.1** Resolver optional-auth ditambahkan dengan verifikasi Supabase + lookup role/active DB jika token tersedia; malformed/invalid token ditolak, anonymous hanya tanpa header.
+- [x] **MTR-4.2** `backend/src/content/access.ts` menjadi satu access-policy service untuk Course/Lesson dan entitlement.
+- [x] **MTR-4.3** Policy mewajibkan Course active/published/publishedAt dan Lesson published/publishedAt sebelum content dibaca.
+- [x] **MTR-4.4** Policy mengevaluasi public/login-free/paid dan entitlement aktif; author/admin preview tetap bukan bypass reader.
+- [x] **MTR-4.5** Free access tidak melakukan auto-grant atau mutasi dari GET; paid hanya memakai entitlement aktif.
+
+**Acceptance:** policy fail-closed dan siap dipakai MTR-5/MTR-6; belum ada route publik yang terpasang pada checkpoint ini.
+
+### MTR-5 — API katalog materi
+
+- [ ] **MTR-5.1** `GET /api/catalog/courses`: hanya Course active+published; pagination, search, category, level, accessTier, ordering stabil.
+- [ ] **MTR-5.2** DTO list hanya metadata: slug, title, description ringkas, category, level, accessTier, price, author publik minimum, dan count; tanpa body/draft/internal lineage.
+- [ ] **MTR-5.3** `GET /api/catalog/courses/:slug`: metadata Course + outline Section/Lesson terurut; setiap lesson membawa access hint, bukan `bodyText`.
+- [ ] **MTR-5.4** Outline tidak memasukkan draft lesson/section kosong yang tidak layak tampil dan tidak membocorkan authorId internal bila tidak diperlukan.
+
+**Acceptance:** anonymous dapat menjelajah katalog dan silabus tanpa menerima satu pun body lesson entitled.
+
+### MTR-6 — API reader lesson
+
+- [ ] **MTR-6.1** `GET /api/reader/lessons/:slug` menggunakan optional-auth + access-policy service.
+- [ ] **MTR-6.2** Success DTO memuat metadata reader, `bodyText`, breadcrumb Course/Section, serta prev/next yang juga aman.
+- [ ] **MTR-6.3** `401 LOGIN_REQUIRED` dan `403 PURCHASE_REQUIRED` hanya mengirim metadata paywall yang diizinkan; tidak ada body, excerpt sensitif, atau nested relation bocor.
+- [ ] **MTR-6.4** Draft/inactive/unknown selalu `404` pada surface publik untuk menghindari enumerasi status internal.
+- [ ] **MTR-6.5** Header cache membedakan public reader dan authenticated/paid reader.
+
+**Acceptance:** publik terbaca anonymous; login-free gagal anonymous dan berhasil user aktif; paid gagal tanpa grant dan berhasil hanya dengan entitlement aktif.
+
+### MTR-7 — Library dan reading progress
+
+- [ ] **MTR-7.1** `GET /api/me/entitlements`: hanya entitlement user sendiri, status aktif dihitung server-side, DTO tanpa data user lain.
+- [ ] **MTR-7.2** Definisikan `LessonProgress` sebagai `User × Lesson`, terpisah dari `Progress` Murid × RoadmapStep.
+- [ ] **MTR-7.3** Endpoint library `/api/me/courses` hanya menampilkan Course yang saat ini dapat diakses beserta progress ringkas.
+- [ ] **MTR-7.4** Endpoint update progress idempotent dan hanya setelah access policy lesson lolos.
+- [ ] **MTR-7.5** Revoke/expiry segera memengaruhi reader dan library; progress tidak memberi hak akses.
+
+### MTR-8 — Tutup jalur legacy dan Data API (release blocker)
+
+- [ ] **MTR-8.1** Hapus `RoadmapStep.bodyText` dari DTO publik `/api/programs*` tanpa merusak consumer legacy; siapkan compatibility gate/cutover jika frontend masih bergantung.
+- [ ] **MTR-8.2** Audit semua nested include/select yang dapat membawa body content.
+- [ ] **MTR-8.3** Audit RLS, grants, exposed schema, dan akses Data API untuk `courses`, `sections`, `lessons`, `entitlements`, dan progress.
+- [ ] **MTR-8.4** Pastikan service-role hanya server-side dan tidak ada direct browser query yang melewati Express guard.
+
+**Gate release:** katalog/reader frontend tidak boleh diluncurkan sebelum MTR-8 selesai dan diverifikasi pada environment berizin.
+
+### MTR-9 — Verifikasi backend
+
+- [ ] **MTR-9.1** Contract/negative checks: anonymous, token malformed, token invalid, profile missing, inactive, public, login-free, paid, expired, revoked, dan multiple source.
+- [ ] **MTR-9.2** Periksa tidak ada `bodyText` pada list/detail/paywall/error/search/prev-next/legacy.
+- [ ] **MTR-9.3** Periksa pagination bound, ordering stabil, query count, dan index yang sesuai.
+- [ ] **MTR-9.4** Jalankan lint, source/test typecheck, backend suite sesuai izin, Prisma validation, dan build artifact sesuai OS lokal.
+- [ ] **MTR-9.5** QA DB terisolasi, RLS/Data API, dan live auth hanya dengan izin eksplisit; catat batas bukti.
+
+### MTR-10 — Halaman public reader (setelah backend gate)
+
+- [ ] **MTR-10.1** `/materi`: katalog search/filter/pagination, badge `Publik|Login gratis|Berbayar`, loading/error/empty state, mobile-first.
+- [ ] **MTR-10.2** `/kelas/[slug]`: deskripsi Course, outline Section/Lesson, status akses, CTA baca/login/beli.
+- [ ] **MTR-10.3** `/materi/[slug]`: reader Markdown aman, hierarchy baca jelas, daftar isi, prev/next, state login-required dan purchase-required.
+- [ ] **MTR-10.4** `/login?next=...`: kembali ke lesson tujuan setelah login tanpa open redirect.
+- [ ] **MTR-10.5** `/app/materi`: library course yang dapat diakses dan progress membaca.
+- [ ] **MTR-10.6** Sanitasi Markdown dengan renderer yang disetujui; tidak memakai raw HTML tanpa sanitizer.
+
+**Acceptance:** pengalaman baca responsif, keyboard accessible, body tidak pernah berasal dari payload yang tidak lolos guard backend.
+
+### MTR-11 — Authoring UI (setelah reader contract stabil)
+
+- [ ] **MTR-11.1** `/app/admin/content` dan `/app/tentor/content`: list/filter Course sesuai ownership.
+- [ ] **MTR-11.2** `/app/admin/content/[courseId]` dan route tentor ekuivalen: kelola metadata, Section, Lesson, reorder, visibility, draft/publish.
+- [ ] **MTR-11.3** Editor Markdown + preview tersanitasi, validasi link internal, dirty-state guard, autosave hanya jika disepakati.
+- [ ] **MTR-11.4** Course migrasi dengan `programId` tampil read-only sampai cutover single-writer selesai.
+
+### MTR-12 — Purchase flow course berbayar (fase terpisah)
+
+- [ ] **MTR-12.1** Rancang model purchase terpisah dari Invoice les yang wajib Enrollment.
+- [ ] **MTR-12.2** Server menentukan buyer, Course, dan harga; bukti pembayaran privat; state machine submit/review/approve/reject/cancel.
+- [ ] **MTR-12.3** Approval + entitlement `purchase` atomik dan idempotent; retry/concurrency/replay-after-revoke aman.
+- [ ] **MTR-12.4** `/checkout/[courseSlug]` untuk pembeli dan `/app/admin/purchases` untuk review admin.
+- [ ] **MTR-12.5** Payment gateway/subscription tetap di luar scope sampai keputusan baru.
+
+### Checkpoint eksekusi
+
+- [x] **C1 Contract approved:** MTR-0 selesai 2026-09-18 dan MTR-1 kontrak API/threat model selesai 2026-09-18; MTR-3+ dikerjakan setelah ini.
+- [x] **C2 Backend foundation:** MTR-2–MTR-4 selesai lokal 2026-09-18; migration tetap offline dan route publik belum dipasang.
+- [ ] **C3 Read API:** MTR-5–MTR-9 selesai dan security review tidak memiliki blocker.
+- [ ] **C4 Frontend reader:** MTR-10 selesai setelah backend dan release gate.
+- [ ] **C5 Authoring/purchase:** MTR-11 dan MTR-12 dikerjakan sebagai fase terpisah, bukan satu batch besar.
+
+---
+
 ### 1. Database readiness — blocked by DB approval
 
 - [ ] Audit read-only data `MaterialItem`: roadmap-only, session-only, both, orphan.

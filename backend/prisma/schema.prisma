@@ -30,20 +30,29 @@ enum LessonVisibility {
   @@map("lesson_visibility")
 }
 
+enum EntitlementSource {
+  free
+  purchase
+  enrollment
+
+  @@map("entitlement_source")
+}
+
 model User {
-  id              String       @id @default(uuid())
+  id              String        @id @default(uuid())
   role            String
   name            String
-  phone           String       @unique
-  email           String?      @unique
-  createdAt       DateTime     @default(now()) @map("created_at")
-  active          Boolean      @default(true)
+  phone           String        @unique
+  email           String?       @unique
+  createdAt       DateTime      @default(now()) @map("created_at")
+  active          Boolean       @default(true)
   address         String?
-  photoPath       String?      @map("photo_path")
-  murids          Murid[]      @relation("WaliToMurids")
-  sessions        Session[]    @relation("TentorToSessions")
-  enrollments     Enrollment[] @relation("TentorToEnrollments")
-  authoredCourses Course[]     @relation("CourseAuthor")
+  photoPath       String?       @map("photo_path")
+  murids          Murid[]       @relation("WaliToMurids")
+  sessions        Session[]     @relation("TentorToSessions")
+  enrollments     Enrollment[]  @relation("TentorToEnrollments")
+  authoredCourses Course[]      @relation("CourseAuthor")
+  entitlements    Entitlement[]
 
   @@map("users")
 }
@@ -242,27 +251,47 @@ model Progress {
 }
 
 model Course {
-  id          String            @id @default(uuid())
-  slug        String            @unique
-  title       String
-  description String
-  level       String?
-  category    String?
-  accessTier  CourseAccessTier? @map("access_tier")
-  price       Float?
-  status      ContentStatus     @default(draft)
-  publishedAt DateTime?         @map("published_at")
-  authorId    String?           @map("author_id")
-  programId   String?           @unique @map("program_id")
-  active      Boolean           @default(true)
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
-  author      User?             @relation("CourseAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  program     Program?          @relation(fields: [programId], references: [id], onDelete: SetNull)
-  sections    Section[]
+  id           String            @id @default(uuid())
+  slug         String            @unique
+  title        String
+  description  String
+  level        String?
+  category     String?
+  accessTier   CourseAccessTier? @map("access_tier")
+  price        Float?
+  status       ContentStatus     @default(draft)
+  publishedAt  DateTime?         @map("published_at")
+  authorId     String?           @map("author_id")
+  programId    String?           @unique @map("program_id")
+  active       Boolean           @default(true)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  author       User?             @relation("CourseAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  program      Program?          @relation(fields: [programId], references: [id], onDelete: SetNull)
+  sections     Section[]
+  entitlements Entitlement[]
 
   @@index([authorId, status])
   @@map("courses")
+}
+
+model Entitlement {
+  id        String            @id @default(uuid())
+  userId    String            @map("user_id")
+  courseId  String            @map("course_id")
+  source    EntitlementSource
+  sourceRef String            @map("source_ref")
+  expiresAt DateTime?         @map("expires_at")
+  revokedAt DateTime?         @map("revoked_at")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @default(now()) @updatedAt @map("updated_at")
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId, source, sourceRef])
+  @@index([userId, courseId, revokedAt, expiresAt])
+  @@index([courseId, source])
+  @@map("entitlements")
 }
 
 model Section {

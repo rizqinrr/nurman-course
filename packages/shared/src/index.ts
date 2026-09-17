@@ -216,10 +216,13 @@ export type UpdateMaterialItemInput = z.infer<typeof updateMaterialItemSchema>;
 export const courseAccessTierSchema = z.enum(["free", "paid"]);
 export const contentStatusSchema = z.enum(["draft", "published"]);
 export const lessonVisibilitySchema = z.enum(["public", "entitled"]);
+export const entitlementSourceSchema = z.enum(["free", "purchase", "enrollment"]);
+export const entitlementSourceRefSchema = z.string().trim().min(1, "Referensi entitlement wajib diisi").max(200);
 
 export type CourseAccessTier = z.infer<typeof courseAccessTierSchema>;
 export type ContentStatus = z.infer<typeof contentStatusSchema>;
 export type LessonVisibility = z.infer<typeof lessonVisibilitySchema>;
+export type EntitlementSource = z.infer<typeof entitlementSourceSchema>;
 
 const contentSlugSchema = z
   .string()
@@ -278,6 +281,82 @@ export type CreateSectionInput = z.infer<typeof createSectionSchema>;
 export type UpdateSectionInput = z.infer<typeof updateSectionSchema>;
 export type CreateLessonInput = z.infer<typeof createLessonSchema>;
 export type UpdateLessonInput = z.infer<typeof updateLessonSchema>;
+
+export const catalogCoursesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().trim().max(100).optional(),
+  category: z.string().trim().max(100).optional(),
+  level: z.string().trim().max(100).optional(),
+  accessTier: courseAccessTierSchema.optional(),
+});
+
+export type CatalogCoursesQuery = z.infer<typeof catalogCoursesQuerySchema>;
+
+export type ContentAccessRequirement = "public" | "login" | "purchase";
+
+export interface CatalogCourseDto {
+  slug: string;
+  title: string;
+  description: string;
+  level: string | null;
+  category: string | null;
+  accessTier: CourseAccessTier | null;
+  price: number | null;
+  lessonCount: number;
+}
+
+export interface CatalogLessonOutlineDto {
+  slug: string;
+  title: string;
+  summary: string | null;
+  order: number;
+  estimatedMinutes: number | null;
+  visibility: LessonVisibility;
+  accessRequirement: ContentAccessRequirement;
+}
+
+export interface CatalogSectionDto {
+  order: number;
+  title: string;
+  level: string | null;
+  summary: string | null;
+  lessons: CatalogLessonOutlineDto[];
+}
+
+export interface CatalogCourseDetailDto extends CatalogCourseDto {
+  sections: CatalogSectionDto[];
+}
+
+export interface ReaderBreadcrumbDto {
+  courseSlug: string;
+  courseTitle: string;
+  sectionTitle: string;
+}
+
+export interface ReaderLessonDto {
+  slug: string;
+  title: string;
+  summary: string | null;
+  bodyText: string;
+  estimatedMinutes: number | null;
+  breadcrumb: ReaderBreadcrumbDto;
+  previousSlug: string | null;
+  nextSlug: string | null;
+}
+
+export interface ReaderAccessDeniedDto {
+  code: "LOGIN_REQUIRED" | "PURCHASE_REQUIRED";
+  message: string;
+  requiredAccess: Exclude<ContentAccessRequirement, "public">;
+  courseSlug: string;
+  courseTitle: string;
+  price: number | null;
+}
+
+export type ReaderResponse =
+  | { data: ReaderLessonDto }
+  | { error: ReaderAccessDeniedDto };
 
 // --- Zod Input Validation Schemas ---
 

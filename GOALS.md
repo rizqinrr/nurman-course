@@ -56,7 +56,10 @@ Selesai lokal:
 - API authoring admin/tentor;
 - ownership, DTO, reorder, draft/publish;
 - validasi link internal `/materi/*`;
-- backfill content dry-run, fail-closed, atomic, dan idempotent.
+- backfill content dry-run, fail-closed, atomic, dan idempotent;
+- kontrak API katalog/reader dan identity boundary MTR-1/MTR-2;
+- schema/migration Entitlement offline dengan multi-source;
+- optional-auth dan centralized Lesson access policy MTR-4.
 
 Belum live atau belum disetujui:
 
@@ -67,6 +70,17 @@ Belum live atau belum disetujui:
 - endpoint publik content yang aman;
 - entitlement/member/reading progress;
 - smoke login tiga role dan deployment.
+
+## Keputusan materi/blog (MTR-0)
+
+- Lesson publik hanya terbaca jika Course dan Lesson sama-sama `published` serta Course `active`.
+- Lesson `entitled` pada Course `free` dapat dibaca langsung oleh user login existing; GET tidak membuat entitlement otomatis.
+- Course `paid` memerlukan entitlement purchase aktif; purchase default lifetime (`expiresAt=null`).
+- Entitlement mendukung beberapa source melalui beberapa baris per User-Course-Source; revoke satu source tidak mencabut source lain yang masih aktif.
+- Fase awal memakai role existing `admin`, `tentor`, dan `wali`; role `member` serta signup ditunda.
+- Reader memakai `401 LOGIN_REQUIRED`, `403 PURCHASE_REQUIRED`, dan `404` untuk konten draft/inactive/tidak ditemukan; response gagal tidak mengandung `bodyText`.
+- Namespace API: `/api/catalog/*`, `/api/reader/*`, dan `/api/me/*`.
+- MTR-0 selesai 2026-09-18; implementasi dimulai dari MTR-1 setelah kontrak API dan threat model siap.
 
 ## Urutan goals
 

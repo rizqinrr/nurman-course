@@ -51,6 +51,7 @@ const boundary = vi.hoisted(() => {
     roadmapStepCreate: stub('prisma.roadmapStep.create'),
     roadmapStepUpdate: stub('prisma.roadmapStep.update'),
     roadmapStepDelete: stub('prisma.roadmapStep.delete'),
+    entitlementFindFirst: stub('prisma.entitlement.findFirst'),
     materialFindMany: stub('prisma.materialItem.findMany'),
     materialFindFirst: stub('prisma.materialItem.findFirst'),
     materialFindUnique: stub('prisma.materialItem.findUnique'),
@@ -69,7 +70,7 @@ export const {
   roadmapStepFindMany, roadmapStepFindFirst, roadmapStepFindUnique, roadmapStepCreate,
   roadmapStepUpdate, roadmapStepDelete,
   materialFindMany, materialFindFirst, materialFindUnique, materialCreate,
-  materialUpdate, materialDelete, transaction,
+  materialUpdate, materialDelete, entitlementFindFirst, transaction,
 } = boundary;
 
 export const authLookup = (id: string) => ({
@@ -111,6 +112,9 @@ vi.mock('../src/lib/prisma', () => ({
       create: roadmapStepCreate,
       update: roadmapStepUpdate,
       delete: roadmapStepDelete,
+    }),
+    entitlement: boundary.strict('prisma.entitlement', {
+      findFirst: entitlementFindFirst,
     }),
     materialItem: boundary.strict('prisma.materialItem', {
       findMany: materialFindMany,
