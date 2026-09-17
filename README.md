@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nurman Course
 
-## Getting Started
+Monorepo funnel pendaftaran les, portal operasional, dan backend konten mandiri.
 
-First, run the development server:
+Fokus pengembangan saat ini adalah **backend-first**. Lihat [GOALS.md](./GOALS.md) untuk arah dan blocker aktif.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack
+
+- Frontend: Next.js, React, Tailwind CSS
+- Backend: Express, TypeScript, Prisma
+- Database/Auth: PostgreSQL Supabase dan Supabase Auth
+- Shared contracts: Zod di `packages/shared`
+
+## Struktur
+
+```text
+frontend/          Next.js funnel dan portal
+backend/           Express API, Prisma schema, migration, backfill
+packages/shared/   Zod schemas dan TypeScript contracts
+docs/              Progress aktif dan keputusan
+tasks/             Checklist backend aktif
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Dari root:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+npm install
+npm run dev
+```
 
-## Learn More
+Per workspace:
 
-To learn more about Next.js, take a look at the following resources:
+```powershell
+npm run dev --workspace=frontend
+npm run dev --workspace=backend
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Konfigurasi environment mengikuti file `.env.example` masing-masing workspace. Jangan commit credential.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Verifikasi backend
 
-## Deploy on Vercel
+```powershell
+npm run typecheck --workspace=backend
+npm run typecheck:test --workspace=backend
+npm run lint --workspace=backend
+npm run test --workspace=backend
+npm run test:artifact --workspace=backend
+npm run build --workspace=backend
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`npm run build --workspace=backend` menghasilkan `backend/dist` dan harus dijalankan pada OS target karena Prisma engine bersifat native.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Dokumen utama
+
+- [AGENTS.md](./AGENTS.md) — aturan kerja
+- [GOALS.md](./GOALS.md) — fokus backend, urutan goal, dan blocker
+- [SYSTEM_MAP.md](./SYSTEM_MAP.md) — peta arsitektur dan file
+- [docs/PROGRESS.md](./docs/PROGRESS.md) — milestone, keputusan, dan residual
+- [tasks/todo.md](./tasks/todo.md) — checklist aktif
+
+## Safety
+
+Migration deploy, backfill live, seed, mutasi DB remote, commit, push, dan deploy hanya dilakukan dengan izin eksplisit.
