@@ -1,7 +1,7 @@
 # Tasks — nurman-course
 
 > Source of truth **checklist eksekusi/status**, bukan log hasil. Scope/desain/acceptance criteria: [plan.md](./plan.md); keputusan/hasil/verifikasi/residual: [PROGRESS.md](../docs/PROGRESS.md).
-> **Branch konteks:** `be-restruktur` (base `dev`). **Bagian 4 checkpoint 2026-09-16:** packaging `build.cjs`/artifact test, lint backend scoped, dan audit+mapping materi–sesi selesai lokal; verifikasi menyeluruh, hitung data DB, drop `sessionId`, dan ukuran payload tetap pending. Bagian3 NC-1.5 parsial: Helmet/CORS/limiter/error-log lokal tersedia. Bagian2 NC-1.4 tetap rollout blocked untuk 5 Auth tanpa profil; NC-SEC-BE selesai. WALI-MOB/branch `uiux` di-pause. Izin commit/push terdahulu sudah dipakai untuk checkpoint Bagian1/2; sesi Bagian3/4 tidak melakukan commit/push, merge/deploy, frontend/browser, login test, atau mutasi DB remote.
+> **Branch konteks:** `be-restruktur` (base `dev`). **Bagian 4 checkpoint 2026-09-16:** packaging `build.cjs`/artifact test, lint backend scoped, dan audit+mapping materi–sesi selesai lokal; verifikasi menyeluruh, hitung data DB, drop `sessionId`, dan ukuran payload tetap pending. Bagian3 NC-1.5 parsial: Helmet/CORS/limiter/error-log lokal tersedia. Bagian2 NC-1.4 tetap rollout blocked untuk 5 Auth tanpa profil; NC-SEC-BE selesai. WALI-MOB/branch `uiux` di-pause. Checkpoint Bagian3+Bagian4 sudah di-commit `a128a76` dan di-push ke `origin/be-restruktur` atas permintaan user; tidak ada merge/deploy, frontend/browser, login test, atau mutasi DB remote.
 > Patokan awal root: [AGENTS.md](../AGENTS.md) · [SYSTEM_MAP.md](../SYSTEM_MAP.md) · [README.md](../README.md) · [design.md](../design.md). Konflik → DOC-ROOT, bukan asumsi runtime.
 > Referensi: [roadmap](../docs/ROADMAP-LMS.md) · [overview](../docs/CODEBASE_OVERVIEW.md) · [flow](../docs/flow-system.md) · [ERD](../docs/erd-lms.md).
 > ID, checkbox dan tanggal historis dipertahankan; label demo/fase lama bukan bukti runtime kini. Exit criteria fase ada di [plan](./plan.md#fase-exit-design); riwayat tambahan di [arsip progress](../docs/PROGRESS.md#arsip-todo-20260916).
@@ -18,6 +18,8 @@
 ## Meta — dokumentasi & proses
 
 - [x] 2026-09-16 NC-GIT Commit/push dependency `2d5444e` dan auth/tests `0765024` ke origin/be-restruktur; sertakan sinkronisasi dokumentasi, tanpa merge/deploy — [sesi](../docs/PROGRESS.md#backend-push-20260916).
+
+- [x] 2026-09-16 NC-GIT-2 Commit/push checkpoint Bagian3+Bagian4 `a128a76` (hardening HTTP, `build.cjs`, lint scoped, audit materi-sesi) ke origin/be-restruktur atas permintaan user; tanpa merge/deploy dan tanpa mutasi DB — [sesi](../docs/PROGRESS.md#backend-part4-20260916).
 
 - [x] 2026-09-16 NC-BE-PLAN Simpan rencana backend-only dan keputusan akun nonaktif; rincian [plan](./plan.md#backend-restructure), [sesi](../docs/PROGRESS.md#backend-part1-20260916).
 
