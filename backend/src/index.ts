@@ -1,6 +1,5 @@
 import express from 'express';
-import cors from 'cors';
-import morgan from 'morgan';
+import { installHttpSecurity, readHttpSecurityConfig, httpErrorHandler } from './middleware/http-security';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { prisma } from './lib/prisma';
@@ -50,9 +49,7 @@ const DEFAULT_NEW_USER_PASSWORD = "12345678";
 const PORT = Number(process.env.PORT) || 5000;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(morgan('dev'));
+installHttpSecurity(app, readHttpSecurityConfig(process.env));
 
 // Routing
 // 1. Health-check
@@ -3260,6 +3257,8 @@ app.get('/api/payment-accounts', requireAuth, async (req: AuthenticatedRequest, 
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
   }
 });
+
+app.use(httpErrorHandler);
 
 // Start Server
 async function startServer() {

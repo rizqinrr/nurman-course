@@ -35,6 +35,10 @@
 
 | Tanggal | Keputusan | Alasan |
 |---|---|---|
+| 2026-09-16 | NC-1.5: origin lokal localhost3000, direct Express, kuota umum300/menit dan resolve-phone10/15menit per IP/proses | User mengonfirmasi konfigurasi lokal, bukan hasil inspeksi VPS. Ukuran file belum diketahui; batas JSON100kb dipertahankan, kenaikan5mb pending. Production wajib origin HTTPS eksplisit; pengujian menyeluruh ditunda dan tidak ada izin rollout. |
+| 2026-09-16 | NC-1.7: artefak backend dibangun `build.cjs` (Prisma generate → `tsc` → shared CommonJS → salin generated client + native engine) dan build harus dijalankan di OS target | `tsc` polos tidak memuat generated client/shared runtime, sementara `packages/shared` sengaja tanpa build step. Engine Prisma bersifat native per OS, jadi artefak Windows bukan bukti artefak Linux; deployment tetap `npm ci` di server dan bukan bundling seluruh dependency. Alternatif output di luar `backend/dist` ditolak. |
+| 2026-09-16 | NC-1.8: backfill `MaterialItem.sessionId`→`roadmapStepId` hanya jika program punya tepat satu step; drop kolom ditahan | `sessionId` tidak punya konsumen runtime (hanya seed/schema/FK), sehingga pemetaan otomatis berisiko menebak induk konten. Baris ambigu dikeluarkan sebagai keputusan admin, konten tidak dihapus, dan tipe `roadmapStepId` frontend harus diputuskan lebih dahulu. |
+| 2026-09-16 | NC-1.7c: lint backend memakai flat config sendiri, aturan TypeScript non-type-checked, `no-explicit-any` warning | Backend tidak bisa memakai `eslint-config-next`; mode non-type-checked cukup untuk audit awal tanpa memaksa perbaikan 14 `any` di luar scope. Lint frontend tidak dijadikan pengganti. |
 | 2026-09-16 | NC-1.4: staging/development `akjzhktsdkbykjknkwwo`, audit agregat read-only; kontrak 401/403/500 dan profil verified-ID-only disetujui | User mengonfirmasi environment dan scope audit. Missing profil berubah dari 404 menjadi 403; role invalid/inactive ditolak, tanpa fallback email/metadata/wali atau auto-provision. Lima Auth tanpa profil perlu keputusan admin: merge/rollout ditahan; implementasi lokal/mock test boleh dilanjutkan melalui "oke gas pake todo". Tidak ada izin mutasi remote, sesi test, frontend, commit/push/deploy. |
 | 2026-09-16 | Backend-only, eksekusi per bagian; akun `active=false` ditolak `403 ACCOUNT_INACTIVE` | User menyetujui plan dan todo rinci. Akun nonaktif diarahkan daftar ulang/hubungi admin; identitas email/nomor sama membutuhkan persetujuan admin, tidak auto-reactivate. Mulai patch dependency backend; perubahan frontend/browser, operasi DB remote dan commit/push/deploy tidak diizinkan otomatis. |
 | 2026-09-15 | NC-1.2 baseline `0_init` diresmikan; legacy `fix-null-email` dipertahankan | Gate schema/backup public/restore/replay lolos; staging hanya mencatat applied, bukan menjalankan SQL baseline. Migrasi baru wajib memperhatikan ordering legacy alfabetis. Backup public-only ke PG18 bukan disaster recovery penuh untuk staging PG17. |
@@ -77,6 +81,61 @@ Hasil grilling 2026-09-15 pada branch `be-restruktur`; dipindahkan verbatim dari
 - **D11 — superseded sebagian oleh D16:** pernyataan rename `Program` menjadi `Course` pada keputusan awal tidak berlaku; `Program` dipertahankan untuk layanan bertentor. Hierarki konten `Course → Section → Lesson` tetap target, dengan migrasi NC-2.1/NC-2.2. Tidak menyatakan tabel target sudah dibuat.
 - **D16 — koreksi status:** frasa historis "sessionId ... baru dibuang" **bukan pekerjaan selesai**. Berdasarkan handoff pemeriksaan source main, `MaterialItem.sessionId` masih ada di schema dan dipakai seed; audit/migrasi penghapusannya tetap **NC-1.8 pending**, bukan field yang boleh diasumsikan tidak digunakan. Tidak ada pemeriksaan DB live pada DOC-SYNC.
 - **D5 — status kode lokal diperbarui pada NC-1.4:** role DB tanpa metadata/fallback wali telah terimplementasi dan terverifikasi pada [checkpoint Bagian2](#backend-part2-20260916). Tabel keputusan bukan bukti deploy atau konsistensi frontend; merge/rollout masih tertahan untuk 5 Auth tanpa profil, routing frontend di luar scope.
+
+---
+
+<a id="backend-part4-20260916"></a>
+### 2026-09-16 — Backend bagian 4: artifact, lint dan audit materi-sesi
+
+**Fase:** NC-1.7 / NC-1.8
+**Status sesi:** selesai untuk lingkup lokal (packaging, lint scoped, audit+mapping) — payload tetap100kb, drop kolom dan verifikasi menyeluruh tetap pending.
+
+**Request user:** "lanjut" lalu "sesuai saran, pake todo".
+
+**Keputusan (klarifikasi):** lanjut pekerjaan lokal Bagian4 sesuai plan, tanpa frontend/browser, perubahan schema/data remote, seed nyata, commit/push/deploy. Ketiga saran main disetujui user: deklarasikan dependency lint di `backend/package.json`, mode lint recommended non-type-checked dengan `no-explicit-any` sebagai warning, `build` disambungkan ke `build.cjs`. NC-1.8 cukup berbasis source; query hitung data live hanya ditulis sebagai usulan dan tidak dijalankan karena belum ada izin DB.
+
+**Dikerjakan:**
+1. Preflight mempertahankan12 file Bagian3 (10tracked modified+2untracked).
+2. Audit NC-1.7a: `backend/dist/` di `backend/.gitignore`, `backend/src/generated/` di root `.gitignore`, tidak ada generated/temp tracked dan tidak ada `.tmp`; ignore tidak diubah. `build` lama (`tsc` polos) terbukti tidak memuat generated client maupun shared runtime.
+3. NC-1.7b: `backend/build.cjs` (Prisma generate → `tsc` ke staging → shared menjadi CommonJS + manifest `type: commonjs` → salin generated client dan native engine → tukar ke `dist` setelah validasi; menolak argumen/output alternatif dan symlink, dan tidak menghapus file `dist` milik user) plus script `build`/`test:artifact`. `backend/tests/artifact.test.cjs` menjalankan fixture di temp dengan env palsu dan network guard.
+4. NC-1.7c: `backend/eslint.config.mjs` (flat, recommended JS + TypeScript non-type-checked, `no-explicit-any` warning, ignore `dist`/`src/generated`/`node_modules`/`prisma/migrations`) dan dependency dev `eslint`, `@eslint/js`, `typescript-eslint`, `globals`. Dua binding seed yang tidak terpakai (`admin`, `stepCalistung1`) dihapus tanpa mengubah data yang di-seed; script `lint`, `typecheck` ditambahkan.
+5. NC-1.8a/b: audit konsumen `MaterialItem.sessionId` dan penulisan mapping backfill/syarat drop/rollback + query hitung usulan di `tasks/plan.md`.
+
+**Verifikasi:** `npm run lint --workspace=backend` exit0 (0 error, 14 warning `any`; 10 di antaranya pra-eksisting di `src/index.ts`). `npm run typecheck --workspace=backend` dan `typecheck:test` exit0. `npm run test:artifact --workspace=backend` 2/2 lulus (41s) pada fixture terisolasi: generated client + engine `query_engine-windows.dll.node` terpaket, shared CJS ter-resolve ke `dist/node_modules/@nurman-course/shared/index.js`, import tidak menyentuh DB/Auth, startup smoke loopback health200/profil401 tanpa `--experimental-strip-types`, build gagal tidak merusak artefak lama. `npm run test:api` 122/122 dan `test:clients` 4/4 lulus. `npm run build --workspace=backend` nyata exit0 ke `backend/dist` yang tetap ignored oleh git. `npm audit --omit=dev --workspace=backend` 0 vulnerability; dua advisory high (`brace-expansion`, `js-yaml`) sudah ada di lockfile sejak HEAD dan hanya jalur dev-tooling.
+
+**Residual:** NC-1.5-PAYLOAD (batas parser tetap100kb), NC-1.4-ROLLOUT (5 Auth tanpa profil), NC-BE-VERIFY (suite frontend, runtime nyata, integrasi DB, smoke login tiga role) tetap terbuka. NC-1.8 hanya sampai rencana: hitung data staging, backfill, drop `session_id` dan FK belum dieksekusi, dan tipe `roadmapStepId` di `frontend/data/lms.ts` masih non-nullable sehingga mismatch dengan schema nullable belum diputuskan. Server artefak tidak pernah dijalankan terhadap DB/Auth nyata, engine native hanya terbukti untuk Windows, dan lint belum type-aware (14 warning `any`). Tidak ada commit/push/merge/deploy pada sesi ini; working tree menyimpan perubahan Bagian3+Bagian4.
+
+---
+
+<a id="backend-part3-20260916"></a>
+### 2026-09-16 — Backend bagian 3: hardening HTTP bertahap
+
+**Fase:** NC-1.5
+**Status sesi:** sebagian selesai — implementasi Helmet/CORS/limiter/error-log tersedia lokal dan regression terarah lulus. Penutupan penuh Bagian 3 masih blocked NC-1.5-PAYLOAD; Bagian 4 belum dimulai.
+
+**Request user:** "oke gas pake todo, ga perlu pake testing2, cukup implementasi aja, testingnya nnti kalo sampae 10. Verifikasi wajib setiap bagia".
+
+**Keputusan (klarifikasi):** lokal dahulu http://localhost:3000, langsung Express tanpa reverse proxy, kuota umum 300/menit/IP dan resolve-phone 10/15menit/IP per proses. User belum mengetahui ukuran file; pertahankan parser existing 100kb, jangan menaikkan ke 5mb. User meminta testing ditunda ke bagian 10 rencana percakapan; regression keamanan/API dan typecheck tetap dijalankan sesuai aturan kerja, bukan pengujian menyeluruh. Tidak ada frontend/browser, perubahan akun/DB remote, commit/push/deploy.
+
+**Dikerjakan:**
+- Preflight branch bersih be-restruktur. Pilihan direct Express adalah konfigurasi implementasi yang disetujui, bukan hasil inspeksi VPS; listener loopback existing tidak diubah.
+- Tambah `backend/src/middleware/http-security.ts`: config origin eksak dari HTTP_ALLOWED_ORIGINS (development default localhost3000; production wajib HTTPS eksplisit), empat env kuota positive integer; gagal awal bila config invalid tanpa mencetak nilainya.
+- Pasang Helmet, Vary Origin dan CORS allowlist tanpa credentials; Origin tidak dikenal 403 ORIGIN_NOT_ALLOWED, tanpa Origin tetap tunduk auth. Preflight204 tidak memakai kuota; CORS bukan pengganti otorisasi.
+- Limiter sebelum JSON/handler bisnis: umum /api dan khusus /api/auth/resolve-phone, memory store terpisah per app/proses, Retry-After dan draft8 headers, tanpa fail-open saat store error. trust proxy=false; hanya diagnostic forwarding checks dimatikan karena forwarding header tidak dipercaya dalam mode direct. IP/IPv6 memakai generator bawaan, tidak menulis generator sendiri.
+- Parser eksplisit100kb mempertahankan default existing; global error middleware setelah routes menangani JSON400, payload413, encoding415, malformed URL400 dan unexpected500 generik. Log Morgan hanya method/status/durasi; limiter logger generik. Catch domain legacy tidak dirombak.
+- Dependency pin Helmet8.3.0/express-rate-limit8.7.0, transitive ip-address10.7.2; debug4.4.3 menjadi runtime tanpa perubahan versi. Registry metadata/engines/integrity diperiksa, install workspace dengan --ignore-scripts --no-audit --no-fund. Template env diperbarui tanpa edit .env nyata; HTTP_* dibersihkan dalam test setup agar tidak mewarisi setting host.
+- Test baru http-security.test.ts memakai strict mocks/network guard existing. Overview/flow/plan/todo diselaraskan; frontend/shared/Prisma tidak berubah.
+
+**Verifikasi:**
+- Slice1 RED import middleware belum ada, GREEN19/19. Slice2 RED11gagal/19lulus, GREEN30/30.
+- Review security independen: nol blocker; satu temuan low malformed URL turun ke500 diperbaiki lewat RED500→400 dan regression baru. Residual debug/legacy logs dicatat di bawah.
+- Final `npm run test:api --workspace=backend -- http-security.test.ts api.test.ts auth.test.ts`: **122/122 pass** (HTTP31 + auth64 + API27), nol skip/fail pada run final. Tidak menjalankan node:test client suite atau full workspace/DB/browser tests.
+- `node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json` dan `npm run typecheck:test --workspace=backend`: exit0.
+- Compile `node node_modules/typescript/bin/tsc --project backend/tsconfig.json --outDir C:\Users\Kiki\AppData\Local\Temp\opencode\nc-http-be-build-20260916`: exit0 setelah verifikasi parent; artifact tidak dijalankan.
+- `npm audit --workspace=backend --omit=dev --json`: **0 findings**; npm ls dependency baru konsisten. Ini audit runtime workspace backend pada waktu pemeriksaan, bukan seluruh monorepo. Warning allowScripts workspace tetap residual Bagian4.
+- `git diff --check` lulus; tidak ada diff frontend/shared/Prisma. Dokumentasi checkpoint/task/overview/flow diperbarui; file source/test baru tetap untracked sampai commit berizin.
+
+**Residual:** NC-1.5-PAYLOAD menahan penutupan penuh Bagian 3; upload lebih besar100kb tetap belum didukung. Origin/TLS/topologi/kuota production belum diuji live; limiter per proses bukan global dan tidak melindungi login Supabase langsung. Hindari DEBUG yang mengaktifkan express-rate-limit pada trafik sensitif: debug internal dependency dapat mencetak URL/IP, di luar logger generik. Catch legacy dan SQL debug existing belum diaudit ulang; jangan mengklaim semua log aplikasi bersih. Lint backend belum tersedia (NC-1.7c); artifact runtime, full suite dan DB integration ditunda. NC-1.4-ROLLOUT tetap blocked untuk lima Auth tanpa profil.
 
 ---
 

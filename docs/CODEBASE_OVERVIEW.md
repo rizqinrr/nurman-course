@@ -51,7 +51,7 @@ graph TD
 | Frontend | Next.js dan `eslint-config-next` **16.3.5**; React/React DOM **19.2.4**; Tailwind CSS dan PostCSS plugin **^4**. |
 | UI | Framer Motion `^12.43.0`, Lucide React `^1.11.0`; komponen lokal di `frontend/components/`. |
 | Auth client | Frontend: `@supabase/ssr ^0.12.4`, `@supabase/supabase-js ^2.111.0`; backend mendeklarasikan SDK `^2.45.0`. |
-| Backend | Express **4.22.3**, Morgan **1.12.0**, TypeScript, ts-node, cors, dotenv. Output TypeScript tetap CommonJS. |
+| Backend | Express **4.22.3**, Morgan **1.12.0**, Helmet **8.3.0**, express-rate-limit **8.7.0**, TypeScript, ts-node, cors, dotenv. Output TypeScript tetap CommonJS. |
 | Database | Prisma/client manifest `^5.18.0`, resolved **5.22.0** pada lockfile root; datasource `postgresql`. |
 | Shared | `@nurman-course/shared`: tipe, schema Zod `^3.23.8`, dan `normalizePhone`; entrypoint masih `src/index.ts`. |
 | Tooling | Turbo `^2.0.4`, ESLint `^9`; backend Vitest **4.1.11**, Supertest **7.1.4**, serta Node test runner. |
@@ -78,6 +78,7 @@ Angka berawalan `^` adalah range manifest, bukan klaim versi terpasang. Acuan: [
 | `backend/src/lib/prisma.ts` | Instance Prisma module-cached, dotenv sebelum konstruksi, log SQL/durasi pada nonproduction. Tidak mengimpor entrypoint Express. |
 | `backend/src/lib/supabase-admin.ts` | Client service-role khusus backend; `null` bila konfigurasi tidak tersedia, session refresh/persistence dimatikan. Tidak mengimpor entrypoint. |
 | `backend/src/middleware/auth.ts` | `requireAuth` (verified ID → role/active DB), `validateAccountAccess` (dipakai middleware/profil), `requireRole(...roles)` allowlist, `requireAdmin = requireRole("admin")`, dan `AuthenticatedRequest`. |
+| `backend/src/middleware/http-security.ts` | `readHttpSecurityConfig(env)` memvalidasi origin/kuota `HTTP_*`, `installHttpSecurity(app, config)` memasang log ringkas, Helmet, penolakan Origin, CORS allowlist, limiter, dan `express.json`; `httpErrorHandler` menyeragamkan error parser/URL/tak terduga. |
 | `backend/prisma/` | Schema, migration history, dan seed; generated client ada di `backend/src/generated/client`, bukan source untuk diedit. |
 | `packages/shared/src/index.ts` | Kontrak input domain dan tipe/status bersama. Import shared tidak menjamin setiap payload UI sudah sesuai schema. |
 
@@ -126,6 +127,8 @@ Ringkasan boundary di [handler Express](../backend/src/index.ts), bukan kontrak 
 
 Respons belum seragam: endpoint lama memakai `{ user }`, `{ sessions }`, dan sejenisnya; banyak endpoint admin memakai `{ data }`. Error dapat berupa `{ error: "..." }` atau `{ error: { code, message, details } }`; `apiFetch` menangani kedua bentuk. Jangan mengasumsikan satu envelope global.
 
+**Hardening HTTP NC-1.5 (implementasi lokal, bukan bukti deployment).** Seluruh request melewati `installHttpSecurity` sebelum handler: Helmet, penolakan `Origin` tidak dikenal `403 ORIGIN_NOT_ALLOWED`, CORS allowlist tanpa credentials, limiter `/api` dan `/api/auth/resolve-phone` dengan `429 RATE_LIMITED`, serta `express.json` yang **tetap memakai batas default 100kb**. Default origin development adalah `http://localhost:3000`; production memerlukan `HTTP_ALLOWED_ORIGINS` HTTPS eksplisit dan gagal di awal bila kosong. Kuota berasal dari `HTTP_RATE_LIMIT_*`/`HTTP_AUTH_RATE_LIMIT_*` dengan default 300/menit dan 10/15 menit, memakai memory store **per proses**, bukan kuota global multi-instance. `trust proxy` tetap `false` sesuai keputusan akses langsung; header forwarding tidak dipercaya. `httpErrorHandler` mengembalikan `400 INVALID_JSON`, `413 PAYLOAD_TOO_LARGE`, `415 UNSUPPORTED_MEDIA_TYPE`, `400 INVALID_REQUEST`, atau `500` generik tanpa exception mentah; log request hanya method, status, dan durasi. Handler lama tetap memiliki `try/catch` masing-masing dan tidak otomatis ikut diseragamkan.
+
 ## 6. Auth dan model data saat ini
 
 **NC-1.4 sudah diimplementasikan lokal pada backend, bukan bukti deployment.** `requireAuth` menerima tepat satu token dalam format `Bearer <token>`, memverifikasi identitas melalui `supabase.auth.getUser(token)`, lalu mencari `User` berdasarkan verified ID dengan `select: { id, email, role, active }`. `validateAccountAccess` menolak profil hilang, `active !== true`, atau role di luar shared `userRoleSchema` (`admin/tentor/wali`). `req.user` hanya memuat verified `id`, email DB (opsional), dan role DB tervalidasi; tanpa otorisasi dari metadata, default wali, atau cache privilege.
@@ -151,16 +154,24 @@ Bedakan constraint database dengan aturan handler:
 Test yang tersedia adalah referensi cakupan, bukan hasil baru atau jaminan end-to-end:
 - `backend/tests/clients.test.cjs`: Node regression untuk konstruksi client, env-first, instance reuse, logging, dan import tanpa startup; Prisma distub.
 - `backend/tests/auth.test.ts`, `backend/tests/api.test.ts`: Vitest/Supertest pada middleware/app asli dengan mock Prisma/SDK; regression NC-1.4 mencakup single Bearer token, verified-ID/role DB, akun hilang/inactive/invalid role, guard allowlist, kegagalan SDK/DB, dan profil tanpa fallback email. `tests/setup.ts` membatasi network ke server loopback suite. Rujukan hasil suite/typecheck dan status compile: [PROGRESS](./PROGRESS.md#backend-part2-20260916), dikelola main; test mock bukan bukti login/akses akun nyata.
+- `backend/tests/http-security.test.ts`: Vitest/Supertest untuk validasi konfigurasi `HTTP_*`, header Helmet, CORS allowlist/preflight, limiter beserta percobaan spoofing forwarding header, error parser/URL, dan redaksi log. Memakai app asli serta fixture Express terpisah; bukan bukti perilaku produksi di balik proxy nyata.
+- `backend/tests/artifact.test.cjs`: Node test runner pada salinan fixture di temp dengan env palsu dan network guard; memverifikasi `backend/build.cjs` menghasilkan `dist` yang memuat Prisma generated client + native query engine dan shared sebagai CommonJS, menolak output alternatif, mempertahankan file `dist` milik user saat build gagal, lalu menjalankan startup smoke loopback (`/api/health` 200, `/api/users/me` 401) tanpa `--experimental-strip-types`. Tidak menyentuh DB/Auth nyata; artefak hanya diuji pada OS tempat build dijalankan.
 - `frontend/tests/api.test.mjs`: snapshot log, cache, invalidation, TTL, dan error; `frontend/tests/roadmap-reorder.test.mjs`: reorder concurrency dengan mock hooks/source transform. Bukan pengujian lifecycle browser penuh.
 
 Perintah referensi dari root, **bukan instruksi eksekusi sesi docs-only**:
 ```powershell
 npm run test --workspace=backend
+npm run test:artifact --workspace=backend
+npm run lint --workspace=backend
+npm run typecheck --workspace=backend
 npm run typecheck:test --workspace=backend
+npm run build --workspace=backend
 node --test frontend/tests/api.test.mjs frontend/tests/roadmap-reorder.test.mjs
 ```
 
-Konfigurasi API frontend memakai `NEXT_PUBLIC_API_URL` (fallback origin yang sama). Backend memakai konfigurasi Supabase serta `DATABASE_URL`/`DIRECT_URL` pada datasource Prisma. Nilai credential tidak menjadi isi dokumentasi ini. Seed melakukan `deleteMany`; bukan langkah onboarding aman untuk database berisi data. Migration history tersedia di `backend/prisma/migrations/`; kebijakan baseline/replay ada di progress, bukan bukti status database yang sedang aktif.
+`backend` memakai `eslint.config.mjs` flat config sendiri (recommended JS + TypeScript tanpa type-checking, `no-explicit-any` sebagai warning) dengan ignore `dist/`, `src/generated/`, `node_modules/`, dan `prisma/migrations/`; lint frontend tidak dipakai di sini. `npm run build --workspace=backend` menjalankan `build.cjs` (Prisma generate → `tsc` → shared menjadi CommonJS → salin generated client dan native engine ke `dist`), memerlukan `DATABASE_URL` untuk generate, dan harus dijalankan di OS target karena engine Prisma bersifat native. `start` tetap `node dist/src/index.js`.
+
+Konfigurasi API frontend memakai `NEXT_PUBLIC_API_URL` (fallback origin yang sama). Backend memakai konfigurasi Supabase, `DATABASE_URL`/`DIRECT_URL` pada datasource Prisma, serta konfigurasi HTTP `HTTP_ALLOWED_ORIGINS`, `HTTP_RATE_LIMIT_MAX`, `HTTP_RATE_LIMIT_WINDOW_MS`, `HTTP_AUTH_RATE_LIMIT_MAX`, dan `HTTP_AUTH_RATE_LIMIT_WINDOW_MS` seperti pada [template env backend](../backend/.env.example). Nilai credential tidak menjadi isi dokumentasi ini. Seed melakukan `deleteMany`; bukan langkah onboarding aman untuk database berisi data. Migration history tersedia di `backend/prisma/migrations/`; kebijakan baseline/replay ada di progress, bukan bukti status database yang sedang aktif.
 
 [Workflow deployment](../.github/workflows/deploy.yml) dipicu push ke `main` atau `workflow_dispatch`, berjalan pada runner `ubuntu-latest`, lalu melakukan rsync **source** melalui SSH. `node_modules`, `.next`, `dist`, generated backend, `.git`, dan `.env*` dikecualikan. Setelah sync, workflow memanggil remote `sudo -n /opt/nurman-deploy/deploy.sh`.
 

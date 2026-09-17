@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeEach, expect, vi } from 'vitest';
 
 const boundary = vi.hoisted(() => {
   for (const key of Object.keys(process.env)) {
-    if (/^(SUPABASE_|DATABASE_URL$|DIRECT_URL$|DOTENV_CONFIG_)/.test(key)) {
+    if (/^(HTTP_|SUPABASE_|DATABASE_URL$|DIRECT_URL$|DOTENV_CONFIG_)/.test(key)) {
       delete process.env[key];
     }
   }

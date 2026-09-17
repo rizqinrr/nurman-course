@@ -1,7 +1,7 @@
 # Tasks — nurman-course
 
 > Source of truth **checklist eksekusi/status**, bukan log hasil. Scope/desain/acceptance criteria: [plan.md](./plan.md); keputusan/hasil/verifikasi/residual: [PROGRESS.md](../docs/PROGRESS.md).
-> **Branch konteks:** `be-restruktur` (base `dev`). **Bagian 2 NC-1.4 implementasi lokal terverifikasi 2026-09-16; rollout blocked**; NC-SEC-BE selesai 2026-09-16. Audit akun staging read-only diizinkan dan selesai; merge/rollout blocked untuk 5 Auth tanpa profil. WALI-MOB/branch `uiux` di-pause. User mengizinkan commit/push ke `origin/be-restruktur`; tidak mengizinkan merge/deploy, frontend/browser, login test, atau mutasi DB remote.
+> **Branch konteks:** `be-restruktur` (base `dev`). **Bagian 4 checkpoint 2026-09-16:** packaging `build.cjs`/artifact test, lint backend scoped, dan audit+mapping materi–sesi selesai lokal; verifikasi menyeluruh, hitung data DB, drop `sessionId`, dan ukuran payload tetap pending. Bagian3 NC-1.5 parsial: Helmet/CORS/limiter/error-log lokal tersedia. Bagian2 NC-1.4 tetap rollout blocked untuk 5 Auth tanpa profil; NC-SEC-BE selesai. WALI-MOB/branch `uiux` di-pause. Izin commit/push terdahulu sudah dipakai untuk checkpoint Bagian1/2; sesi Bagian3/4 tidak melakukan commit/push, merge/deploy, frontend/browser, login test, atau mutasi DB remote.
 > Patokan awal root: [AGENTS.md](../AGENTS.md) · [SYSTEM_MAP.md](../SYSTEM_MAP.md) · [README.md](../README.md) · [design.md](../design.md). Konflik → DOC-ROOT, bukan asumsi runtime.
 > Referensi: [roadmap](../docs/ROADMAP-LMS.md) · [overview](../docs/CODEBASE_OVERVIEW.md) · [flow](../docs/flow-system.md) · [ERD](../docs/erd-lms.md).
 > ID, checkbox dan tanggal historis dipertahankan; label demo/fase lama bukan bukti runtime kini. Exit criteria fase ada di [plan](./plan.md#fase-exit-design); riwayat tambahan di [arsip progress](../docs/PROGRESS.md#arsip-todo-20260916).
@@ -355,17 +355,19 @@ Prioritas rendah:
 - [x] 2026-09-16 NC-1.4f Regression95/95, typecheck source/test, compile temp dan review security lulus; frontend/smoke nyata di luar scope. Merge/rollout tetap blocked — [checkpoint](../docs/PROGRESS.md#backend-part2-20260916).
 
 **Bagian 3 — NC-1.5 keamanan HTTP**
-- [ ] NC-1.5a Konfirmasi origin/rate-limit/proxy dan ukuran payload base64.
-- [ ] NC-1.5b RED/GREEN Helmet + CORS allowlist dengan preflight dan absent/disallowed Origin.
-- [ ] NC-1.5c RED/GREEN rate limiter dan forwarding-header spoofing sesuai proxy aktual.
-- [ ] NC-1.5d RED/GREEN JSON limit/400/413/429 dan error/log aman; verification/review backend.
+- [~] NC-1.5a in_progress 2026-09-16: user menyetujui origin lokal http://localhost:3000, akses langsung Express (trust proxy false), limiter umum 300/menit/IP dan resolve-phone 10/15menit/IP per proses. Ukuran payload belum diketahui; batas existing dipertahankan, kenaikan 5mb belum disetujui.
+- [ ] NC-1.5-PAYLOAD Konfirmasi ukuran file mentah/JSON sebelum menaikkan limit parser; bukan blocker Helmet/CORS/limiter, tetap blocker penutupan penuh Bagian 3.
+- [ ] NC-BE-VERIFY Pengujian menyeluruh diminta user ditunda ke bagian 10 rencana percakapan; regression keamanan terarah/typecheck per perubahan tetap wajib. Tidak ada izin browser/frontend, akun nyata atau DB remote.
+- [x] 2026-09-16 NC-1.5b Helmet + CORS allowlist dengan preflight dan absent/disallowed Origin, config production fail-closed — [checkpoint](../docs/PROGRESS.md#backend-part3-20260916).
+- [x] 2026-09-16 NC-1.5c Limiter umum/resolve-phone, direct Express trust proxy=false, memory store per proses; forwarding spoof regression lulus.
+- [~] 2026-09-16 NC-1.5d Parser existing100kb, JSON400/payload413/encoding415/URL400/rate429 dan error/log generik terimplementasi; regression HTTP/auth/API122/122 + typecheck dan review lulus. Final ukuran payload/full verification/lint tetap pending.
 
 **Bagian 4 — NC-1.7 / NC-1.8**
-- [ ] NC-1.7a Audit generated/temp tracked-ignore tanpa menghapus berdasarkan asumsi.
-- [ ] NC-1.7b Verifikasi artifact generate/compile/start/shared/Prisma pada smoke terisolasi.
-- [ ] NC-1.7c Tentukan/konfigurasi lint backend scoped, tanpa menjalankan lint frontend.
-- [ ] NC-1.8a Audit caller/seed sessionId; distribusi data hanya dengan izin DB.
-- [ ] NC-1.8b Putuskan mapping session-only/keduanya/tanpa induk dan syarat drop; jangan menghapus konten.
+- [x] 2026-09-16 NC-1.7a Audit tracked/ignored generated client dan temp: `backend/dist/` (backend/.gitignore) dan `backend/src/generated/` (root .gitignore) sudah ignored, tidak ada file generated/temp tracked dan tidak ada `.tmp`; ignore tidak diubah. Audit konfigurasi build/start/shared menunjukkan `build` lama (`tsc`) tidak memuat generated client/shared runtime — [checkpoint](../docs/PROGRESS.md#backend-part4-20260916).
+- [x] 2026-09-16 NC-1.7b `backend/build.cjs` (Prisma generate → `tsc` → shared CommonJS → salin generated client + native engine) dan `npm run build`/`test:artifact` tersambung; artifact test 2/2 lulus pada fixture temp terisolasi (env palsu, network guard, startup smoke loopback health200/profil401 tanpa strip-types) plus build nyata ke `backend/dist` yang tetap ignored. Engine native = build per OS target; server artefak tidak dijalankan terhadap DB/Auth nyata.
+- [x] 2026-09-16 NC-1.7c Lint backend scoped: `backend/eslint.config.mjs` (recommended JS + TypeScript non-type-checked, `no-explicit-any` warn, ignore dist/generated) dan dependency dev `eslint`/`@eslint/js`/`typescript-eslint`/`globals`; lint exit0 dengan 14 warning `any` (10 di antaranya pra-eksisting di `src/index.ts`), dua unused binding seed dihapus tanpa mengubah data yang di-seed, typecheck source/test exit0, lint frontend tidak dijalankan/disentuh.
+- [~] NC-1.8a 2026-09-16 Audit source selesai: `MaterialItem.sessionId` tidak punya konsumen runtime (semua `sessionId` di `src/index.ts` milik `DailyReport`, dan `createMaterialItemSchema` hanya menerima `roadmapStepId`); pemakai tinggal `prisma/seed.ts`, schema, dan FK cascade. Distribusi data live belum dihitung karena butuh izin DB.
+- [~] NC-1.8b 2026-09-16 Mapping source-based ditulis di [plan](../tasks/plan.md#bagian-4--artifact-dan-relasi-materi-sesi-nc-17--nc-18) (aturan backfill, syarat drop, rollback, query hitung usulan); eksekusi query/backfill/drop tetap menunggu izin DB dan keputusan tipe `roadmapStepId` frontend.
 - [ ] NC-1.C1-BE Checkpoint fondasi backend; bukan pengganti smoke login UI pada task historis NC-1.C1.
 
 **Bagian 5 — backend NC-2**
@@ -428,7 +430,7 @@ Prioritas rendah:
   - [ ] NC-1.2j Evaluasi RLS defense-in-depth, leaked-password protection, dan covering index FK; terpisah dari baseline — [temuan historis](../docs/PROGRESS.md#2026-09-15--nc-12-baseline-diresmikan-setelah-restore-dan-replay).
 - [x] 2026-09-15 NC-1.3 Ekstrak singleton prisma/supabaseAdmin, env-first/logging/nullable client/export kompatibel.
 - [~] NC-1.4 Implementasi lokal role DB/inactive/requireRole dan profil ID-only terverifikasi 2026-09-16 (D5). Audit selesai; merge/rollout blocked NC-1.4-ROLLOUT untuk 5 Auth tanpa profil, frontend belum diselaraskan — [checkpoint](../docs/PROGRESS.md#backend-part2-20260916).
-- [ ] NC-1.5 Hardening helmet, express-rate-limit, express.json limit 5mb untuk base64, CORS allowlist (bukan cors terbuka).
+- [~] 2026-09-16 NC-1.5 Helmet/CORS allowlist/limiter/error-log lokal tersedia; parser100kb dipertahankan. Rencana kenaikan5mb belum disetujui karena ukuran file belum diketahui; NC-1.5-PAYLOAD dan verifikasi menyeluruh pending — [checkpoint](../docs/PROGRESS.md#backend-part3-20260916).
 - [x] 2026-09-16 NC-1.6 Harness Vitest + supertest, Prisma mock; karakterisasi sebelum role DB.
   - [x] 2026-09-16 NC-1.6a Pin dependency test patched dan review lockfile/transitive.
   - [x] 2026-09-16 NC-1.6b Node-only discovery .test.ts, tsconfig terpisah, aggregate/node/Vitest/watch/typecheck scripts.
@@ -445,8 +447,8 @@ Prioritas rendah:
     - [x] 2026-09-16 A5 Smoke publik sebelum pembatasan browser; coverage/batas bukti di progress.
     - [x] 2026-09-16 A6 Review security patch dan dokumentasi residual/cleanup.
     - [~] NC-SEC-FOLLOWUP Patch runtime backend melalui NC-SEC-BE selesai 2026-09-16; residual non-backend tetap pending: baseline-browser-mapping/brace-expansion/browserslist/js-yaml target review 2026-09-23, Babel 2026-09-30. Tanpa audit fix global; scope residual belum diizinkan — [hasil backend](../docs/PROGRESS.md#backend-part1-20260916), [advisory historis](../docs/PROGRESS.md#2026-09-16--patch-dependency-dan-lint-selesai-penutupan-backend-only).
-- [ ] NC-1.7 Verifikasi tracking/ignore backend/src/generated dan .tmp; jangan mengasumsikan lima file tracked. (pending) — [koreksi klaim lama](../docs/PROGRESS.md#arsip-todo-20260916).
-- [ ] NC-1.8 Audit lalu rencanakan penghapusan MaterialItem.sessionId; masih ada dan dipakai seed, bukan field yang pasti tidak terpakai. (pending) — [D16](../docs/PROGRESS.md#keputusan-ncourse).
+- [~] NC-1.7 Verifikasi tracking/ignore backend/src/generated dan .tmp; jangan mengasumsikan lima file tracked. **Update 2026-09-16:** audit selesai (keduanya ignored, nol file generated/temp tracked) dan packaging `build.cjs`+artifact test lulus; detail di [checkpoint Bagian4](../docs/PROGRESS.md#backend-part4-20260916). — [koreksi klaim lama](../docs/PROGRESS.md#arsip-todo-20260916).
+- [~] NC-1.8 Audit lalu rencanakan penghapusan MaterialItem.sessionId; masih ada dan dipakai seed, bukan field yang pasti tidak terpakai. **Update 2026-09-16:** audit source + mapping backfill/syarat drop ditulis di [plan](../tasks/plan.md#bagian-4--artifact-dan-relasi-materi-sesi-nc-17--nc-18); hitung data live, backfill, dan drop kolom belum dieksekusi. — [D16](../docs/PROGRESS.md#keputusan-ncourse).
 - [ ] NC-1.C1 Checkpoint BE/FE typecheck, Vitest/build, smoke login tiga role untuk regresi NC-1.4. Semua eksekusi memerlukan izin baru, terutama browser/akun test.
 
 ### Tahap 2 — Course / Section / Lesson → fitur #16, #14
@@ -514,4 +516,4 @@ Prioritas rendah:
 
 ## In progress (maks 1 fokus utama)
 
-- Tidak ada implementasi aktif setelah **checkpoint lokal Bagian 2 NC-1.4 2026-09-16**. NC-1.4-ROLLOUT blocked: keputusan admin untuk 5 Auth tanpa profil belum ada, smoke nyata belum diizinkan; Bagian 3 belum dimulai. **WALI-MOB di-pause**. Commit/push branch be-restruktur diizinkan; tidak mengubah frontend/browser atau data/schema remote, tanpa merge/deploy.
+- **NC-1.7 / NC-1.8 Bagian 4 checkpoint 2026-09-16:** packaging `build.cjs` + script `build`/`test:artifact` dan artifact test terisolasi lulus; lint backend scoped tersedia (lint exit0, 14 warning `any`), typecheck source/test exit0; audit source materi–sesi selesai dan mapping migrasi ditulis di plan. Sisa blocker: NC-1.5-PAYLOAD (batas parser tetap100kb), NC-1.4-ROLLOUT untuk 5 Auth tanpa profil, NC-BE-VERIFY (verifikasi menyeluruh ditunda bagian 10), hitung/petakan data DB dan drop `sessionId` (menunggu izin), inkonsistensi tipe `roadmapStepId` frontend. **WALI-MOB di-pause**; tanpa frontend/browser, akun nyata, DB remote, commit/push atau deploy pada sesi implementasi ini.

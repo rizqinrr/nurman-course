@@ -80,7 +80,7 @@ async function main() {
 
   // 2. Create Users (Admin, Tentor, Wali)
   const adminId = await getOrCreateSupabaseUser('admin@nurmancourse.com', 'admin', 'Admin Nurman Course', '081234567890');
-  const admin = await prisma.user.create({
+  await prisma.user.create({
     data: {
       id: adminId,
       role: 'admin',
@@ -200,7 +200,7 @@ async function main() {
     },
   });
 
-  const stepCalistung1 = await prisma.roadmapStep.create({
+  await prisma.roadmapStep.create({
     data: {
       programId: programCalistung.id,
       order: 1,

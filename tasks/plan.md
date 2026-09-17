@@ -49,6 +49,8 @@ Acuan keputusan: [D1–D16](../docs/PROGRESS.md#keputusan-ncourse) dan [akun non
 
 ### Bagian 3 — hardening HTTP (NC-1.5)
 
+**Gate 2026-09-16:** user menyetujui development http://localhost:3000 saja, direct Express tanpa reverse proxy, kuota umum 300 request/menit/IP dan resolve-phone 10 request/15menit/IP per proses, configurable. Production memerlukan origin eksplisit; tidak menebak domain/proxy atau menjanjikan kuota global. Ukuran file belum diketahui: pertahankan batas JSON existing 100kb; rencana 5mb belum disetujui. Kerjakan Helmet/CORS/limiter dan sanitasi error/log dahulu; penutupan penuh payload menunggu NC-1.5-PAYLOAD. Request tanpa Origin tetap dapat masuk sesuai auth/role existing; Origin tidak dikenal ditolak sebelum handler bisnis, bukan pengganti auth. Pengujian menyeluruh diminta ditunda ke bagian 10 pada rencana percakapan; regression keamanan terarah/typecheck tetap menyertai perubahan, tanpa browser atau remote DB.
+
 **Files kandidat:** middleware keamanan/config backend, `index.ts`, manifest/lock, test HTTP. Tambahkan file hanya jika tanggung jawabnya jelas.
 
 - Tetapkan origin CORS berizin, rate-limit window/kuota dan topologi proxy aktual. Jangan `trust proxy=true` tanpa bukti proxy menimpa forwarding headers; limiter memory tidak dijanjikan global untuk multi-instance.
@@ -62,6 +64,39 @@ Acuan keputusan: [D1–D16](../docs/PROGRESS.md#keputusan-ncourse) dan [akun non
 **4A NC-1.7:** audit tracked/ignored generated client dan temp; verifikasi generate → compile → start, resolusi shared source/CommonJS dan generated Prisma; smoke artifact terisolasi. Jangan hapus file user atau ubah ignore berdasarkan asumsi jumlah file. Definisikan lint backend scoped sebagai sub-batch konfigurasi; tidak menggunakan lint frontend sebagai pengganti.
 **4B NC-1.8:** petakan caller/seed dan, dengan izin, data roadmap-only/session-only/keduanya/tanpa induk. Tentukan mapping konten. `sessionId` masih dipakai; penghapusan kolom hanya setelah backfill, konsumen dan rollback aman.
 **Acceptance criteria:** artifact runtime terbukti berjalan sesuai batas smoke; seluruh kategori materi punya rencana tanpa kehilangan konten. Drop kolom bukan output wajib audit.
+
+#### NC-1.8 — hasil audit source dan mapping (2026-09-16, read-only, belum ada mutasi)
+
+Diperiksa hanya source repo; tidak ada koneksi DB. `MaterialItem.sessionId` **tidak punya konsumen runtime**: seluruh `sessionId` di `backend/src/index.ts` (baris 285–331) milik `DailyReport` (`daily_reports.session_id` unik), dan `createMaterialItemSchema` di shared hanya menerima `roadmapStepId`, sehingga API admin materi tidak pernah menulis/membaca kolom itu.
+
+| Kategori | Bukti source | Rencana mapping |
+|---|---|---|
+| roadmap-only | `prisma/seed.ts` item "Materi Hijaiyah Alif - Ya" memakai `roadmapStepId` | tidak berubah |
+| session-only | `prisma/seed.ts` item "Flashcard Angka 1-10" memakai `sessionId: sessionCalistung.id` (program Calistung) | backfill `roadmapStepId` dari `session.programId` → step program tsb |
+| keduanya | tidak ada di seed; hanya mungkin dari data live | jangan dipetakan otomatis; wajib hitung + keputusan manual |
+| tanpa induk | tidak ada di seed | sisakan `roadmapStepId NULL`, materi jadi orphan yang harus diputuskan pemiliknya |
+
+Catatan tambahan dari lint: step khusus program Calistung ("Mengenal Angka 1-10") dibuat seed namun binding-nya tidak pernah dipakai, sejalan dengan dugaan bahwa item Flashcard dimaksudkan menempel ke step itu, bukan ke `Session`.
+
+**Aturan backfill yang diusulkan (belum dieksekusi):**
+1. Untuk baris `sessionId NOT NULL`: ambil `Session.programId`, lalu `RoadmapStep` milik program tersebut. Jika tepat satu step → map ke step itu. Jika lebih dari satu → jangan tebak, keluarkan sebagai daftar keputusan admin (order/level tidak menentukan konten).
+2. Baris dengan `roadmapStepId` sudah terisi dibiarkan; konflik (keduanya terisi dan berbeda induk) tidak ditimpa.
+3. Backfill dijalankan sebagai migrasi data terpisah dengan `roadmapStepId` tetap nullable; tidak menghapus konten dan tidak menyentuh `Session`/`DailyReport`.
+
+**Syarat sebelum drop kolom (belum dipenuhi):** (a) hitung live `session-only`/`keduanya`/`tanpa induk` di staging dengan izin eksplisit; (b) backfill selesai dan diverifikasi jumlah serta isi `bodyText` utuh; (c) konsumen diperiksa ulang (`src/index.ts` nol konsumen, tetapi tipe `frontend/data/lms.ts` masih `roadmapStepId: string` non-nullable — inkonsistensi ini harus diputuskan sebelum kolom dibuang); (d) seed diperbarui agar tidak lagi memakai `sessionId`; (e) FK `material_items_session_id_fkey` dan `session_id` baru dihapus pada migrasi terpisah, dengan rollback = restore kolom + ulangi backfill dari backup.
+
+**Usulan query hitung read-only (belum dijalankan, tanpa PII):**
+
+```sql
+select
+  count(*) filter (where roadmap_step_id is not null and session_id is null)  as roadmap_only,
+  count(*) filter (where roadmap_step_id is null and session_id is not null)  as session_only,
+  count(*) filter (where roadmap_step_id is not null and session_id is not null) as both_parents,
+  count(*) filter (where roadmap_step_id is null and session_id is null)      as no_parent
+from material_items;
+```
+
+Eksekusi query di atas, mapping, dan drop kolom tetap menunggu izin DB; audit ini tidak mengubah schema, data, atau seed.
 
 ### Bagian 5 — modularisasi dan konten (backend NC-2)
 
@@ -101,20 +136,22 @@ Perintah existing dari root saat perubahan relevan:
 
 ```powershell
 npm run test --workspace=backend
+npm run test:artifact --workspace=backend
+npm run lint --workspace=backend
+npm run typecheck --workspace=backend
 npm run typecheck:test --workspace=backend
-node node_modules/typescript/bin/tsc --noEmit --project backend/tsconfig.json
 npm run build --workspace=backend
 ```
 
-Compile boleh memakai outDir temp agar artifact tidak masuk repo. Backend belum mempunyai script lint pada baseline: tentukan command pada sub-batch 4A atau minta command user; jangan menjalankan lint frontend/global diam-diam. Dependency audit dapat membutuhkan registry; suite runtime tetap mock/loopback-only. DB integration/migration replay/remote smoke memerlukan environment dan izin spesifik.
+Compile/artifact tidak lagi masuk repo: `build.cjs` menulis ke `backend/dist` yang sudah di-ignore dan hanya bertukar setelah generate+compile sukses. Script lint backend sudah tersedia sejak sub-batch 4A (`eslint.config.mjs` scoped, non-type-checked); jangan menjalankan lint frontend/global diam-diam atau menyamakan hasilnya. Dependency audit dapat membutuhkan registry; suite runtime tetap mock/loopback-only. DB integration/migration replay/remote smoke memerlukan environment dan izin spesifik. `npm run build` memerlukan `DATABASE_URL` untuk Prisma generate dan hanya berlaku untuk OS tempat build dijalankan.
 
 Setiap checkpoint: perubahan sempit, test/compile sesuai scope, review, todo/status dan progress/hasil sinkron. Jika check gagal/tidak tersedia, catat residual; jangan mengklaim backend-only membuktikan frontend/DB live. Commit/push/deploy selalu izin terpisah. Security rollback tidak mengaktifkan metadata privilege atau versi rentan; migrasi memakai expand/backfill/verify dahulu, contract/delete belakangan.
 
 ### Keputusan terbuka sebelum bagian terkait
 
 - Bagian 2: keputusan admin atas 5 Auth tanpa profil dan izin smoke nyata masih terbuka; environment/izin audit agregat/kontrak ID-only dan 401/403/500 sudah disepakati. Daftar ulang identitas sama membutuhkan admin, bukan reaktivasi otomatis; flow signup belum ada dan tidak ditambah pada NC-1.4.
-- Bagian 3: origin, kuota limiter, proxy topology, konfigurasi produksi.
-- Bagian 5: author legacy, mapping session-only, slug collision, single-writer/cutover dan rollback.
+- Bagian 3: origin lokal/direct Express/kuota awal disetujui 2026-09-16; ukuran file/JSON masih pending (batas existing100kb). Production origin/TLS/topologi/kuota wajib diverifikasi sebelum rollout; jangan aktifkan DEBUG express-rate-limit untuk trafik sensitif karena debug internal dapat mencetak URL/IP. Full verification ditunda NC-BE-VERIFY, bukan dianggap selesai.
+- Bagian 5: author legacy, slug collision, single-writer/cutover dan rollback. Mapping session-only sudah punya rancangan backfill di [Bagian 4 NC-1.8](#bagian-4--artifact-dan-relasi-materi-sesi-nc-17--nc-18); eksekusi data tetap menunggu izin DB dan keputusan tipe `roadmapStepId` frontend.
 - Bagian 6: provisioning tanpa privilege escalation, aturan akhir blok, expiry/revoke/multiple source.
 - Bagian 8: model/state pembayaran course, nominal server-side, pembatalan/refund dan audit trail.
 
