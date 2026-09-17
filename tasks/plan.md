@@ -106,6 +106,18 @@ Eksekusi query di atas, mapping, dan drop kolom tetap menunggu izin DB; audit in
 **5C NC-2.5/2.6:** CRUD/reorder/publish authoring; admin semua, tentor hanya course milik sendiri. Validasi hubungan parent-child dan field author/status; slug unik dan validasi link internal tanpa mengambil URL arbitrer. List bounded/pagination dan DTO eksplisit untuk endpoint baru; envelope lama dipertahankan.
 **Acceptance criteria:** tidak kehilangan bodyText, ownership tidak dapat dilewati dengan mengganti ID induk, reorder/transaksi/slug collision teruji, draft tidak terekspos. Renderer dan editor UI NC-2.4/2.7 ditunda.
 
+#### Kontrak transisi NC-2.1 (disetujui 2026-09-17)
+
+- Backend baru menjadi target kontrak; frontend menyesuaikan pada task frontend terpisah. Endpoint legacy tetap kompatibel selama frontend belum cutover.
+- `Course.programId` hanya diisi oleh backfill untuk `Program.hasRoadmap=true`. Course yang terhubung Program bersifat read-only melalui `/api/authoring/*`; perubahan tetap lewat endpoint roadmap/material legacy sampai cutover. Course standalone memakai API authoring baru. Tidak ada dua writer independen untuk record yang sama.
+- `Course.authorId` nullable untuk hasil migrasi. Admin dapat membaca konten legacy tanpa author; tentor hanya dapat membaca/mengubah course standalone dengan `authorId` miliknya. Author baru wajib User aktif dengan role admin/tentor.
+- Course dan Lesson hasil migrasi selalu `draft`; Lesson default `visibility=entitled`. `accessTier` boleh null saat draft tetapi wajib `free|paid` sebelum publish; paid wajib harga positif, free tidak menyimpan harga.
+- Slug Course dan Lesson unik global. Input authoring memakai lowercase ASCII kebab-case; backfill membentuk slug deterministik dari judul dan menambah suffix `-2`, `-3`, dst. berdasarkan urutan stabil bila collision. Re-run wajib menghasilkan mapping yang sama.
+- `RoadmapStep.bodyText` menjadi Lesson pembuka order0; `MaterialItem` berikutnya menjadi Lesson order1+. Session-only/ambiguous tidak ditebak dan tetap masuk daftar keputusan NC-1.8.
+- Reorder wajib menerima seluruh ID sibling tepat sekali; ID asing, duplikat, atau subset ditolak sebelum transaksi. Publish/draft memakai endpoint aksi tersendiri, bukan PATCH status bebas.
+- Link internal Markdown yang dimulai `/materi/` divalidasi terhadap slug Lesson tanpa HTTP fetch. Link eksternal disimpan sebagai teks dan baru disanitasi renderer frontend NC-2.4.
+- Seluruh schema/migration/backfill sesi ini offline. SQL migration boleh dibuat dan direview, tetapi `migrate deploy`, `db push`, query data live, backfill nyata, dan drop legacy memerlukan izin DB terpisah.
+
 ### Bagian 6 — member, entitlement, reading progress (backend NC-4)
 
 **6A identitas member:** perluas shared role dan phone nullable khusus akun mandiri, pertahankan kewajiban phone pada admin create existing. Provisioning idempotent memakai verified ID/email; jalur identitas-only khusus untuk profil belum ada, endpoint lain tetap fail-closed. Tolak relink/overwrite legacy berdasarkan email dan reaktivasi otomatis inactive. Tidak membuat UI signup/redirect.
@@ -151,7 +163,7 @@ Setiap checkpoint: perubahan sempit, test/compile sesuai scope, review, todo/sta
 
 - Bagian 2: keputusan admin atas 5 Auth tanpa profil dan izin smoke nyata masih terbuka; environment/izin audit agregat/kontrak ID-only dan 401/403/500 sudah disepakati. Daftar ulang identitas sama membutuhkan admin, bukan reaktivasi otomatis; flow signup belum ada dan tidak ditambah pada NC-1.4.
 - Bagian 3: origin lokal/direct Express/kuota awal disetujui 2026-09-16; ukuran file/JSON masih pending (batas existing100kb). Production origin/TLS/topologi/kuota wajib diverifikasi sebelum rollout; jangan aktifkan DEBUG express-rate-limit untuk trafik sensitif karena debug internal dapat mencetak URL/IP. Full verification ditunda NC-BE-VERIFY, bukan dianggap selesai.
-- Bagian 5: author legacy, slug collision, single-writer/cutover dan rollback. Mapping session-only sudah punya rancangan backfill di [Bagian 4 NC-1.8](#bagian-4--artifact-dan-relasi-materi-sesi-nc-17--nc-18); eksekusi data tetap menunggu izin DB dan keputusan tipe `roadmapStepId` frontend.
+- Bagian 5: kontrak author legacy/slug/single-writer/cutover disepakati 2026-09-17 pada [kontrak transisi](#kontrak-transisi-nc-21-disetujui-2026-09-17). Schema+migration SQL dan dry-run backfill tersedia offline; eksekusi data, penanganan item ambigu, dan cutover frontend tetap menunggu izin/task terpisah.
 - Bagian 6: provisioning tanpa privilege escalation, aturan akhir blok, expiry/revoke/multiple source.
 - Bagian 8: model/state pembayaran course, nominal server-side, pembatalan/refund dan audit trail.
 

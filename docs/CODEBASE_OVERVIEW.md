@@ -74,11 +74,14 @@ Angka berawalan `^` adalah range manifest, bukan klaim versi terpasang. Acuan: [
 | `frontend/components/course/`, `frontend/components/landing/` | Section funnel/marketing; reusable UI berada di `components/ui/`. |
 | `frontend/app/layout.tsx`, `frontend/app/globals.css` | Registrasi font, DebugBar, CSS global, dan token AppVerse; bukan bukti semua halaman sudah seragam. |
 | `frontend/utils/format.ts`, `frontend/lib/constants.ts` | Helper format dan konstanta seperti `WHATSAPP_NUMBER`. |
-| `backend/src/index.ts` | Registrasi handler Express, export `app` serta re-export `prisma`; belum dipisah menjadi router/service per domain. |
+| `backend/src/index.ts` | Registrasi/mount handler Express, export `app` serta re-export `prisma`; domain content legacy dan authoring sudah dimount dari router terpisah, sementara domain operasional lain masih inline. |
 | `backend/src/lib/prisma.ts` | Instance Prisma module-cached, dotenv sebelum konstruksi, log SQL/durasi pada nonproduction. Tidak mengimpor entrypoint Express. |
 | `backend/src/lib/supabase-admin.ts` | Client service-role khusus backend; `null` bila konfigurasi tidak tersedia, session refresh/persistence dimatikan. Tidak mengimpor entrypoint. |
 | `backend/src/middleware/auth.ts` | `requireAuth` (verified ID → role/active DB), `validateAccountAccess` (dipakai middleware/profil), `requireRole(...roles)` allowlist, `requireAdmin = requireRole("admin")`, dan `AuthenticatedRequest`. |
 | `backend/src/middleware/http-security.ts` | `readHttpSecurityConfig(env)` memvalidasi origin/kuota `HTTP_*`, `installHttpSecurity(app, config)` memasang log ringkas, Helmet, penolakan Origin, CORS allowlist, limiter, dan `express.json`; `httpErrorHandler` menyeragamkan error parser/URL/tak terduga. |
+| `backend/src/routes/content/` | Router legacy untuk public Program dan admin Program/RoadmapStep/MaterialItem; diekstrak bertahap dari `index.ts` dengan kontrak lama dipertahankan. |
+| `backend/src/routes/authoring/` | API additive `/api/authoring/*` untuk Course/Section/Lesson, ownership admin/tentor, draft/publish, reorder, serta validasi link internal; belum dipakai frontend. |
+| `backend/prisma/backfill-content.ts` | Backfill offline/dry-run/idempoten dari Program/RoadmapStep/MaterialItem ke Course/Section/Lesson; tidak menjalankan otomatis dan tidak boleh diarahkan ke production. |
 | `backend/prisma/` | Schema, migration history, dan seed; generated client ada di `backend/src/generated/client`, bukan source untuk diedit. |
 | `packages/shared/src/index.ts` | Kontrak input domain dan tipe/status bersama. Import shared tidak menjamin setiap payload UI sudah sesuai schema. |
 
@@ -119,10 +122,11 @@ Ringkasan boundary di [handler Express](../backend/src/index.ts), bukan kontrak 
 | Kelompok endpoint | Akses dan bentuk penggunaan |
 |---|---|
 | `GET /api/health`, `POST /api/auth/resolve-phone` | Tanpa `requireAuth`; health dan pemetaan nomor login. |
-| `GET /api/programs`, `GET /api/programs/:id` | Publik; respons `{ programs }` / `{ program }`, termasuk roadmap. Parameter detail backend adalah ID, bukan slug route frontend. |
+| `GET /api/programs`, `GET /api/programs/:id` | Publik; respons `{ programs }` / `{ program }`, termasuk roadmap legacy dan `bodyText` saat ini. Ini legacy behavior yang menjadi release blocker NC-3.4 sebelum konten Course/Lesson publik diluncurkan. |
 | `GET /api/users/me`, `/api/me/*` | `requireAuth`; profil dan data operasional dengan pemeriksaan role/ownership per handler. |
 | `POST /api/daily-reports`, `POST /api/progress-reports`; mutasi `/api/me/sessions` | Terautentikasi dengan pembatasan tentor di handler. |
 | `/api/admin/*` | `requireAuth` dan `requireAdmin`; operasi domain tidak semuanya mempunyai set CRUD yang identik. |
+| `/api/authoring/*` | `requireAuth` + role `admin/tentor`; admin melihat seluruh Course, tentor hanya author miliknya. Course hasil migrasi dengan `programId` terisi read-only sampai frontend cutover; status publish/draft memakai endpoint aksi. |
 | `GET /api/payment-accounts` | Memerlukan `requireAuth`, meskipun bukan route berprefiks admin. |
 
 Respons belum seragam: endpoint lama memakai `{ user }`, `{ sessions }`, dan sejenisnya; banyak endpoint admin memakai `{ data }`. Error dapat berupa `{ error: "..." }` atau `{ error: { code, message, details } }`; `apiFetch` menangani kedua bentuk. Jangan mengasumsikan satu envelope global.
@@ -137,12 +141,13 @@ Respons belum seragam: endpoint lama memakai `{ user }`, `{ sessions }`, dan sej
 
 **Batas rollout:** middleware frontend/login masih memakai metadata role; perubahan backend bukan perbaikan role UI atau rekonsiliasi data legacy. NC-1.4 belum selesai seluruhnya: merge/rollout **BLOCKED** sampai admin memastikan kegunaan lima akun Auth tanpa profil dan menyetujui dampak/rekonsiliasi. Hasil audit staging/development dan verifikasi terpusat di [PROGRESS](./PROGRESS.md#backend-part2-20260916); tidak ada mutasi remote, frontend/browser/login/session test, commit/push/deploy dalam scope ini.
 
-[Prisma schema](../backend/prisma/schema.prisma) memuat 13 model:
+[Prisma schema](../backend/prisma/schema.prisma) memuat 16 model:
 - Identitas/operasional: `User`, `Murid`, `Program`, `Enrollment`, `Session`.
 - Konten/progres: `RoadmapStep`, `MaterialItem`, `DailyReport`, `ProgressReport`, `Progress`.
+- Konten baru (NC-2, schema offline; migration belum diterapkan): `Course`, `Section`, `Lesson`.
 - Pembayaran: `Invoice`, `Prepayment`, `PaymentAccount`.
 
-Relasi utamanya `User(wali) → Murid → Enrollment → Program`, `Enrollment → Invoice`, `Murid → Prepayment`, serta `Program → RoadmapStep → MaterialItem`. Sesi menghubungkan program, murid, dan tentor; `DailyReport.sessionId` unik. `MaterialItem.sessionId` **masih ada** dan nullable, di samping `roadmapStepId` nullable. Kolom capaian `ProgressReport` berupa `String[]`.
+Relasi utamanya `User(wali) → Murid → Enrollment → Program`, `Enrollment → Invoice`, `Murid → Prepayment`, serta legacy `Program → RoadmapStep → MaterialItem`. Sesi menghubungkan program, murid, dan tentor; `DailyReport.sessionId` unik. Schema target NC-2 menambah `Course → Section → Lesson`, dengan `Course.programId` nullable sebagai jembatan dan `legacy_*` sebagai lineage idempoten. `MaterialItem.sessionId` **masih ada** dan nullable, di samping `roadmapStepId` nullable. Kolom capaian `ProgressReport` berupa `String[]`.
 
 Bedakan constraint database dengan aturan handler:
 - `User.phone`, `User.email`, `Program.slug`, dan `DailyReport.sessionId` memakai unique constraint; role/status disimpan sebagai `String`, dengan daftar nilai di shared types/Zod.
@@ -171,7 +176,7 @@ node --test frontend/tests/api.test.mjs frontend/tests/roadmap-reorder.test.mjs
 
 `backend` memakai `eslint.config.mjs` flat config sendiri (recommended JS + TypeScript tanpa type-checking, `no-explicit-any` sebagai warning) dengan ignore `dist/`, `src/generated/`, `node_modules/`, dan `prisma/migrations/`; lint frontend tidak dipakai di sini. `npm run build --workspace=backend` menjalankan `build.cjs` (Prisma generate → `tsc` → shared menjadi CommonJS → salin generated client dan native engine ke `dist`), memerlukan `DATABASE_URL` untuk generate, dan harus dijalankan di OS target karena engine Prisma bersifat native. `start` tetap `node dist/src/index.js`.
 
-Konfigurasi API frontend memakai `NEXT_PUBLIC_API_URL` (fallback origin yang sama). Backend memakai konfigurasi Supabase, `DATABASE_URL`/`DIRECT_URL` pada datasource Prisma, serta konfigurasi HTTP `HTTP_ALLOWED_ORIGINS`, `HTTP_RATE_LIMIT_MAX`, `HTTP_RATE_LIMIT_WINDOW_MS`, `HTTP_AUTH_RATE_LIMIT_MAX`, dan `HTTP_AUTH_RATE_LIMIT_WINDOW_MS` seperti pada [template env backend](../backend/.env.example). Nilai credential tidak menjadi isi dokumentasi ini. Seed melakukan `deleteMany`; bukan langkah onboarding aman untuk database berisi data. Migration history tersedia di `backend/prisma/migrations/`; kebijakan baseline/replay ada di progress, bukan bukti status database yang sedang aktif.
+Konfigurasi API frontend memakai `NEXT_PUBLIC_API_URL` (fallback origin yang sama). Backend memakai konfigurasi Supabase, `DATABASE_URL`/`DIRECT_URL` pada datasource Prisma, serta konfigurasi HTTP `HTTP_ALLOWED_ORIGINS`, `HTTP_RATE_LIMIT_MAX`, `HTTP_RATE_LIMIT_WINDOW_MS`, `HTTP_AUTH_RATE_LIMIT_MAX`, dan `HTTP_AUTH_RATE_LIMIT_WINDOW_MS` seperti pada [template env backend](../backend/.env.example). Nilai credential tidak menjadi isi dokumentasi ini. Seed melakukan `deleteMany`; bukan langkah onboarding aman untuk database berisi data. Migrasi offline NC-2 sudah tercatat di `backend/prisma/migrations/nc2_course_section_lesson/`, termasuk enum, lineage legacy, unique order, dan RLS aktif tanpa policy (default-deny Data API sampai policy akses dirancang). `prisma migrate deploy` belum dijalankan; model baru tersedia untuk tipe/skrip lokal, bukan bukti database runtime sekarang.
 
 [Workflow deployment](../.github/workflows/deploy.yml) dipicu push ke `main` atau `workflow_dispatch`, berjalan pada runner `ubuntu-latest`, lalu melakukan rsync **source** melalui SSH. `node_modules`, `.next`, `dist`, generated backend, `.git`, dan `.env*` dikecualikan. Setelah sync, workflow memanggil remote `sudo -n /opt/nurman-deploy/deploy.sh`.
 

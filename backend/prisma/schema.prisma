@@ -9,19 +9,41 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum CourseAccessTier {
+  free
+  paid
+
+  @@map("course_access_tier")
+}
+
+enum ContentStatus {
+  draft
+  published
+
+  @@map("content_status")
+}
+
+enum LessonVisibility {
+  public
+  entitled
+
+  @@map("lesson_visibility")
+}
+
 model User {
-  id          String       @id @default(uuid())
-  role        String
-  name        String
-  phone       String       @unique
-  email       String?      @unique
-  createdAt   DateTime     @default(now()) @map("created_at")
-  active      Boolean      @default(true)
-  address     String?
-  photoPath   String?      @map("photo_path")
-  murids      Murid[]      @relation("WaliToMurids")
-  sessions    Session[]    @relation("TentorToSessions")
-  enrollments Enrollment[] @relation("TentorToEnrollments")
+  id              String       @id @default(uuid())
+  role            String
+  name            String
+  phone           String       @unique
+  email           String?      @unique
+  createdAt       DateTime     @default(now()) @map("created_at")
+  active          Boolean      @default(true)
+  address         String?
+  photoPath       String?      @map("photo_path")
+  murids          Murid[]      @relation("WaliToMurids")
+  sessions        Session[]    @relation("TentorToSessions")
+  enrollments     Enrollment[] @relation("TentorToEnrollments")
+  authoredCourses Course[]     @relation("CourseAuthor")
 
   @@map("users")
 }
@@ -63,6 +85,7 @@ model Program {
   progressReports  ProgressReport[]
   roadmapSteps     RoadmapStep[]
   sessions         Session[]
+  courses          Course[]
 
   @@map("programs")
 }
@@ -128,36 +151,36 @@ model Enrollment {
 }
 
 model Invoice {
-  id                String     @id @default(uuid())
-  enrollmentId      String     @map("enrollment_id")
-  amount            Float
-  status            String
-  dueAt             DateTime   @map("due_at")
-  paidAt            DateTime?  @map("paid_at")
-  note              String?
-  paymentNote       String?    @map("payment_note")
-  createdAt         DateTime   @default(now()) @map("created_at")
-  paymentProof      String?    @map("payment_proof")
-  paymentProofName  String?    @map("payment_proof_name")
-  paidAmount        Float?     @map("paid_amount")
-  submittedAt       DateTime?  @map("submitted_at")
-  enrollment        Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  id               String     @id @default(uuid())
+  enrollmentId     String     @map("enrollment_id")
+  amount           Float
+  status           String
+  dueAt            DateTime   @map("due_at")
+  paidAt           DateTime?  @map("paid_at")
+  note             String?
+  paymentNote      String?    @map("payment_note")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  paymentProof     String?    @map("payment_proof")
+  paymentProofName String?    @map("payment_proof_name")
+  paidAmount       Float?     @map("paid_amount")
+  submittedAt      DateTime?  @map("submitted_at")
+  enrollment       Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
   @@map("invoices")
 }
 
 model Prepayment {
-  id               String   @id @default(uuid())
-  muridId          String   @map("murid_id")
+  id               String    @id @default(uuid())
+  muridId          String    @map("murid_id")
   amount           Float
   status           String
   note             String?
-  createdAt        DateTime @default(now()) @map("created_at")
-  paymentProof     String?  @map("payment_proof")
-  paymentProofName String?  @map("payment_proof_name")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  paymentProof     String?   @map("payment_proof")
+  paymentProofName String?   @map("payment_proof_name")
   submittedAt      DateTime? @map("submitted_at")
   paidAt           DateTime? @map("paid_at")
-  murid            Murid    @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  murid            Murid     @relation(fields: [muridId], references: [id], onDelete: Cascade)
 
   @@map("prepayments")
 }
@@ -216,4 +239,69 @@ model Progress {
   roadmapStep   RoadmapStep @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
 
   @@map("progresses")
+}
+
+model Course {
+  id          String            @id @default(uuid())
+  slug        String            @unique
+  title       String
+  description String
+  level       String?
+  category    String?
+  accessTier  CourseAccessTier? @map("access_tier")
+  price       Float?
+  status      ContentStatus     @default(draft)
+  publishedAt DateTime?         @map("published_at")
+  authorId    String?           @map("author_id")
+  programId   String?           @unique @map("program_id")
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  author      User?             @relation("CourseAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  program     Program?          @relation(fields: [programId], references: [id], onDelete: SetNull)
+  sections    Section[]
+
+  @@index([authorId, status])
+  @@map("courses")
+}
+
+model Section {
+  id                  String   @id @default(uuid())
+  courseId            String   @map("course_id")
+  legacyRoadmapStepId String?  @unique @map("legacy_roadmap_step_id")
+  order               Int
+  title               String
+  level               String?
+  summary             String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  course              Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons             Lesson[]
+
+  @@unique([courseId, order])
+  @@index([courseId])
+  @@map("sections")
+}
+
+model Lesson {
+  id                   String           @id @default(uuid())
+  sectionId            String           @map("section_id")
+  legacyMaterialItemId String?          @unique @map("legacy_material_item_id")
+  legacyRoadmapStepId  String?          @unique @map("legacy_roadmap_step_id")
+  slug                 String           @unique
+  title                String
+  summary              String?
+  bodyText             String           @map("body_text")
+  visibility           LessonVisibility @default(entitled)
+  status               ContentStatus    @default(draft)
+  publishedAt          DateTime?        @map("published_at")
+  order                Int
+  estimatedMinutes     Int?             @map("estimated_minutes")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  section              Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([sectionId, order])
+  @@index([sectionId])
+  @@map("lessons")
 }

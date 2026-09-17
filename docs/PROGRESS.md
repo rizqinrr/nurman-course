@@ -35,6 +35,7 @@
 
 | Tanggal | Keputusan | Alasan |
 |---|---|---|
+| 2026-09-17 | NC-2.1: kontrak transisi konten additive — backend menjadi target, legacy endpoint tetap kompatibel sampai frontend cutover, author migrasi nullable, draft/entitled default, slug deterministik global, dan schema/migration offline | Frontend belum disentuh sesuai scope; tidak boleh ada dua writer independen, konten session-only/ambigu tetap menunggu NC-1.8, dan operasi DB remote memerlukan izin terpisah. |
 | 2026-09-16 | NC-1.5: origin lokal localhost3000, direct Express, kuota umum300/menit dan resolve-phone10/15menit per IP/proses | User mengonfirmasi konfigurasi lokal, bukan hasil inspeksi VPS. Ukuran file belum diketahui; batas JSON100kb dipertahankan, kenaikan5mb pending. Production wajib origin HTTPS eksplisit; pengujian menyeluruh ditunda dan tidak ada izin rollout. |
 | 2026-09-16 | NC-1.7: artefak backend dibangun `build.cjs` (Prisma generate → `tsc` → shared CommonJS → salin generated client + native engine) dan build harus dijalankan di OS target | `tsc` polos tidak memuat generated client/shared runtime, sementara `packages/shared` sengaja tanpa build step. Engine Prisma bersifat native per OS, jadi artefak Windows bukan bukti artefak Linux; deployment tetap `npm ci` di server dan bukan bundling seluruh dependency. Alternatif output di luar `backend/dist` ditolak. |
 | 2026-09-16 | NC-1.8: backfill `MaterialItem.sessionId`→`roadmapStepId` hanya jika program punya tepat satu step; drop kolom ditahan | `sessionId` tidak punya konsumen runtime (hanya seed/schema/FK), sehingga pemetaan otomatis berisiko menebak induk konten. Baris ambigu dikeluarkan sebagai keputusan admin, konten tidak dihapus, dan tipe `roadmapStepId` frontend harus diputuskan lebih dahulu. |
@@ -81,6 +82,44 @@ Hasil grilling 2026-09-15 pada branch `be-restruktur`; dipindahkan verbatim dari
 - **D11 — superseded sebagian oleh D16:** pernyataan rename `Program` menjadi `Course` pada keputusan awal tidak berlaku; `Program` dipertahankan untuk layanan bertentor. Hierarki konten `Course → Section → Lesson` tetap target, dengan migrasi NC-2.1/NC-2.2. Tidak menyatakan tabel target sudah dibuat.
 - **D16 — koreksi status:** frasa historis "sessionId ... baru dibuang" **bukan pekerjaan selesai**. Berdasarkan handoff pemeriksaan source main, `MaterialItem.sessionId` masih ada di schema dan dipakai seed; audit/migrasi penghapusannya tetap **NC-1.8 pending**, bukan field yang boleh diasumsikan tidak digunakan. Tidak ada pemeriksaan DB live pada DOC-SYNC.
 - **D5 — status kode lokal diperbarui pada NC-1.4:** role DB tanpa metadata/fallback wali telah terimplementasi dan terverifikasi pada [checkpoint Bagian2](#backend-part2-20260916). Tabel keputusan bukan bukti deploy atau konsistensi frontend; merge/rollout masih tertahan untuk 5 Auth tanpa profil, routing frontend di luar scope.
+
+---
+
+### 2026-09-17 — Bagian 5 backend NC-2 milestone: karakterisasi, ekstraksi router, schema additive, dan API authoring offline
+
+**Fase:** NC-2.1 / NC-2.3 / NC-2.5 / NC-2.6  
+**Status sesi:** selesai untuk scope offline — karakterisasi konten, ekstraksi router domain konten, schema additive, migration SQL offline, API authoring backend, validasi link internal, dan skrip backfill dry-run sudah dilakukan. Karakterisasi 51 test dijalankan sebelum user menghentikan test tambahan; setelah instruksi itu hanya typecheck/lint yang dijalankan.
+
+**Request user:** "oke lah gas pake todo", "lanjut, gausah ada test test, implemen sesuai todo aja"
+
+**Keputusan (klarifikasi):**
+1. Bagian 5 diprioritaskan backend-only; frontend tidak diubah dan tidak ada test tambahan yang dijalankan selain menjaga typecheck/lint bawaan.
+2. Backend menjadi target API; frontend menyesuaikan kemudian; tidak ada dua penulis independen untuk konten yang sama.
+3. Migrasi offline diperbolehkan: schema, migration SQL, dan skrip backfill disediakan; eksekusi DB, backfill live, dan drop legacy memerlukan izin terpisah.
+
+**Dikerjakan:**
+1. `backend/tests/setup.ts` diperluas boundary mock prisma termasuk model domain konten agar characterization tidak memanggil boundary tak terduga.
+2. `backend/tests/content-routes.test.ts` ditambah dengan characterization endpoint domain konten warisan sehingga perilaku 5.1 terkunci sebelum ekstraksi router.
+3. Domain konten dipindahkan dari `backend/src/index.ts` ke `backend/src/routes/content/programs.ts`, `roadmap.ts`, `materials.ts`, dan `guards.ts`; index hanya me-mount router tanpa mengubah perilaku public/admin legacy.
+4. Schema Prisma diperkaya `Course`, `Section`, `Lesson` sebagai tabel additive; migration offline `nc2_course_section_lesson` dibuat berbasis diff offline, diurutkan setelah `fix-null-email`, memakai enum/lineage/unique order, serta mengaktifkan RLS default-deny tanpa policy. Migration diverifikasi tanpa menjalankan `migrate deploy`.
+5. `packages/shared/src/index.ts` ditambah skema Zod authoring Course/Section/Lesson, reorder, dan validasi akses/visibility; shared source menjadi pusat input konten baru.
+6. API authoring `/api/authoring/*` diimplementasi beserta hak akses admin/tentor, validasi access tier/price, author default, autorisasi parent-child, reorder transaksional, dan status publish/draft eksplisit.
+7. `backend/src/routes/authoring/links.ts` menambahkan validasi link internal `/materi/*` tanpa fetch eksternal; Lesson create/update memvalidasi bodyText dan menolak slug internal yang tidak dikenal.
+8. `backend/prisma/backfill-content.ts` dibuat idempoten, dry-run default, mencakup backfill Course/Section/Lesson dari roadmap, mapping session-only yang unambiguous, serta laporan statistik `sessionOnly`, `ambiguous`, `conflicts`, dan `orphans`.
+9. `tasks/plan.md` diperbarui dengan kontrak transisi 5.3, lalu `docs/PROGRESS.md` ditambah baris keputusan 5.3/5.4 agar rekam jejak konsisten.
+
+**Verifikasi:**
+- `npm run typecheck --workspace=backend`, `npm run typecheck:test --workspace=backend`, dan `npm run lint --workspace=backend` tetap exit 0 tanpa error baru sepanjang implementasi; 14 warning hanya baseline `any` pra-eksisting.
+- `173/173 test` (122 lama + 51 characterization baru) lulus pada langkah 5.1/5.2 sebelum instruksi "gausah ada test test"; API authoring/backfill/schema additive sesudahnya diverifikasi lewat typecheck/lint saja, bukan suite baru.
+- Migration offline hanya diverifikasi dengan `prisma migrate diff`, `prisma validate`, dan `prisma generate` offline (env dummy); tidak ada perintah `migrate deploy`, `db push`, atau koneksi DB live. RLS tabel baru aktif default-deny tanpa policy karena akses Data API belum disetujui.
+- Static code/security review independen selesai tanpa blocker new-code setelah perbaikan: backfill fail-closed+atomic, `RoadmapStep.level` dipertahankan, reorder diserialkan, P2025 dipetakan 404, parser link diperluas, DTO allowlist dipakai, dan tabel Keputusan Markdown diperbaiki.
+
+**Residual:**
+- Eksekusi backfill, hitungan data live, drop `session_id`/FK legacy, dan verifikasi DB tetap blocked.
+- API authoring (`/api/authoring/*`) dan `backend/prisma/backfill-content.ts` belum punya test langsung karena instruksi user menghentikan penambahan test; risiko regresi pada modul ini hanya tertahan typecheck/lint, bukan suite.
+- Authoring backend belum memiliki frontend writer; perubahan/penyesuaian frontend dikerjakan pada task terpisah sesuai kontrak baru.
+- Render markdown publik, search/related content, dan entitlement tetap di luar Bagian 5. Endpoint publik legacy `/api/programs*` masih mengirim `RoadmapStep.bodyText`; ini temuan security pre-existing dan menjadi release blocker NC-3.4 sebelum permukaan publik konten diluncurkan. Migrasi roadmap-only/session-only tetap memerlukan keputusan NC-1.8 untuk data ambigu.
+- Dokumen `docs/CODEBASE_OVERVIEW.md`, `docs/flow-system.md`, dan `docs/erd-lms.md` sudah disinkronkan; review link/isi akhir tetap menjadi bagian checkpoint penutupan.
 
 ---
 

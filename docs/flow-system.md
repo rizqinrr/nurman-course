@@ -44,7 +44,7 @@ Sumber: [config funnel](../frontend/app/course/config/CourseConfigClient.tsx), [
 
 ## 3. Admin: akun, murid, dan enrollment
 
-Semua endpoint admin di bawah memakai `requireAuth` + `requireAdmin`. Akun login adalah `User`; anak adalah `Murid`, bukan akun login mandiri.
+Semua endpoint admin di bawah memakai `requireAuth` + `requireAdmin`. Akun login adalah `User`; anak adalah `Murid`, bukan akun login mandiri. Sesi ini juga memperkenalkan rute authoring konten baru (`/api/authoring/*`) namun tidak mengubah alur operasional wali/tentor/admin yang sudah ada sebelumnya.
 
 | Langkah | Kontrak backend saat ini |
 |---|---|
@@ -56,6 +56,26 @@ Semua endpoint admin di bawah memakai `requireAuth` + `requireAdmin`. Akun login
 Schema DB memungkinkan wali 1:N murid, dan beberapa halaman dapat memilih anak dari data yang sudah ada. Itu **bukan** dukungan pembuatan multi-anak melalui API sekarang. Tidak boleh melonggarkan batas ini hanya berdasarkan selector UI.
 
 Pembuatan akun melintasi Auth dan DB, bukan satu transaksi atomik: kegagalan membuat profil User mencoba menghapus Auth user yang baru dibuat. Kegagalan membuat Murid setelah profil berhasil tidak memiliki rollback penuh seluruh rangkaian pada handler tersebut. Kredensial sementara diserahkan melalui proses admin, bukan signup publik di `/login`.
+
+### 3.1 Authoring Course / Section / Lesson (backend offline)
+
+```mermaid
+graph TD
+    U["Admin / Tentor terautentikasi"] --> R["/api/authoring/*"]
+    R --> C["Course standalone"]
+    C --> S["Section"]
+    S --> L["Lesson"]
+    L --> V{"Link internal /materi/slug valid?"}
+    V -->|Tidak| E["400 VALIDATION_ERROR"]
+    V -->|Ya| D["Draft / Publish eksplisit"]
+```
+
+- `requireAuth` mengambil role dari DB; `requireRole("admin", "tentor")` membatasi authoring. Admin dapat membaca seluruh Course, tentor hanya course dengan `authorId` miliknya.
+- Course standalone (`programId=null`) dapat ditulis melalui `/api/authoring/*`. Course hasil migrasi yang terhubung ke Program hanya dapat dibaca admin melalui API authoring; writer tetap endpoint roadmap/material legacy sampai frontend cutover.
+- Reorder Section/Lesson memerlukan seluruh ID sibling tepat sekali dan memakai transaksi dua fase agar unique `(parentId, order)` tidak berbenturan.
+- Publish/draft memakai endpoint aksi, bukan PATCH status bebas. Course publish wajib tier `free|paid`; tier `paid` wajib harga positif, `free` tanpa harga.
+- Validasi link internal hanya memeriksa slug `/materi/*` di database dan tidak melakukan request jaringan. Rendering/sanitasi Markdown tetap task frontend NC-2.4.
+- Schema dan migration SQL tersedia lokal, tetapi belum diterapkan ke database; API ini belum menjadi runtime live sampai migrasi berizin selesai.
 
 ## 4. Login, identitas, dan otorisasi aktual
 

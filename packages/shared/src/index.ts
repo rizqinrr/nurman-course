@@ -213,6 +213,72 @@ export const updateMaterialItemSchema = createMaterialItemSchema.omit({ roadmapS
 export type CreateMaterialItemInput = z.infer<typeof createMaterialItemSchema>;
 export type UpdateMaterialItemInput = z.infer<typeof updateMaterialItemSchema>;
 
+export const courseAccessTierSchema = z.enum(["free", "paid"]);
+export const contentStatusSchema = z.enum(["draft", "published"]);
+export const lessonVisibilitySchema = z.enum(["public", "entitled"]);
+
+export type CourseAccessTier = z.infer<typeof courseAccessTierSchema>;
+export type ContentStatus = z.infer<typeof contentStatusSchema>;
+export type LessonVisibility = z.infer<typeof lessonVisibilitySchema>;
+
+const contentSlugSchema = z
+  .string()
+  .trim()
+  .min(1, "Slug wajib diisi")
+  .max(120, "Slug maksimal 120 karakter")
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung");
+
+export const createCourseSchema = z.object({
+  slug: contentSlugSchema,
+  title: z.string().trim().min(1, "Judul wajib diisi").max(150, "Judul maksimal 150 karakter"),
+  description: z.string().trim().min(1, "Deskripsi wajib diisi").max(5000, "Deskripsi maksimal 5000 karakter"),
+  level: z.string().trim().max(100, "Level maksimal 100 karakter").optional().nullable(),
+  category: z.string().trim().max(100, "Kategori maksimal 100 karakter").optional().nullable(),
+  accessTier: courseAccessTierSchema.optional().nullable(),
+  price: z.number().finite().positive("Harga harus lebih dari 0").optional().nullable(),
+  authorId: z.string().trim().min(1, "Author wajib dipilih").optional(),
+  active: z.boolean().default(true),
+});
+
+export const updateCourseSchema = createCourseSchema.omit({ authorId: true }).partial();
+
+export const createSectionSchema = z.object({
+  courseId: z.string().trim().min(1, "Course wajib dipilih"),
+  order: z.number().int().nonnegative("Order harus bilangan non-negatif").optional(),
+  title: z.string().trim().min(1, "Judul wajib diisi").max(150, "Judul maksimal 150 karakter"),
+  level: z.string().trim().max(100, "Level maksimal 100 karakter").optional().nullable(),
+  summary: z.string().trim().max(1000, "Ringkasan maksimal 1000 karakter").optional().nullable(),
+});
+
+export const updateSectionSchema = createSectionSchema.omit({ courseId: true }).partial();
+
+export const createLessonSchema = z.object({
+  sectionId: z.string().trim().min(1, "Section wajib dipilih"),
+  slug: contentSlugSchema,
+  order: z.number().int().nonnegative("Order harus bilangan non-negatif").optional(),
+  title: z.string().trim().min(1, "Judul wajib diisi").max(200, "Judul maksimal 200 karakter"),
+  summary: z.string().trim().max(1000, "Ringkasan maksimal 1000 karakter").optional().nullable(),
+  bodyText: z.string().trim().min(1, "Konten wajib diisi").max(50000, "Konten maksimal 50000 karakter"),
+  visibility: lessonVisibilitySchema.default("entitled"),
+  estimatedMinutes: z.number().int().positive("Estimasi baca harus lebih dari 0").max(1440).optional().nullable(),
+});
+
+export const updateLessonSchema = createLessonSchema.omit({ sectionId: true }).partial();
+
+export const reorderContentSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1, "Minimal satu ID wajib dikirim"),
+}).refine(({ ids }) => new Set(ids).size === ids.length, {
+  message: "ID tidak boleh duplikat",
+  path: ["ids"],
+});
+
+export type CreateCourseInput = z.infer<typeof createCourseSchema>;
+export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
+export type CreateSectionInput = z.infer<typeof createSectionSchema>;
+export type UpdateSectionInput = z.infer<typeof updateSectionSchema>;
+export type CreateLessonInput = z.infer<typeof createLessonSchema>;
+export type UpdateLessonInput = z.infer<typeof updateLessonSchema>;
+
 // --- Zod Input Validation Schemas ---
 
 // Laporan Harian (Daily Report)

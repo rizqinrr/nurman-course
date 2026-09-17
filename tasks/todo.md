@@ -1,7 +1,7 @@
 # Tasks — nurman-course
 
 > Source of truth **checklist eksekusi/status**, bukan log hasil. Scope/desain/acceptance criteria: [plan.md](./plan.md); keputusan/hasil/verifikasi/residual: [PROGRESS.md](../docs/PROGRESS.md).
-> **Branch konteks:** `be-restruktur` (base `dev`). **Bagian 4 checkpoint 2026-09-16:** packaging `build.cjs`/artifact test, lint backend scoped, dan audit+mapping materi–sesi selesai lokal; verifikasi menyeluruh, hitung data DB, drop `sessionId`, dan ukuran payload tetap pending. Bagian3 NC-1.5 parsial: Helmet/CORS/limiter/error-log lokal tersedia. Bagian2 NC-1.4 tetap rollout blocked untuk 5 Auth tanpa profil; NC-SEC-BE selesai. WALI-MOB/branch `uiux` di-pause. Checkpoint Bagian3+Bagian4 sudah di-commit `a128a76` dan di-push ke `origin/be-restruktur` atas permintaan user; tidak ada merge/deploy, frontend/browser, login test, atau mutasi DB remote.
+> **Branch konteks:** `be-restruktur` (base `dev`). **Bagian 5 checkpoint 2026-09-17:** characterization + ekstraksi router domain konten selesai; schema `Course/Section/Lesson`, migration SQL offline, API authoring, validasi link, dan script backfill dry-run tersedia. Eksekusi DB/backfill live, cutover frontend, dan QA terisolasi tetap pending. Bagian 4/3 residual tetap: payload 100kb, rollout 5 Auth tanpa profil, dan full verification. Tidak ada deploy atau mutasi DB remote.
 > Patokan awal root: [AGENTS.md](../AGENTS.md) · [SYSTEM_MAP.md](../SYSTEM_MAP.md) · [README.md](../README.md) · [design.md](../design.md). Konflik → DOC-ROOT, bukan asumsi runtime.
 > Referensi: [roadmap](../docs/ROADMAP-LMS.md) · [overview](../docs/CODEBASE_OVERVIEW.md) · [flow](../docs/flow-system.md) · [ERD](../docs/erd-lms.md).
 > ID, checkbox dan tanggal historis dipertahankan; label demo/fase lama bukan bukti runtime kini. Exit criteria fase ada di [plan](./plan.md#fase-exit-design); riwayat tambahan di [arsip progress](../docs/PROGRESS.md#arsip-todo-20260916).
@@ -373,15 +373,16 @@ Prioritas rendah:
 - [ ] NC-1.C1-BE Checkpoint fondasi backend; bukan pengganti smoke login UI pada task historis NC-1.C1.
 
 **Bagian 5 — backend NC-2**
-- [ ] NC-2.3a Characterization kontrak endpoint/export sebelum ekstraksi router/startup.
-- [ ] NC-2.3b Pisahkan domain konten bertahap, singleton tetap, service hanya bila diperlukan.
-- [ ] NC-2.1a Tetapkan kontrak schema/slug/author legacy/mapping material dan single-writer cutover.
-- [ ] NC-2.1b Schema additive Course/Section/Lesson, Program tetap; generate/review migration lokal berizin.
-- [ ] NC-2.2a Backfill RoadmapStep + bodyText + MaterialItem; uji count/isi/relasi/idempotensi/rollback pada DB terisolasi.
-- [ ] NC-2.2b Gate legacy API/konsumen sebelum cutover/drop; tahan bila membutuhkan frontend.
-- [ ] NC-2.6a CRUD authoring + ownership parent-child admin/tentor, validasi input dan pagination.
-- [ ] NC-2.6b Reorder/publish/draft + transaksi/conflict tests.
-- [ ] NC-2.5-BE Validasi slug/link internal tanpa remote URL fetch; checkpoint backend, tanpa renderer/editor UI.
+- [x] 2026-09-17 NC-2.3a Characterization kontrak endpoint/export domain konten ditulis sebagai `backend/tests/content-routes.test.ts` (51 test) plus boundary mock; suite 173/173 lulus sebelum ekstraksi.
+- [x] 2026-09-17 NC-2.3b Domain konten dipisah bertahap ke `backend/src/routes/content/{programs,roadmap,materials,guards}.ts`; `index.ts` hanya me-mount, perilaku legacy tidak berubah.
+- [x] 2026-09-17 NC-2.1a Kontrak transisi ditulis di plan dan tabel Keputusan PROGRESS: backend target, legacy kompatibel sampai cutover, author migrasi nullable, draft/entitled default, slug deterministik.
+- [x] 2026-09-17 NC-2.1b Schema additive `Course`/`Section`/`Lesson` (+ enum tier/status/visibility, lineage `legacy_*`, unique order) dan migration SQL offline `nc2_course_section_lesson`; belum ada `migrate deploy`/`db push`.
+- [~] 2026-09-17 NC-2.2a `backend/prisma/backfill-content.ts` idempoten, dry-run default, mapping roadmap→Course/Section/Lesson dan session-only unambiguous + statistik `ambiguous`/`conflicts`/`orphans`; eksekusi/verifikasi DB tetap blocked.
+- [~] 2026-09-17 NC-2.2b Gate legacy ditetapkan: legacy tetap writer tunggal konten migrasi, authoring hanya Course standalone; cutover/drop legacy menunggu frontend dan izin DB.
+- [x] 2026-09-17 NC-2.6a API authoring `/api/authoring/*` (course/section/lesson CRUD, pagination, ownership admin vs tentor, parent-child guard, DTO eksplisit) diimplementasi dengan typecheck/lint bersih.
+- [x] 2026-09-17 NC-2.6b Reorder dua fase transaksional, publish/draft sebagai endpoint aksi, validasi access tier/harga, dan conflict `409` diimplementasi.
+- [x] 2026-09-17 NC-2.5-BE Validasi link internal `/materi/*` tanpa HTTP fetch pada create/update Lesson; link eksternal tetap teks sampai sanitasi renderer frontend.
+- [~] 2026-09-17 NC-2.C2-BE Checkpoint Bagian 5: static review independen selesai tanpa blocker new-code; QA DB terisolasi, eksekusi backfill, penyesuaian frontend, dan full runtime verification belum dijalankan.
 
 **Bagian 6 — backend NC-4**
 - [ ] NC-4.2-BE Shared role member + phone nullable untuk member, tanpa melonggarkan input admin existing.
@@ -394,7 +395,7 @@ Prioritas rendah:
 **Bagian 7 — backend NC-3**
 - [ ] NC-3.2-BE API katalog/detail metadata dan DTO allowlist/pagination.
 - [ ] NC-3.3-BE Lesson slug dengan guard draft/body/paywall, private cache aman setelah Bagian 6.
-- [ ] NC-3.4-BE Tutup bypass nested/legacy dan audit grants/RLS Data API; gate kompatibilitas sebelum rollout.
+- [ ] NC-3.4-BE **Release blocker:** tutup kebocoran `RoadmapStep.bodyText` dari `/api/programs*`, bypass nested/legacy, dan audit grants/RLS Data API; gate kompatibilitas sebelum rollout.
 - [ ] NC-3.5-BE Search/filter PostgreSQL dengan visibility/akses yang sama.
 - [ ] NC-3.6-BE Related/prev-next aman; negative access tests semua jalur, tanpa halaman publik frontend.
 
@@ -518,4 +519,4 @@ Prioritas rendah:
 
 ## In progress (maks 1 fokus utama)
 
-- **NC-1.7 / NC-1.8 Bagian 4 checkpoint 2026-09-16:** packaging `build.cjs` + script `build`/`test:artifact` dan artifact test terisolasi lulus; lint backend scoped tersedia (lint exit0, 14 warning `any`), typecheck source/test exit0; audit source materi–sesi selesai dan mapping migrasi ditulis di plan. Sisa blocker: NC-1.5-PAYLOAD (batas parser tetap100kb), NC-1.4-ROLLOUT untuk 5 Auth tanpa profil, NC-BE-VERIFY (verifikasi menyeluruh ditunda bagian 10), hitung/petakan data DB dan drop `sessionId` (menunggu izin), inkonsistensi tipe `roadmapStepId` frontend. **WALI-MOB di-pause**; tanpa frontend/browser, akun nyata, DB remote, commit/push atau deploy pada sesi implementasi ini.
+- **NC-2 Bagian 5 checkpoint 2026-09-17:** modularisasi domain konten dan fondasi Course/Section/Lesson sudah diimplementasi offline; API authoring admin/tentor, draft/publish, reorder, link validation, serta dry-run backfill tersedia. Sisa: review independen, QA DB terisolasi, eksekusi backfill live dengan izin, migrasi writer frontend, permukaan publik/paywall Bagian 7, dan Entitlement Bagian 6. **WALI-MOB di-pause**; tidak ada deploy/mutasi DB remote.

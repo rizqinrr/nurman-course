@@ -8,6 +8,7 @@
     "start": "node dist/src/index.js",
     "dev": "ts-node src/index.ts",
     "seed": "ts-node prisma/seed.ts",
+    "backfill:content": "ts-node prisma/backfill-content.ts",
     "lint": "eslint .",
     "test": "npm run test:clients && npm run test:api",
     "test:clients": "node --test tests/clients.test.cjs",

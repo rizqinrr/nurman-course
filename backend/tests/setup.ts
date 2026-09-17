@@ -31,8 +31,7 @@ const boundary = vi.hoisted(() => {
       return Reflect.get(object, key, receiver);
     },
   });
-  return {
-    unexpected, fail, strict,
+  const stubs = {
     getUser: stub('supabase.auth.getUser'),
     findUnique: stub('prisma.user.findUnique'),
     sessionFindMany: stub('prisma.session.findMany'),
@@ -40,10 +39,38 @@ const boundary = vi.hoisted(() => {
     createUser: stub('supabase.admin.createUser'),
     prismaCreate: stub('prisma.user.create'),
     connect: stub('prisma.$connect'),
+    programFindMany: stub('prisma.program.findMany'),
+    programFindUnique: stub('prisma.program.findUnique'),
+    programCreate: stub('prisma.program.create'),
+    programUpdate: stub('prisma.program.update'),
+    programDelete: stub('prisma.program.delete'),
+    programCount: stub('prisma.program.count'),
+    roadmapStepFindMany: stub('prisma.roadmapStep.findMany'),
+    roadmapStepFindFirst: stub('prisma.roadmapStep.findFirst'),
+    roadmapStepFindUnique: stub('prisma.roadmapStep.findUnique'),
+    roadmapStepCreate: stub('prisma.roadmapStep.create'),
+    roadmapStepUpdate: stub('prisma.roadmapStep.update'),
+    roadmapStepDelete: stub('prisma.roadmapStep.delete'),
+    materialFindMany: stub('prisma.materialItem.findMany'),
+    materialFindFirst: stub('prisma.materialItem.findFirst'),
+    materialFindUnique: stub('prisma.materialItem.findUnique'),
+    materialCreate: stub('prisma.materialItem.create'),
+    materialUpdate: stub('prisma.materialItem.update'),
+    materialDelete: stub('prisma.materialItem.delete'),
+    transaction: stub('prisma.$transaction'),
   };
+
+  return { unexpected, fail, strict, stubs, ...stubs };
 });
 
-export const { getUser, findUnique, sessionFindMany, sessionFindUnique, createUser, prismaCreate } = boundary;
+export const {
+  getUser, findUnique, sessionFindMany, sessionFindUnique, createUser, prismaCreate,
+  programFindMany, programFindUnique, programCreate, programUpdate, programDelete, programCount,
+  roadmapStepFindMany, roadmapStepFindFirst, roadmapStepFindUnique, roadmapStepCreate,
+  roadmapStepUpdate, roadmapStepDelete,
+  materialFindMany, materialFindFirst, materialFindUnique, materialCreate,
+  materialUpdate, materialDelete, transaction,
+} = boundary;
 
 export const authLookup = (id: string) => ({
   where: { id },
@@ -69,6 +96,31 @@ vi.mock('../src/lib/prisma', () => ({
       findMany: sessionFindMany,
       findUnique: sessionFindUnique,
     }),
+    program: boundary.strict('prisma.program', {
+      findMany: programFindMany,
+      findUnique: programFindUnique,
+      create: programCreate,
+      update: programUpdate,
+      delete: programDelete,
+      count: programCount,
+    }),
+    roadmapStep: boundary.strict('prisma.roadmapStep', {
+      findMany: roadmapStepFindMany,
+      findFirst: roadmapStepFindFirst,
+      findUnique: roadmapStepFindUnique,
+      create: roadmapStepCreate,
+      update: roadmapStepUpdate,
+      delete: roadmapStepDelete,
+    }),
+    materialItem: boundary.strict('prisma.materialItem', {
+      findMany: materialFindMany,
+      findFirst: materialFindFirst,
+      findUnique: materialFindUnique,
+      create: materialCreate,
+      update: materialUpdate,
+      delete: materialDelete,
+    }),
+    $transaction: transaction,
     $connect: boundary.connect,
   }),
 }));
@@ -138,11 +190,12 @@ export async function openTestServer(app: Express): Promise<Server> {
 
 beforeEach(() => {
   expect([...boundary.unexpected]).toEqual([]);
-  for (const [name, mock] of Object.entries({
-    getUser, findUnique, sessionFindMany, sessionFindUnique, createUser, prismaCreate, connect: boundary.connect,
-  })) {
+  for (const [name, mock] of Object.entries(boundary.stubs)) {
     mock.mockReset().mockImplementation(async () => boundary.fail(name));
   }
+  transaction.mockReset().mockImplementation(async (argument: unknown) => Array.isArray(argument)
+    ? Promise.all(argument)
+    : boundary.fail('prisma.$transaction interactive form'));
 });
 
 afterEach(async () => {

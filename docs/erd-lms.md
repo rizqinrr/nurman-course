@@ -1,6 +1,6 @@
 # ERD — LMS Nurman Course
 
-Referensi **13 model yang dideklarasikan** dalam [schema Prisma](../backend/prisma/schema.prisma), bukan ERD target nCourse atau bukti kondisi database yang sedang berjalan. Nama model/field mengikuti Prisma; nama tabel mengikuti `@@map`.
+Referensi **16 model yang dideklarasikan** dalam [schema Prisma](../backend/prisma/schema.prisma). Tiga model NC-2 (`Course`, `Section`, `Lesson`) dan migration `nc2_course_section_lesson` baru tersedia secara offline; migration belum diterapkan ke database runtime. Nama model/field mengikuti Prisma; nama tabel mengikuti `@@map`.
 
 ## 1. Acuan dan batas pembacaan
 
@@ -77,6 +77,22 @@ erDiagram
         String muridId FK
         String roadmapStepId FK
     }
+    Course {
+        String id PK
+        String slug UK
+        String programId FK "nullable unique"
+    }
+    Section {
+        String id PK
+        String courseId FK
+        String legacyRoadmapStepId FK "legacy nullable unique"
+    }
+    Lesson {
+        String id PK
+        String sectionId FK
+        String legacyRoadmapStepId FK "legacy nullable unique"
+        String legacyMaterialItemId FK "legacy nullable unique"
+    }
 
     User ||--o{ Murid : waliId
     User ||--o{ Session : tentorId
@@ -96,6 +112,13 @@ erDiagram
     Program ||--o{ ProgressReport : programId
     Murid ||--o{ Progress : muridId
     RoadmapStep ||--o{ Progress : roadmapStepId
+    Program |o--o| Course : programId
+    User |o--o{ Course : authorId
+    Course ||--o{ Section : courseId
+    Section ||--o{ Lesson : sectionId
+    RoadmapStep |o--o| Section : legacyRoadmapStepId
+    RoadmapStep |o--o| Lesson : legacyRoadmapStepId
+    MaterialItem |o--o| Lesson : legacyMaterialItemId
 ```
 
 ## 3. Kamus model
@@ -122,6 +145,14 @@ Semua model memiliki `id: String @id @default(uuid())`; schema tidak memberi ano
 | `ProgressReport` → `progress_reports` | `blockNumber: Int`, `notes: String?`, `createdAt: DateTime = now()`, `achievements: String[]`, `masteredMaterials: String[]`, `weakMaterials: String[]` | Evaluasi per blok; tiga daftar capaian/materi adalah **array string**, bukan satu kolom teks laporan. |
 | `Progress` → `progresses` | `status: String`, `updatedAt: DateTime @updatedAt` | Progres murid pada langkah roadmap; tidak ada composite unique murid–langkah. |
 
+### Konten baru NC-2 (schema offline, belum diterapkan)
+
+| Model → tabel | Field skalar selain PK/FK | Makna / default penting |
+|---|---|---|
+| `Course` → `courses` | `slug: String @unique`, `title: String`, `description: String`, `level: String?`, `category: String?`, `accessTier: CourseAccessTier?`, `price: Float?`, `status: ContentStatus = draft`, `publishedAt: DateTime?`, `authorId: String?`, `programId: String? @unique`, `active: Boolean = true`, `createdAt/updatedAt` | Konten course baru. `authorId` nullable untuk hasil migrasi; `programId` menautkan ke Program legacy satu-satu (nullable), bukan rename Program. |
+| `Section` → `sections` | `legacyRoadmapStepId: String? @unique`, `order: Int`, `title: String`, `level: String?`, `summary: String?`, `createdAt/updatedAt` | Satu section per roadmap step legacy untuk backfill idempoten; unique `(courseId, order)`. |
+| `Lesson` → `lessons` | `legacyRoadmapStepId: String? @unique`, `legacyMaterialItemId: String? @unique`, `slug: String @unique`, `title`, `summary?`, `bodyText: String`, `visibility: LessonVisibility = entitled`, `status: ContentStatus = draft`, `publishedAt?`, `order: Int`, `estimatedMinutes: Int?`, `createdAt/updatedAt` | bodyText intro roadmap pada `legacyRoadmapStepId`; materi pada `legacyMaterialItemId`. Unique `(sectionId, order)`. |
+
 ### Pembayaran
 
 | Model → tabel | Field skalar selain PK/FK | Makna / default penting |
@@ -132,31 +163,31 @@ Semua model memiliki `id: String @id @default(uuid())`; schema tidak memberi ano
 
 ## 4. Constraint database versus aturan aplikasi
 
-- Selain PK, hanya empat field memakai `@unique`: `User.phone`, `User.email`, `Program.slug`, `DailyReport.sessionId`. Tidak ada `@@unique` pada `Enrollment`, `Progress`, ataupun kombinasi murid–program–blok di `ProgressReport`.
+- Selain PK, field legacy yang memakai `@unique` adalah `User.phone`, `User.email`, `Program.slug`, dan `DailyReport.sessionId`. Schema NC-2 menambah unique `Course.slug`, `Course.programId`, lineage legacy Section/Lesson, `Lesson.slug`, serta composite order `(courseId, order)` dan `(sectionId, order)`; `Enrollment`/`Progress` lama tetap tidak punya composite unique.
 - `Murid.waliId` **tidak unik**, sehingga relasi DB wali–murid adalah 1:N. Namun `POST /api/admin/murids` menolak `409` bila wali sudah memiliki **murid apa pun**, tanpa filter `active`. Selector anak di UI tidak berarti pendaftaran multi-anak sudah didukung API.
 - Duplikasi enrollment aktif murid–program ditolak handler dengan pencarian `status: active`, bukan constraint unik database.
 - FK ke `User` memastikan keberadaan user, bukan nilai `role`. Penamaan relasi `WaliToMurids`, `TentorToSessions`, dan `TentorToEnrollments` tidak menjadi pembatas role SQL.
 - `MaterialItem.roadmapStepId` dan `sessionId` keduanya nullable: schema tidak memaksa tepat satu terisi; keduanya kosong atau keduanya terisi tidak dilarang oleh constraint yang dideklarasikan. Shared input admin mewajibkan `roadmapStepId`, tetapi itu kontrak aplikasi yang lebih sempit.
 - `DailyReport` memiliki FK murid dan sesi terpisah; kesamaan murid laporan dengan murid sesi berasal dari handler, bukan constraint lintas kedua FK tersebut.
 - Nilai uang (`basePrice`, `amount`, `paidAmount`) memakai **Float**, bukan Decimal/integer minor units. Positif/nonnegatif dan transisi status diperiksa aplikasi, bukan validasi nominal yang dideklarasikan di schema.
-- `role`, `category`, dan semua `status` adalah **String**, bukan PostgreSQL enum. Nilai aplikasi: role `admin/tentor/wali`; kategori `materi/jenjang/calistung`; sesi `scheduled/cancelled/completed`; enrollment `active/completed/cancelled`; invoice `unpaid/waiting/paid`; prabayar `waiting/paid/cancelled`.
+- Role/kategori/status domain legacy tetap `String`. NC-2 menambah PostgreSQL enum `CourseAccessTier` (`free/paid`), `ContentStatus` (`draft/published`), dan `LessonVisibility` (`public/entitled`); `Course.accessTier` nullable selama draft dan divalidasi sebelum publish.
 
 ## 5. Penghapusan, identitas, dan privasi
 
-Seluruh **18 relasi FK** mendeklarasikan `onDelete: Cascade`, **kecuali `Enrollment.tentor` memakai `SetNull`**. Penghapusan induk mengikuti rantai relasi: hapus murid dapat menghapus enrollment, invoice turunannya, sesi, laporan, progres, dan prabayar. Hapus tentor menghapus sesi miliknya, tetapi mengosongkan penugasan tentor pada enrollment. `active=false` adalah perubahan field aplikasi, bukan pemicu cascade.
+Schema sekarang mendeklarasikan **22 relasi FK** setelah tambahan NC-2. Relasi legacy umumnya `onDelete: Cascade`, kecuali `Enrollment.tentor`, `Course.author`, dan `Course.program` memakai `SetNull`; `Section.course` serta `Lesson.section` memakai Cascade. Migration NC-2 belum diterapkan ke runtime. Pada domain legacy, hapus murid dapat menghapus enrollment, invoice turunannya, sesi, laporan, progres, dan prabayar. Hapus tentor menghapus sesi miliknya, tetapi mengosongkan penugasan tentor pada enrollment. `active=false` adalah perubahan field aplikasi, bukan pemicu cascade.
 
 `User` memetakan tabel aplikasi `users`, bukan `auth.users`. Handler pembuatan akun menyamakan `User.id` dengan ID yang dikembalikan Supabase Auth, tetapi **schema ini tidak mendeklarasikan FK dari public User ke `auth.users`** atau trigger sinkronisasi. Kesetaraan identitas adalah tanggung jawab aplikasi. Backend NC-1.4 lokal membaca akun dan profil hanya berdasarkan verified Auth ID, tanpa fallback email. Middleware/profil memvalidasi `active === true` dan role melalui shared schema; ini guard aplikasi, bukan constraint SQL atau bukti data legacy telah direkonsiliasi. Gate merge/rollout tetap blocked sampai admin memastikan kegunaan lima Auth tanpa profil dan menyetujui dampak/rekonsiliasi; audit/verifikasi terpusat di [PROGRESS](./PROGRESS.md#backend-part2-20260916).
 
 Foto pada `photoPath` dan bukti pada `paymentProof` dipakai sebagai string/data URL base64 oleh alur aplikasi. Nama `photoPath` bukan bukti penyimpanan file di bucket. Tidak ada model Storage atau relasi objek media di ERD; private Storage/signed URL bukan alur yang sudah selesai. Base64 bukan enkripsi atau jaminan privasi, dan dokumen ini tidak menetapkan bucket publik untuk foto/bukti.
 
-## 6. Rencana nCourse — bukan schema saat ini
+## 6. Rencana nCourse — status implementasi terbaru
 
-Acuan: [keputusan D1–D16](./PROGRESS.md#keputusan-ncourse) dan [roadmap](./ROADMAP-LMS.md). Model/aturan berikut tidak boleh digabung ke diagram 13 model di atas sebelum migrasinya benar-benar ada.
+Acuan: [keputusan D1–D16](./PROGRESS.md#keputusan-ncourse) dan [roadmap](./ROADMAP-LMS.md). `Course`/`Section`/`Lesson` sudah ada sebagai schema+migration SQL offline (belum `migrate deploy`); tabel di bawah menandai bagian yang masih rencana murni.
 
-| Area target | Pembeda dari implementasi sekarang |
+| Area target | Status |
 |---|---|
-| `Course → Section → Lesson` | Hierarki konten NC masih rencana; D11 harus dibaca bersama D16, bukan perintah rename seluruh `Program`. |
-| `Program` dan `Course` | D16 mempertahankan **dua entitas**: layanan bertentor vs konten one-time; `Course.programId` nullable adalah relasi target, belum field schema. |
+| `Course → Section → Lesson` | Schema offline tersedia (bagian 2 di atas); migration belum diterapkan ke database, backfill nyata dan drop legacy masih blocked izin DB. |
+| `Program` dan `Course` | D16 dipertahankan: `Course.programId` nullable unique, Program tidak diubah. |
 | `Entitlement` | Target akses konten melekat pada `User`, bukan `Murid`; belum ada model/relasinya saat ini. |
 | Role dari DB (D5), pembeda dari target schema | Sudah diterapkan **lokal** pada backend NC-1.4, tanpa perubahan schema; frontend masih metadata. Bukan bukti deployment atau perubahan role UI; lihat [flow auth](./flow-system.md#4-login-identitas-dan-otorisasi-aktual). |
 | Penghapusan `MaterialItem.sessionId` | Belum diterapkan: field masih ada, dan [seed](../backend/prisma/seed.ts) masih membuat material berbasis sesi. Frasa historis “baru dibuang” bukan bukti penghapusan. |
