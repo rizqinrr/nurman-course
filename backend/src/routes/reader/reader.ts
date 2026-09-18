@@ -126,12 +126,35 @@ readerRouter.get('/api/reader/lessons/:slug', optionalAuth, async (req: Authenti
 
     const lesson = decision.lesson;
     const { previousSlug, nextSlug } = await findNeighbours(lesson, req.user, now);
+    const progress = req.user ? await prisma.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: req.user.id, lessonId: lesson.id } },
+      select: { completed: true },
+    }) : null;
+    const tracked = await prisma.$transaction([
+      prisma.lesson.update({
+        where: { id: lesson.id },
+        data: { readCount: { increment: 1 } },
+        select: { readCount: true },
+      }),
+      prisma.trackingEvent.create({
+        data: {
+          eventType: 'lesson_read',
+          userId: req.user?.id ?? null,
+          lessonId: lesson.id,
+          ipAddress: typeof req.ip === 'string' && req.ip.length <= 45 ? req.ip : null,
+          userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'].slice(0, 512) : null,
+        },
+        select: { id: true },
+      }),
+    ]);
     const payload: ReaderLessonDto = {
       slug: lesson.slug,
       title: lesson.title,
       summary: lesson.summary,
       bodyText: lesson.bodyText,
       estimatedMinutes: lesson.estimatedMinutes,
+      readCount: tracked[0].readCount,
+      completed: progress?.completed ?? false,
       breadcrumb: {
         courseSlug: lesson.section.course.slug,
         courseTitle: lesson.section.course.title,

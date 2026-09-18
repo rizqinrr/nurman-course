@@ -67,9 +67,28 @@ User ─ target LessonProgress ─ Lesson
 
 `Course`, `Section`, dan `Lesson` sudah ada di schema/migration lokal. Entitlement dan LessonProgress masih target berikutnya.
 
-## Backend routes
+### Public content
 
-### Public/identity
+- `GET /api/catalog/courses`
+- `GET /api/catalog/courses/:slug`
+- `GET /api/catalog/lessons`
+- `GET /api/catalog/paths`
+- `GET /api/reader/lessons/:slug`
+
+### Member content
+
+- `GET /api/me/courses`
+- `GET /api/me/entitlements`
+- `GET /api/me/lesson-progress`
+- `PATCH /api/me/lessons/:slug/progress`
+
+### Tracking/admin
+
+- `POST /api/track/login`
+- `GET /api/admin/tracking`
+- `DELETE /api/admin/tracking`
+
+
 
 - `GET /api/health`
 - `POST /api/auth/resolve-phone`

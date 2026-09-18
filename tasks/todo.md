@@ -21,9 +21,20 @@
 - [x] Validasi link internal `/materi/*` dibuat tanpa fetch eksternal.
 - [x] Backfill content dry-run dibuat: atomic, idempotent, fail-closed.
 
-## Fokus aktif berikutnya
+### Tracking dan seed development — fase aktif
 
-## Fokus terpilih — Materi/blog mudah dibaca
+- [x] Schema `Lesson.readCount` dan `TrackingEvent` (`login|lesson_read`) ditambahkan.
+- [x] Migration history lokal di-squash menjadi `prisma/migrations/0_init` dari schema lengkap; RLS, REVOKE, dan CHECK domain ditambahkan.
+- [x] Seed development besar ditulis dengan 13 user aplikasi, reset Auth, data portal, 12 Course, 180 Lesson, entitlement, progress, dan read count awal.
+- [x] Guard seed remote ditambahkan: remote hanya boleh di-reset dengan `NC_SEED_ALLOW_REMOTE_RESET=true`.
+- [x] Shared DTO catalog outline dan reader memuat `readCount`.
+- [x] Reader sukses menaikkan `readCount` atomik dan menyimpan event `lesson_read`; request denied tidak dihitung.
+- [x] Tracking login best-effort ditambahkan setelah Supabase login berhasil.
+- [x] Endpoint admin tracking list/filter/delete ditambahkan; delete event tidak mereset read count.
+- [x] Test route tracking, read count, catalog paths, dan lesson progress ditambahkan; test API lulus 180/180.
+- [ ] Jalankan migration tunggal, hapus Auth remote, seed remote, dan verifikasi count setelah konfirmasi eksplisit.
+
+
 
 > **Status: planning only.** Belum ada implementasi, migration deploy, atau perubahan DB. Eksekusi dimulai hanya setelah checklist dan keputusan MTR-0 disetujui user.
 >
@@ -132,6 +143,21 @@
 - [x] **MTR-10.4** `/login?next=...`: kembali ke lesson tujuan setelah login dengan validasi relative-path anti-open-redirect; `redirectedFrom` lama tetap kompatibel.
 - [x] **MTR-10.5** `/app/materi`: library course yang dapat diakses dan progress membaca.
 - [x] **MTR-10.6** Markdown dirender dengan `react-markdown` + `remark-gfm` + `rehype-sanitize`, `skipHtml`, dan URL transform aman; raw HTML tidak diaktifkan.
+- [x] **MTR-10.7** Katalog, detail, dan reader dummy dipakai sebagai prototipe visual; data production tidak lagi bergantung pada dataset tersebut setelah cutover MTR-14.
+- [x] **MTR-10.8** Reader dummy gratis mendukung daftar isi desktop, navigasi lesson, progress lokal sebagai prototipe, dan layout mobile-first.
+- [x] **MTR-10.9** `/materi` menjadi katalog bebas per lesson dengan card grid, search submit, filter topik multi-select, level single-select, URL state, dan pagination 12 item.
+- [x] **MTR-10.10** `/jalur-belajar` memisahkan alur terpandu dari katalog bebas; header menyediakan navigasi Katalog dan Jalur Belajar.
+
+### MTR-14 — Backend-backed content cutover
+
+- [x] **MTR-14.1** `GET /api/catalog/lessons` menyediakan flat lesson catalog published dengan pagination, search, category multi-value, level, access hint, dan read count.
+- [x] **MTR-14.2** `GET /api/catalog/paths` menyediakan outline Course/Section/Lesson untuk jalur terpandu tanpa body.
+- [x] **MTR-14.3** `GET /api/me/lesson-progress` menyediakan completed lesson slugs milik user terautentikasi.
+- [x] **MTR-14.4** `/materi`, `/kelas/[slug]`, `/materi/[slug]`, dan `/jalur-belajar` sudah memakai API backend; dataset dummy runtime dan local progress fallback dihapus.
+- [x] **MTR-14.5** Reader success mengirim `readCount`/`completed`, update progress memakai endpoint server, dan anonymous diarahkan login untuk menyimpan progress.
+- [x] **MTR-14.6** Legacy program tests disinkronkan dengan DTO allowlist `select`; API suite lulus 180/180.
+- [x] **MTR-14.7** Migration tunggal dan seed besar siap offline; migration deploy, reset Auth, seed remote, dan verifikasi DB remote belum dijalankan.
+
 
 **Acceptance:** selesai lokal 2026-09-18; responsive/browser QA tidak dijalankan atas instruksi user. Body hanya berasal dari reader API yang lolos guard backend.
 

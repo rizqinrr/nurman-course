@@ -45,6 +45,8 @@ const boundary = vi.hoisted(() => {
     programUpdate: stub('prisma.program.update'),
     programDelete: stub('prisma.program.delete'),
     programCount: stub('prisma.program.count'),
+    courseFindMany: stub('prisma.course.findMany'),
+    lessonProgressFindMany: stub('prisma.lessonProgress.findMany'),
     roadmapStepFindMany: stub('prisma.roadmapStep.findMany'),
     roadmapStepFindFirst: stub('prisma.roadmapStep.findFirst'),
     roadmapStepFindUnique: stub('prisma.roadmapStep.findUnique'),
@@ -52,6 +54,14 @@ const boundary = vi.hoisted(() => {
     roadmapStepUpdate: stub('prisma.roadmapStep.update'),
     roadmapStepDelete: stub('prisma.roadmapStep.delete'),
     entitlementFindFirst: stub('prisma.entitlement.findFirst'),
+    trackingCreate: stub('prisma.trackingEvent.create'),
+    trackingCount: stub('prisma.trackingEvent.count'),
+    trackingFindMany: stub('prisma.trackingEvent.findMany'),
+    trackingDeleteMany: stub('prisma.trackingEvent.deleteMany'),
+    lessonFindUnique: stub('prisma.lesson.findUnique'),
+    lessonFindFirst: stub('prisma.lesson.findFirst'),
+    lessonUpdate: stub('prisma.lesson.update'),
+    lessonProgressFindUnique: stub('prisma.lessonProgress.findUnique'),
     materialFindMany: stub('prisma.materialItem.findMany'),
     materialFindFirst: stub('prisma.materialItem.findFirst'),
     materialFindUnique: stub('prisma.materialItem.findUnique'),
@@ -67,10 +77,13 @@ const boundary = vi.hoisted(() => {
 export const {
   getUser, findUnique, sessionFindMany, sessionFindUnique, createUser, prismaCreate,
   programFindMany, programFindUnique, programCreate, programUpdate, programDelete, programCount,
+  courseFindMany, lessonProgressFindMany,
   roadmapStepFindMany, roadmapStepFindFirst, roadmapStepFindUnique, roadmapStepCreate,
   roadmapStepUpdate, roadmapStepDelete,
   materialFindMany, materialFindFirst, materialFindUnique, materialCreate,
   materialUpdate, materialDelete, entitlementFindFirst, transaction,
+  trackingCreate, trackingCount, trackingFindMany, trackingDeleteMany,
+  lessonFindUnique, lessonFindFirst, lessonUpdate, lessonProgressFindUnique,
 } = boundary;
 
 export const authLookup = (id: string) => ({
@@ -105,6 +118,7 @@ vi.mock('../src/lib/prisma', () => ({
       delete: programDelete,
       count: programCount,
     }),
+    course: boundary.strict('prisma.course', { findMany: courseFindMany }),
     roadmapStep: boundary.strict('prisma.roadmapStep', {
       findMany: roadmapStepFindMany,
       findFirst: roadmapStepFindFirst,
@@ -115,6 +129,21 @@ vi.mock('../src/lib/prisma', () => ({
     }),
     entitlement: boundary.strict('prisma.entitlement', {
       findFirst: entitlementFindFirst,
+    }),
+    trackingEvent: boundary.strict('prisma.trackingEvent', {
+      create: trackingCreate,
+      count: trackingCount,
+      findMany: trackingFindMany,
+      deleteMany: trackingDeleteMany,
+    }),
+    lesson: boundary.strict('prisma.lesson', {
+      findUnique: lessonFindUnique,
+      findFirst: lessonFindFirst,
+      update: lessonUpdate,
+    }),
+    lessonProgress: boundary.strict('prisma.lessonProgress', {
+      findUnique: lessonProgressFindUnique,
+      findMany: lessonProgressFindMany,
     }),
     materialItem: boundary.strict('prisma.materialItem', {
       findMany: materialFindMany,

@@ -61,7 +61,10 @@ Selesai lokal:
 - schema/migration Entitlement offline dengan multi-source;
 - optional-auth dan centralized Lesson access policy MTR-4;
 - API katalog, reader, library, progress, dan lockdown Data API offline MTR-5–MTR-9;
-- frontend katalog `/materi`, detail `/kelas/[slug]`, reader `/materi/[slug]`, dan library `/app/materi` MTR-10.
+- frontend katalog `/materi`, detail `/kelas/[slug]`, reader `/materi/[slug]`, dan library `/app/materi` MTR-10;
+- frontend katalog/reader/library backend-backed: `/materi`, `/kelas/[slug]`, `/materi/[slug]`, `/jalur-belajar`, `/app/materi`;
+- tracking login/read lesson dan total `Lesson.readCount` untuk development;
+- seed development besar dan migration tunggal offline.
 
 Belum live atau belum disetujui:
 

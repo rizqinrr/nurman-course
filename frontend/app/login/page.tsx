@@ -74,6 +74,11 @@ function LoginForm() {
 
       if (error) throw error;
 
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/track/login`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token ?? ""}` },
+      }).catch(() => undefined);
+
       const role = data.user?.user_metadata?.role || "wali";
       const returnsToContent = isContentReturnPath(redirectedFrom);
       let redirectPath = redirectedFrom;
@@ -235,7 +240,7 @@ function LoginForm() {
                 </button>
               </div>
               <p className="mt-1.5 text-[11px] text-slate-400">
-                Password default 12345678
+                Password default Password123!
               </p>
             </div>
 

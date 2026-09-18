@@ -59,6 +59,35 @@ const materialFixture = {
   title: 'Materi pertama', bodyText: 'Konten materi', sessionId: null,
 };
 
+const publicStepFixture = {
+  id: stepFixture.id,
+  programId: stepFixture.programId,
+  order: stepFixture.order,
+  title: stepFixture.title,
+  level: stepFixture.level,
+};
+
+const publicProgramFixture = {
+  ...programFixture,
+  roadmapSteps: [publicStepFixture],
+};
+
+const publicProgramSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  category: true,
+  basePrice: true,
+  sessionsPerBlock: true,
+  active: true,
+  hasRoadmap: true,
+  roadmapSteps: {
+    select: { id: true, programId: true, order: true, title: true, level: true },
+    orderBy: [{ order: 'asc' }, { id: 'asc' }],
+  },
+};
+
 function validationFailure(message: string) {
   return {
     error: {
@@ -71,28 +100,29 @@ function validationFailure(message: string) {
 
 describe('public program catalog contract', () => {
   it('lists only active programs with ordered roadmap steps', async () => {
-    programFindMany.mockResolvedValueOnce([programFixture]);
+    programFindMany.mockResolvedValueOnce([publicProgramFixture]);
     const anon = await anonAgent();
     const response = await anon.get('/api/programs');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ programs: [programFixture] });
+    expect(response.body).toEqual({ programs: [publicProgramFixture] });
     expect(programFindMany).toHaveBeenCalledExactlyOnceWith({
       where: { active: true },
-      include: { roadmapSteps: { orderBy: { order: 'asc' } } },
+      select: publicProgramSelect,
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
     expect(getUser).not.toHaveBeenCalled();
     expect(findUnique).not.toHaveBeenCalled();
   });
 
   it('keeps the legacy { program } envelope on the public detail route', async () => {
-    programFindUnique.mockResolvedValueOnce({ ...programFixture, roadmapSteps: [stepFixture] });
+    programFindUnique.mockResolvedValueOnce(publicProgramFixture);
     const anon = await anonAgent();
     const response = await anon.get('/api/programs/program-one');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ program: { ...programFixture, roadmapSteps: [stepFixture] } });
+    expect(response.body).toEqual({ program: publicProgramFixture });
     expect(programFindUnique).toHaveBeenCalledExactlyOnceWith({
       where: { id: 'program-one' },
-      include: { roadmapSteps: { orderBy: { order: 'asc' } } },
+      select: publicProgramSelect,
     });
   });
 

@@ -38,6 +38,13 @@ enum EntitlementSource {
   @@map("entitlement_source")
 }
 
+enum TrackingEventType {
+  login
+  lesson_read
+
+  @@map("tracking_event_type")
+}
+
 model User {
   id               String           @id @default(uuid())
   role             String
@@ -54,6 +61,7 @@ model User {
   authoredCourses  Course[]         @relation("CourseAuthor")
   entitlements     Entitlement[]
   lessonProgresses LessonProgress[]
+  trackingEvents   TrackingEvent[]
 
   @@map("users")
 }
@@ -342,13 +350,32 @@ model Lesson {
   publishedAt          DateTime?        @map("published_at")
   order                Int
   estimatedMinutes     Int?             @map("estimated_minutes")
+  readCount            Int              @default(0) @map("read_count")
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
   section              Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   progresses           LessonProgress[]
+  trackingEvents       TrackingEvent[]
 
   @@unique([sectionId, order])
   @@index([sectionId])
   @@index([status, publishedAt])
   @@map("lessons")
+}
+
+model TrackingEvent {
+  id        String            @id @default(uuid())
+  eventType TrackingEventType @map("event_type")
+  userId    String?           @map("user_id")
+  lessonId  String?           @map("lesson_id")
+  ipAddress String?           @map("ip_address")
+  userAgent String?           @map("user_agent")
+  createdAt DateTime          @default(now()) @map("created_at")
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lesson    Lesson?           @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, createdAt])
+  @@index([userId, createdAt])
+  @@index([lessonId, createdAt])
+  @@map("tracking_events")
 }

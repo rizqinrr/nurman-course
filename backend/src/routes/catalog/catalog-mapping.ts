@@ -1,4 +1,12 @@
-import type { CatalogCourseDetailDto, CatalogCourseDto, CatalogCoursesQuery, ContentAccessRequirement } from '@nurman-course/shared';
+import type {
+  CatalogCourseDetailDto,
+  CatalogCourseDto,
+  CatalogCoursesQuery,
+  CatalogLessonListResponse,
+  CatalogLessonsQuery,
+  CatalogPathResponse,
+  ContentAccessRequirement,
+} from '@nurman-course/shared';
 import type { Prisma } from '../../generated/client';
 import { prisma } from '../../lib/prisma';
 
@@ -98,6 +106,80 @@ export async function listPublishedCourses(query: CatalogCoursesQuery, now = new
   };
 }
 
+export async function listPublishedLessons(
+  query: CatalogLessonsQuery,
+  now = new Date(),
+): Promise<CatalogLessonListResponse> {
+  const { page, limit, search, category, level } = query;
+  const categories = category?.split(',').map((value) => value.trim().toLowerCase()).filter(Boolean) ?? [];
+  const normalizedLevel = level?.trim().toLowerCase();
+  const where: Prisma.LessonWhereInput = {
+    status: 'published',
+    publishedAt: { lte: now },
+    section: {
+      course: {
+        active: true,
+        status: 'published',
+        publishedAt: { lte: now },
+        accessTier: { not: null },
+        ...(categories.length > 0 ? { category: { in: categories, mode: 'insensitive' } } : {}),
+        ...(normalizedLevel ? { level: { equals: normalizedLevel, mode: 'insensitive' } } : {}),
+      },
+    },
+    ...(search ? {
+      OR: [
+        { title: { contains: search, mode: 'insensitive' } },
+        { summary: { contains: search, mode: 'insensitive' } },
+        { section: { course: { title: { contains: search, mode: 'insensitive' } } } },
+        { section: { course: { category: { contains: search, mode: 'insensitive' } } } },
+      ],
+    } : {}),
+  };
+  const [lessons, totalItems] = await prisma.$transaction([
+    prisma.lesson.findMany({
+      where,
+      select: {
+        slug: true,
+        title: true,
+        summary: true,
+        order: true,
+        estimatedMinutes: true,
+        readCount: true,
+        visibility: true,
+        section: {
+          select: {
+            course: {
+              select: { slug: true, title: true, category: true, level: true, accessTier: true },
+            },
+          },
+        },
+      },
+      orderBy: [{ readCount: 'desc' }, { publishedAt: 'desc' }, { slug: 'asc' }],
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.lesson.count({ where }),
+  ]);
+
+  return {
+    data: lessons.map((lesson) => ({
+      slug: lesson.slug,
+      title: lesson.title,
+      summary: lesson.summary,
+      order: lesson.order,
+      estimatedMinutes: lesson.estimatedMinutes,
+      readCount: lesson.readCount,
+      visibility: lesson.visibility,
+      accessRequirement: accessRequirementFor(lesson.visibility, lesson.section.course.accessTier),
+      courseSlug: lesson.section.course.slug,
+      courseTitle: lesson.section.course.title,
+      courseCategory: lesson.section.course.category,
+      courseLevel: lesson.section.course.level,
+    })),
+    pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) },
+  };
+}
+
 export async function findPublishedCourseDetail(
   slug: string,
   now = new Date(),
@@ -123,6 +205,7 @@ export async function findPublishedCourseDetail(
               summary: true,
               order: true,
               estimatedMinutes: true,
+              readCount: true,
               visibility: true,
             },
             orderBy: [{ order: 'asc' }, { slug: 'asc' }],
@@ -144,6 +227,62 @@ export async function findPublishedCourseDetail(
       lessons: section.lessons.map((lesson) => ({
         ...lesson,
         accessRequirement: accessRequirementFor(lesson.visibility, course.accessTier),
+      })),
+    })),
+  };
+}
+
+export async function listPublishedPaths(now = new Date()): Promise<CatalogPathResponse> {
+  const lessonWhere = { status: 'published' as const, publishedAt: { lte: now } };
+  const courses = await prisma.course.findMany({
+    where: {
+      active: true,
+      status: 'published',
+      publishedAt: { lte: now },
+      accessTier: { not: null },
+    },
+    select: {
+      ...publicCourseSelect,
+      sections: {
+        where: { lessons: { some: lessonWhere } },
+        select: {
+          order: true,
+          title: true,
+          level: true,
+          summary: true,
+          _count: { select: { lessons: { where: lessonWhere } } },
+          lessons: {
+            where: lessonWhere,
+            select: {
+              slug: true,
+              title: true,
+              summary: true,
+              order: true,
+              estimatedMinutes: true,
+              readCount: true,
+              visibility: true,
+            },
+            orderBy: [{ order: 'asc' }, { slug: 'asc' }],
+          },
+        },
+        orderBy: [{ order: 'asc' }, { id: 'asc' }],
+      },
+    },
+    orderBy: [{ publishedAt: 'desc' }, { title: 'asc' }, { slug: 'asc' }],
+  });
+
+  return {
+    data: courses.map((course) => ({
+      ...toCourseDto(course),
+      sections: course.sections.map((section) => ({
+        order: section.order,
+        title: section.title,
+        level: section.level,
+        summary: section.summary,
+        lessons: section.lessons.map((lesson) => ({
+          ...lesson,
+          accessRequirement: accessRequirementFor(lesson.visibility, course.accessTier),
+        })),
       })),
     })),
   };

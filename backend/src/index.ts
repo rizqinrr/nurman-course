@@ -12,6 +12,7 @@ import { authoringRouter } from './routes/authoring/content-authoring';
 import { catalogRouter } from './routes/catalog/catalog';
 import { readerRouter } from './routes/reader/reader';
 import { meRouter } from './routes/me/membership';
+import { trackingRouter } from './routes/tracking/tracking';
 import {
   createEnrollmentSchema,
   createInvoiceSchema,
@@ -937,6 +938,7 @@ app.use(authoringRouter);
 app.use(catalogRouter);
 app.use(readerRouter);
 app.use(meRouter);
+app.use(trackingRouter);
 
 // 13. Admin-Only Users Management
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res) => {

@@ -53,6 +53,20 @@ router.get('/api/me/entitlements', requireAuth, async (req: AuthenticatedRequest
   }
 });
 
+router.get('/api/me/lesson-progress', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const rows = await prisma.lessonProgress.findMany({
+      where: { userId: req.user!.id, completed: true },
+      select: { lesson: { select: { slug: true } } },
+      orderBy: { updatedAt: 'desc' },
+    });
+    res.set('Cache-Control', 'private, no-store');
+    res.json({ data: { completedLessonSlugs: rows.map((row) => row.lesson.slug) } });
+  } catch {
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Gagal memuat progress lesson.' } });
+  }
+});
+
 router.get('/api/me/courses', requireAuth, async (req: AuthenticatedRequest, res) => {
   const parsed = catalogCoursesQuerySchema.safeParse(req.query);
   if (!parsed.success) {

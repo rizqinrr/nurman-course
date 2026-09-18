@@ -1,7 +1,10 @@
 import type {
   CatalogCourseDetailDto,
   CatalogCourseDto,
+  CatalogLessonListResponse,
+  CatalogPathResponse,
   LibraryCourseDto,
+  MyLessonProgressDto,
   ReaderLessonDto,
 } from "@nurman-course/shared";
 import { apiFetch, apiFetchPrivate, buildQuery } from "@/lib/api";
@@ -34,6 +37,19 @@ export interface CatalogFilters {
 
 export function getCatalog(filters: CatalogFilters = {}) {
   return apiFetch<CatalogResponse>(`/api/catalog/courses${buildQuery({ ...filters })}`);
+}
+
+export function getLessonCatalog(filters: Omit<CatalogFilters, "category" | "accessTier"> & { category?: string[] } = {}) {
+  const query = { ...filters, category: Array.isArray(filters.category) ? filters.category.join(",") : filters.category };
+  return apiFetch<CatalogLessonListResponse>(`/api/catalog/lessons${buildQuery(query)}`);
+}
+
+export function getCoursePaths() {
+  return apiFetch<CatalogPathResponse>("/api/catalog/paths");
+}
+
+export function getMyLessonProgress() {
+  return apiFetchPrivate<{ data: MyLessonProgressDto }>("/api/me/lesson-progress");
 }
 
 export function getCourseDetail(slug: string) {

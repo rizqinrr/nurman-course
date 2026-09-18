@@ -1,3 +1,36 @@
+### 2026-09-18 — MTR-14 backend-backed content cutover siap lokal
+
+**Request:** lanjut backend, siapkan seed besar, tracking user/login/read lesson, read count, dan pastikan halaman materi benar-benar siap memakai backend.
+
+**Dikerjakan:**
+
+- `backend/prisma/schema.prisma`: menambah `Lesson.readCount`, `TrackingEvent`, enum `TrackingEventType`, relasi/index, dan constraint domain.
+- Migration lama di-squash secara lokal menjadi `backend/prisma/migrations/0_init/migration.sql`; SQL menambahkan CHECK, RLS, dan REVOKE. Migration remote belum dijalankan.
+- `backend/prisma/seed.ts`: seed development guard, reset Auth, 13 user aplikasi, 16 murid, 5 Program operational, 12 Course, 180 Lesson, access tier/visibility/status, entitlement aktif/expired/revoked/multi-source, progress, sesi, invoice, laporan, dan read count awal. Seed remote mensyaratkan `NC_SEED_ALLOW_REMOTE_RESET=true`.
+- `backend/src/routes/tracking/tracking.ts`: POST login tracking, GET admin tracking pagination/filter, DELETE admin tracking tanpa reset counter; IP/User-Agent dibatasi panjangnya.
+- `backend/src/routes/reader/reader.ts`: successful allowed reader menaikkan read count atomik dan mencatat `lesson_read`; denied/unknown tidak dihitung; response memuat `readCount` dan `completed`.
+- `backend/src/routes/catalog/`: `GET /api/catalog/lessons` flat catalog, `GET /api/catalog/paths`, DTO/search/filter/pagination.
+- `backend/src/routes/me/membership.ts`: `GET /api/me/lesson-progress` completed slug user sendiri.
+- Frontend `/materi`, `/kelas/[slug]`, `/materi/[slug]`, `/jalur-belajar` sekarang memakai API backend; runtime dataset dummy dan local progress fallback dihapus. Login tracking best-effort tetap tidak menggagalkan login.
+- Legacy content tests diperbarui mengikuti DTO allowlist `select` yang sudah dipakai route.
+
+**Verifikasi:**
+
+- Backend API suite: **180/180 lulus**.
+- Backend typecheck, test typecheck, lint, artifact build: lulus; lint memiliki 14 warning `any` baseline, 0 error.
+- Frontend lint, typecheck, dan build: lulus.
+- Migration Prisma format/validate/generate: lulus lokal.
+- `git diff --check`: lulus; warning LF→CRLF normal.
+
+**Residual dan batas bukti:**
+
+- Belum ada migration deploy, reset schema, penghapusan Auth, atau seed remote; semua operasi destructive tetap menunggu konfirmasi eksplisit terakhir.
+- Belum ada runtime DB terisolasi/live verification, RLS/Data API verification, login live, atau browser QA sesuai instruksi user.
+- `readCount` menghitung setiap successful reader request, termasuk anonymous; event menyimpan IP/User-Agent sesuai keputusan dev.
+- Test client standalone pernah timeout karena batas waktu subprocess; test API dan build tetap lulus.
+- Percobaan reset remote 2026-09-18 berhenti sebelum mutasi: Prisma gagal konek ke Supabase pooler (`P1001`) pada port 5432/6543. Supabase MCP dapat query database, tetapi schema/Auth/seed remote belum diubah.
+- Supabase advisor mendeteksi RLS disabled pada 14 tabel existing; remediation belum dijalankan karena policy existing belum dipetakan.
+
 # Progress — Nurman Course
 
 > Ledger aktif keputusan, milestone, verifikasi, dan residual. Checklist ada di [tasks/todo.md](../tasks/todo.md); arah backend ada di [GOALS.md](../GOALS.md).
@@ -83,7 +116,52 @@ Verifikasi lokal tidak membuktikan DB live, auth staging, browser, deployment, a
 
 ## Catatan sesi
 
-### 2026-09-18 — MTR-10 frontend reader selesai lokal
+### 2026-09-18 — Katalog bebas lesson dan jalur belajar terpandu
+
+**Request:** ubah `/materi` menjadi katalog bergaya shopping card untuk semua lesson; dukung search setelah tombol, topik, level, jumlah dibaca, pagination, dan halaman jalur terurut.
+
+**Dikerjakan:**
+
+- `frontend/data/belajar-dasar.ts`: metadata topic, level `Pemula|Dasar|Project`, seeded read count stabil, flatten helper semua lesson, dan format angka dibaca.
+- `frontend/components/content/LessonCatalogCard.tsx`: card lesson dengan topik, level, durasi, jumlah dibaca, status gratis, dan status sudah dibaca lokal.
+- `frontend/lib/learning-progress.ts`: snapshot progress lokal bersama untuk reader dan katalog.
+- `frontend/app/materi/page.tsx`: katalog bebas 12 card/page, search via submit, topik multi-select, level single-select, query URL, relevansi sederhana, pagination, empty/reset state.
+- `frontend/app/jalur-belajar/page.tsx`: jalur tiga tahap dengan urutan lesson, progress lokal, CTA lesson berikutnya, serta link kembali ke katalog bebas.
+- `frontend/components/content/ContentShell.tsx`: navigasi header menambahkan Jalur Belajar.
+- `frontend/components/content/LessonReader.tsx`: progress reader dipindahkan ke helper shared.
+
+**Verifikasi:**
+
+- `npx tsc --project frontend/tsconfig.json --noEmit` — exit 0.
+- `npm run lint --workspace=frontend` — exit 0.
+- `npm run build --workspace=frontend` — exit 0; route `/materi` dan `/jalur-belajar` terdeteksi.
+- Impeccable detector — hanya warning divider `border-b-2` pada surface rounded yang sudah menjadi grammar worksheet.
+- `git diff --check` — lulus; warning line-ending LF→CRLF normal.
+
+**Residual dan batas bukti:** browser screenshot/runtime QA belum dijalankan. Read count masih seeded dummy dan progress masih local-only; integrasi analytics/backend tetap pekerjaan terpisah.
+
+
+**Request:** buat tampilan materi gratis dan katalog lengkap yang mudah dibaca user pemula, mobile-friendly, memakai data dummy: lingkungan coding, instalasi tools basic, dan belajar HTML.
+
+**Dikerjakan:**
+
+- `frontend/data/belajar-dasar.ts`: tiga jalur belajar dengan 13 lesson, tujuan per jalur, durasi, level, latihan, dan project profil HTML.
+- `frontend/components/content/CourseCard.tsx`: kartu katalog menampilkan langkah, jumlah lesson, total durasi, status gratis, dan CTA yang konsisten.
+- `frontend/components/content/CourseDetail.tsx`: detail kelas dummy dengan tujuan belajar, durasi, urutan lesson, dan CTA mulai.
+- `frontend/components/content/LessonReader.tsx`: reader gratis berbasis data lokal, daftar isi desktop, prev/next, progress `localStorage`, dan navigasi mobile.
+- `frontend/components/content/SafeMarkdown.tsx`: typography reader diselaraskan dengan dunia visual “meja praktik”, code block, checklist, link, dan blockquote lebih mudah dibaca.
+- `frontend/app/materi/[slug]/page.tsx`: `key` slug ditambahkan agar state progress berganti stabil saat navigasi client-side.
+
+**Verifikasi:**
+
+- `npx tsc --project frontend/tsconfig.json --noEmit` — exit 0.
+- `npm run lint --workspace=frontend` — exit 0.
+- `npm run build --workspace=frontend` — exit 0.
+- Impeccable detector — 4 warning divider `border-b-2` pada surface rounded, tanpa error; dipertahankan sebagai bagian grammar worksheet.
+- `git diff --check` — lulus dengan warning line-ending LF→CRLF normal.
+
+**Residual dan batas bukti:** browser screenshot/runtime QA tidak dijalankan. Data dummy belum menjadi source production API; saat backend live diaktifkan, client API perlu diintegrasikan kembali tanpa mengubah kontrak visual dan struktur konten.
+
 
 **Request:** lanjut langsung ke MTR berikutnya tanpa menunggu runtime/DB gate; browser test kemudian dibatalkan user.
 

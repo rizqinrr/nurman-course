@@ -293,7 +293,30 @@ export const catalogCoursesQuerySchema = z.object({
 
 export type CatalogCoursesQuery = z.infer<typeof catalogCoursesQuerySchema>;
 
+export const catalogLessonsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().trim().max(100).optional(),
+  category: z.string().trim().max(100).optional(),
+  level: z.string().trim().max(100).optional(),
+});
+
+export type CatalogLessonsQuery = z.infer<typeof catalogLessonsQuerySchema>;
+
+
 export type ContentAccessRequirement = "public" | "login" | "purchase";
+
+export interface CatalogLessonDto extends CatalogLessonOutlineDto {
+  courseSlug: string;
+  courseTitle: string;
+  courseCategory: string | null;
+  courseLevel: string | null;
+}
+
+export interface CatalogLessonListResponse {
+  data: CatalogLessonDto[];
+  pagination: { page: number; limit: number; totalItems: number; totalPages: number };
+}
 
 export interface CatalogAuthorDto {
   name: string;
@@ -317,6 +340,7 @@ export interface CatalogLessonOutlineDto {
   summary: string | null;
   order: number;
   estimatedMinutes: number | null;
+  readCount: number;
   visibility: LessonVisibility;
   accessRequirement: ContentAccessRequirement;
 }
@@ -333,6 +357,14 @@ export interface CatalogCourseDetailDto extends CatalogCourseDto {
   sections: CatalogSectionDto[];
 }
 
+export interface CatalogPathResponse {
+  data: CatalogCourseDetailDto[];
+}
+
+export interface MyLessonProgressDto {
+  completedLessonSlugs: string[];
+}
+
 export interface ReaderBreadcrumbDto {
   courseSlug: string;
   courseTitle: string;
@@ -345,6 +377,8 @@ export interface ReaderLessonDto {
   summary: string | null;
   bodyText: string;
   estimatedMinutes: number | null;
+  readCount: number;
+  completed: boolean;
   breadcrumb: ReaderBreadcrumbDto;
   previousSlug: string | null;
   nextSlug: string | null;

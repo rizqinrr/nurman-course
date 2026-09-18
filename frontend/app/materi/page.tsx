@@ -1,115 +1,139 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, Search, SlidersHorizontal } from "lucide-react";
-import type { CatalogCourseDto } from "@nurman-course/shared";
+import {
+  ArrowRight,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
 import ContentShell from "@/components/content/ContentShell";
-import { CourseCard } from "@/components/content/CourseCard";
-import { getCatalog } from "@/lib/content-api";
+import LessonCatalogCard from "@/components/content/LessonCatalogCard";
+import { getLessonCatalog } from "@/lib/content-api";
 
-const accessOptions = [
-  { value: "", label: "Semua akses" },
-  { value: "free", label: "Login gratis" },
-  { value: "paid", label: "Berbayar" },
-] as const;
+export const dynamic = "force-dynamic";
 
-export default function MaterialCatalogPage() {
-  const [courses, setCourses] = useState<CatalogCourseDto[]>([]);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
-  const [level, setLevel] = useState("");
-  const [accessTier, setAccessTier] = useState<"" | "free" | "paid">("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+const PAGE_SIZE = 12;
+const topics = ["Lingkungan coding", "Tools", "HTML", "CSS", "JavaScript", "Web", "Project"];
+const levels = ["Pemula", "Dasar", "Project"];
 
-  useEffect(() => {
-    let active = true;
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const result = await getCatalog({
-          page,
-          limit: 8,
-          search: search.trim() || undefined,
-          category: category.trim() || undefined,
-          level: level.trim() || undefined,
-          accessTier: accessTier || undefined,
-        });
-        if (!active) return;
-        setCourses(result.data);
-        setTotalPages(result.pagination.totalPages);
-      } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : "Katalog belum dapat dimuat.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }, 250);
-    return () => { active = false; clearTimeout(timer); };
-  }, [accessTier, category, level, page, search]);
+function getSingleParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+function getMultipleParams(value: string | string[] | undefined) {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function createPageHref(query: string, selectedTopics: string[], level: string, page: number) {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  selectedTopics.forEach((topic) => params.append("topik", topic));
+  if (level) params.set("level", level);
+  if (page > 1) params.set("page", String(page));
+  const value = params.toString();
+  return value ? `/materi?${value}` : "/materi";
+}
+
+export default async function MaterialCatalogPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = getSingleParam(params.q).trim();
+  const requestedPage = Number.parseInt(getSingleParam(params.page), 10);
+  const selectedTopics = getMultipleParams(params.topik).filter((topic) => topics.includes(topic));
+  const requestedLevel = getSingleParam(params.level);
+  const level = levels.includes(requestedLevel) ? requestedLevel : "";
+  const response = await getLessonCatalog({
+    page: Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1,
+    limit: PAGE_SIZE,
+    search: query || undefined,
+    category: selectedTopics,
+    level: level || undefined,
+  });
+  const lessons = response.data ?? [];
+  const pagination = response.pagination;
+  const totalPages = Math.max(pagination.totalPages, 1);
+  const page = Math.min(Math.max(pagination.page, 1), totalPages);
+  const hasFilters = Boolean(query || selectedTopics.length > 0 || level);
 
   return (
     <ContentShell>
       <main>
-        <section className="border-b border-[#d8d0c3] bg-[#e7edf5]">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_18rem] lg:px-8">
-            <div>
-              <h1 className="max-w-3xl font-playfair text-4xl leading-[1.05] tracking-[-0.03em] text-[#17283e] sm:text-6xl">Materi yang bisa dibaca sesuai ritmemu.</h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-[#46576a] sm:text-lg">Jelajahi silabus, mulai dari lesson publik, lalu lanjutkan kelas gratis atau berbayar saat kamu siap.</p>
-            </div>
-            <div className="self-end border-t border-[#9fb1c7] pt-4 text-sm leading-6 text-[#46576a] lg:border-t-0 lg:border-l lg:pl-6 lg:pt-0">
-              <strong className="block text-[#17283e]">Baca dulu, putuskan kemudian.</strong>
-              Outline selalu terbuka. Isi lesson hanya dikirim setelah backend memastikan aksesmu.
+        <section className="pegboard-hero">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-10">
+            <div className="max-w-3xl">
+              <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-[#f9b36c]">Katalog materi</p>
+              <h1 className="mt-4 font-display text-5xl font-extrabold leading-[0.94] tracking-[-0.055em] text-[#f5f0e7] sm:text-7xl">Belajar sesuai yang sedang kamu butuhkan.</h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[#d4e5d7] sm:text-lg">Cari lesson pendek tentang coding, tools, dan HTML. Tidak harus mengikuti urutan—pilih satu kartu, baca, lalu praktik.</p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link href="/jalur-belajar" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#f0752d] px-5 text-sm font-extrabold text-white shadow-[0_3px_0_#833c21] transition-transform hover:-translate-y-0.5">Bingung mulai dari mana? Ikuti jalur <ArrowRight size={16} /></Link>
+                <span className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#78a990] px-4 text-sm font-bold text-[#e5f2e7]"><BookOpen size={16} />{pagination.totalItems} lesson</span>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-3 border-b border-[#d8d0c3] pb-6 sm:grid-cols-2 lg:grid-cols-[minmax(18rem,1fr)_11rem_11rem_11rem]">
-            <label className="relative block">
-              <span className="sr-only">Cari materi</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6c746b]" size={18} aria-hidden="true" />
-              <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} type="search" placeholder="Cari topik atau judul kelas" className="min-h-12 w-full rounded-lg border border-[#cfc6b7] bg-white pl-10 pr-4 text-sm outline-none transition focus:border-[#4a70a9] focus:ring-2 focus:ring-[#4a70a9]/20" />
-            </label>
-            <label className="relative flex items-center">
-              <SlidersHorizontal className="pointer-events-none absolute left-3 text-[#6c746b]" size={17} aria-hidden="true" />
-              <span className="sr-only">Filter kategori</span>
-              <input value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} placeholder="Kategori" className="min-h-12 w-full rounded-lg border border-[#cfc6b7] bg-white pl-10 pr-3 text-sm outline-none focus:border-[#4a70a9] focus:ring-2 focus:ring-[#4a70a9]/20" />
-            </label>
-            <label>
-              <span className="sr-only">Filter level</span>
-              <input value={level} onChange={(event) => { setLevel(event.target.value); setPage(1); }} placeholder="Level" className="min-h-12 w-full rounded-lg border border-[#cfc6b7] bg-white px-3 text-sm outline-none focus:border-[#4a70a9] focus:ring-2 focus:ring-[#4a70a9]/20" />
-            </label>
-            <label className="relative flex items-center">
-              <span className="sr-only">Filter akses</span>
-              <select value={accessTier} onChange={(event) => { setAccessTier(event.target.value as typeof accessTier); setPage(1); }} className="min-h-12 w-full appearance-none rounded-lg border border-[#cfc6b7] bg-white px-3 text-sm font-semibold outline-none focus:border-[#4a70a9] focus:ring-2 focus:ring-[#4a70a9]/20">
-                {accessOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-10">
+          <div className="flex flex-col gap-3 border-b-2 border-[#cdd9cd] pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-display text-3xl font-extrabold tracking-[-0.04em] text-[#102d2b] sm:text-4xl">Pilih materi</h2>
+              <p className="mt-2 text-sm leading-6 text-[#42615b]">Gunakan pencarian kalau kamu sudah tahu topiknya, atau jelajahi semua kartu.</p>
+            </div>
+            <span className="font-mono text-xs font-bold text-[#55716c]">{pagination.totalItems} hasil</span>
+          </div>
+
+          <form action="/materi" method="get" className="mt-6 rounded-2xl border-2 border-[#b7d2c4] bg-[#e0f0e7] p-4 sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row">
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">Cari materi</span>
+                <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#5c8675]" size={18} />
+                <input name="q" defaultValue={query} type="search" placeholder="Cari judul, ringkasan, atau topik..." className="min-h-12 w-full rounded-xl border-2 border-[#b7d2c4] bg-[#fffdf8] pl-11 pr-4 text-sm font-semibold text-[#102d2b] outline-none placeholder:text-[#779187] focus:border-[#f0752d] focus:ring-2 focus:ring-[#f0752d]/20" />
+              </label>
+              <select name="level" defaultValue={level} aria-label="Filter level" className="min-h-12 rounded-xl border-2 border-[#b7d2c4] bg-[#fffdf8] px-3 text-sm font-bold text-[#102d2b] outline-none focus:border-[#f0752d] focus:ring-2 focus:ring-[#f0752d]/20">
+                <option value="">Semua level</option>
+                {levels.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
-            </label>
-          </div>
+              <button type="submit" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#0e4d45] px-5 text-sm font-extrabold text-white shadow-[0_3px_0_#082e2a] transition-transform hover:-translate-y-0.5"><SlidersHorizontal size={16} />Cari materi</button>
+            </div>
+            <fieldset className="mt-3 flex flex-wrap items-center gap-2">
+              <legend className="sr-only">Pilih topik</legend>
+              <span className="mr-1 text-xs font-bold text-[#42615b]">Topik:</span>
+              {topics.map((topic) => (
+                <label key={topic} className="cursor-pointer">
+                  <input type="checkbox" name="topik" value={topic} defaultChecked={selectedTopics.includes(topic)} className="peer sr-only" />
+                  <span className="inline-flex rounded-full border-2 border-[#acd0be] bg-[#fffdf8] px-3 py-1.5 text-xs font-extrabold text-[#0e4d45] transition-colors peer-checked:border-[#0e4d45] peer-checked:bg-[#0e4d45] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#f0752d] peer-focus-visible:ring-offset-2">{topic}</span>
+                </label>
+              ))}
+            </fieldset>
+            {hasFilters && <Link href="/materi" className="mt-3 inline-flex items-center gap-1 text-xs font-extrabold text-[#0e4d45] underline decoration-[#f0752d] underline-offset-4"><RotateCcw size={13} />Reset filter</Link>}
+          </form>
 
-          <div aria-live="polite" aria-busy={loading}>
-            {loading ? <CatalogSkeleton /> : error ? <CatalogState title="Katalog belum dapat dimuat" message={error} /> : courses.length === 0 ? <CatalogState title="Belum ada materi yang cocok" message="Coba kata kunci lain atau tampilkan semua akses." /> : <div>{courses.map((course) => <CourseCard key={course.slug} course={course} />)}</div>}
-          </div>
+          {lessons.length > 0 ? (
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {lessons.map((lesson) => <LessonCatalogCard key={lesson.slug} lesson={lesson} />)}
+            </div>
+          ) : (
+            <div role="status" className="paper-card mt-8 p-10 text-center">
+              <h3 className="font-display text-2xl font-extrabold text-[#102d2b]">Materi belum ditemukan.</h3>
+              <p className="mt-2 text-sm leading-6 text-[#42615b]">Coba kata kunci atau kombinasi filter lain.</p>
+              <Link href="/materi" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#f0752d] px-4 text-sm font-extrabold text-white">Reset semua filter</Link>
+            </div>
+          )}
 
-          {!loading && !error && totalPages > 1 && <nav aria-label="Paginasi katalog" className="mt-8 flex items-center justify-between border-t border-[#d8d0c3] pt-5">
-            <button disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#294d7e] disabled:cursor-not-allowed disabled:opacity-40"><ArrowLeft size={16} /> Sebelumnya</button>
-            <span className="text-sm tabular-nums text-[#6c746b]">Halaman {page} dari {totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#294d7e] disabled:cursor-not-allowed disabled:opacity-40">Berikutnya <ArrowRight size={16} /></button>
-          </nav>}
+          {pagination.totalPages > 1 && (
+            <nav aria-label="Pagination katalog" className="mt-10 flex items-center justify-center gap-3">
+              {page > 1 ? <Link href={createPageHref(query, selectedTopics, level, page - 1)} className="grid h-11 w-11 place-items-center rounded-xl border-2 border-[#b7d2c4] bg-[#fffdf8] text-[#0e4d45]"><span className="sr-only">Halaman sebelumnya</span><ChevronLeft size={18} /></Link> : <span className="grid h-11 w-11 place-items-center rounded-xl border-2 border-[#d7d3c5] bg-[#eee9df] text-[#9aa9a3]" aria-hidden="true"><ChevronLeft size={18} /></span>}
+              <span className="font-mono text-xs font-bold text-[#55716c]">Halaman {page} dari {pagination.totalPages}</span>
+              {page < pagination.totalPages ? <Link href={createPageHref(query, selectedTopics, level, page + 1)} className="grid h-11 w-11 place-items-center rounded-xl border-2 border-[#b7d2c4] bg-[#fffdf8] text-[#0e4d45]"><span className="sr-only">Halaman berikutnya</span><ChevronRight size={18} /></Link> : <span className="grid h-11 w-11 place-items-center rounded-xl border-2 border-[#d7d3c5] bg-[#eee9df] text-[#9aa9a3]" aria-hidden="true"><ChevronRight size={18} /></span>}
+            </nav>
+          )}
         </section>
       </main>
     </ContentShell>
   );
-}
-
-function CatalogSkeleton() {
-  return <div className="divide-y divide-[#d8d0c3]" aria-label="Memuat materi">{Array.from({ length: 3 }).map((_, index) => <div key={index} className="py-7"><div className="h-5 w-28 animate-pulse rounded bg-[#dce3eb]" /><div className="mt-4 h-8 w-2/3 animate-pulse rounded bg-[#e4ded4]" /><div className="mt-3 h-4 w-full max-w-xl animate-pulse rounded bg-[#ebe6de]" /></div>)}</div>;
-}
-
-function CatalogState({ title, message }: { title: string; message: string }) {
-  return <div role="status" className="py-16 text-center"><BookOpen className="mx-auto text-[#8090a2]" size={30} /><h2 className="mt-4 font-playfair text-2xl text-[#17283e]">{title}</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#66716b]">{message}</p><Link href="/materi" className="mt-5 inline-block text-sm font-bold text-[#294d7e] underline decoration-[#9fb1c7] underline-offset-4">Muat ulang katalog</Link></div>;
 }
