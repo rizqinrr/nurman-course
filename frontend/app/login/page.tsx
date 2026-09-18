@@ -15,6 +15,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
+import { isContentReturnPath, safeReturnPath } from "@/lib/navigation";
 
 const inputBase =
   "w-full rounded-xl border border-slate-300 bg-white/85 py-3 text-base text-slate-900 placeholder:text-slate-400 placeholder:font-normal shadow-sm transition-all duration-200 focus:border-[#4a70a9] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#4a70a9]/15";
@@ -22,7 +23,7 @@ const inputBase =
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectedFrom = searchParams.get("redirectedFrom") || "/app/dashboard";
+  const redirectedFrom = safeReturnPath(searchParams.get("next") ?? searchParams.get("redirectedFrom")) || "/app/dashboard";
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
@@ -74,10 +75,13 @@ function LoginForm() {
       if (error) throw error;
 
       const role = data.user?.user_metadata?.role || "wali";
+      const returnsToContent = isContentReturnPath(redirectedFrom);
       let redirectPath = redirectedFrom;
-      if (role === "admin") redirectPath = "/app/admin";
-      else if (role === "tentor") redirectPath = "/app/tentor";
-      else redirectPath = "/app/dashboard";
+      if (!returnsToContent) {
+        if (role === "admin") redirectPath = "/app/admin";
+        else if (role === "tentor") redirectPath = "/app/tentor";
+        else redirectPath = "/app/dashboard";
+      }
 
       router.push(redirectPath);
       router.refresh();

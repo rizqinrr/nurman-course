@@ -83,6 +83,24 @@ Verifikasi lokal tidak membuktikan DB live, auth staging, browser, deployment, a
 
 ## Catatan sesi
 
+### 2026-09-18 — MTR-10 frontend reader selesai lokal
+
+**Request:** lanjut langsung ke MTR berikutnya tanpa menunggu runtime/DB gate; browser test kemudian dibatalkan user.
+
+**Dikerjakan:**
+
+- `/materi`: katalog Course dengan search, category/level/access filter, pagination, loading/error/empty state, dan badge akses.
+- `/kelas/[slug]`: detail Course dan outline terurut; semua lesson mengarah ke reader untuk state public/login/purchase.
+- `/materi/[slug]`: reader body hasil guarded API, breadcrumb, heading hierarchy, daftar isi, prev/next, login-required, purchase-required, dan update progress.
+- `/app/materi`: library private/no-cache dengan progress ringkas; link ditambahkan ke navigasi wali dan route diizinkan untuk tentor login.
+- Login return memakai `next` relative-path tervalidasi anti-open-redirect; `redirectedFrom` lama tetap didukung.
+- `frontend/lib/api.ts`: GET sensitif (`/api/me`, `/api/users/me`, `/api/reader`, `/api/programs`) tidak disimpan pada cache global; error menjaga HTTP status dan code.
+- Markdown memakai `react-markdown`, `remark-gfm`, dan `rehype-sanitize`; raw HTML tidak diaktifkan dan gambar Markdown diblok.
+
+**Verifikasi:** frontend TypeScript, ESLint, dan production build berhasil; route `/materi`, `/materi/[slug]`, `/kelas/[slug]`, dan `/app/materi` terdeteksi pada output build. Impeccable detector tidak menemukan pelanggaran mekanis. Backend source/test typecheck tetap lulus setelah integrasi contract.
+
+**Residual dan batas bukti:** browser/runtime QA tidak dijalankan atas instruksi user. DB/RLS/auth live, migration deploy, backend runtime suite, entitlement issuance, dan purchase flow belum diverifikasi. `npm audit --omit=dev` frontend masih melaporkan satu moderate advisory transitive `baseline-browser-mapping`.
+
 ### 2026-09-18 — MTR-5 sampai MTR-9 selesai lokal dengan residual verifikasi
 
 **Request:** lanjut MTR-5–MTR-9.

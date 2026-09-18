@@ -124,16 +124,16 @@
 - [x] **MTR-9.4** Lint, source/test typecheck, Prisma format/validate/generate berhasil; backend suite/artifact/build belum dijalankan.
 - [x] **MTR-9.5** QA DB terisolasi, RLS/Data API, dan live auth belum dijalankan karena tidak ada izin DB/live.
 
-### MTR-10 — Halaman public reader (setelah backend gate)
+### MTR-10 — Halaman public reader
 
-- [ ] **MTR-10.1** `/materi`: katalog search/filter/pagination, badge `Publik|Login gratis|Berbayar`, loading/error/empty state, mobile-first.
-- [ ] **MTR-10.2** `/kelas/[slug]`: deskripsi Course, outline Section/Lesson, status akses, CTA baca/login/beli.
-- [ ] **MTR-10.3** `/materi/[slug]`: reader Markdown aman, hierarchy baca jelas, daftar isi, prev/next, state login-required dan purchase-required.
-- [ ] **MTR-10.4** `/login?next=...`: kembali ke lesson tujuan setelah login tanpa open redirect.
-- [ ] **MTR-10.5** `/app/materi`: library course yang dapat diakses dan progress membaca.
-- [ ] **MTR-10.6** Sanitasi Markdown dengan renderer yang disetujui; tidak memakai raw HTML tanpa sanitizer.
+- [x] **MTR-10.1** `/materi`: katalog search/filter/pagination, badge `Publik|Login gratis|Berbayar`, loading/error/empty state, mobile-first.
+- [x] **MTR-10.2** `/kelas/[slug]`: deskripsi Course, outline Section/Lesson, status akses, CTA baca/login/beli.
+- [x] **MTR-10.3** `/materi/[slug]`: reader Markdown aman, hierarchy baca jelas, daftar isi, prev/next, state login-required dan purchase-required.
+- [x] **MTR-10.4** `/login?next=...`: kembali ke lesson tujuan setelah login dengan validasi relative-path anti-open-redirect; `redirectedFrom` lama tetap kompatibel.
+- [x] **MTR-10.5** `/app/materi`: library course yang dapat diakses dan progress membaca.
+- [x] **MTR-10.6** Markdown dirender dengan `react-markdown` + `remark-gfm` + `rehype-sanitize`, `skipHtml`, dan URL transform aman; raw HTML tidak diaktifkan.
 
-**Acceptance:** pengalaman baca responsif, keyboard accessible, body tidak pernah berasal dari payload yang tidak lolos guard backend.
+**Acceptance:** selesai lokal 2026-09-18; responsive/browser QA tidak dijalankan atas instruksi user. Body hanya berasal dari reader API yang lolos guard backend.
 
 ### MTR-11 — Authoring UI (setelah reader contract stabil)
 
@@ -155,7 +155,7 @@
 - [x] **C1 Contract approved:** MTR-0 selesai 2026-09-18 dan MTR-1 kontrak API/threat model selesai 2026-09-18; MTR-3+ dikerjakan setelah ini.
 - [x] **C2 Backend foundation:** MTR-2–MTR-4 selesai lokal 2026-09-18; migration tetap offline dan route publik belum dipasang.
 - [x] **C3 Read API:** MTR-5–MTR-9 selesai lokal dengan residual runtime/DB QA dan legacy cutover yang tercatat.
-- [ ] **C4 Frontend reader:** MTR-10 selesai setelah backend dan release gate.
+- [x] **C4 Frontend reader:** MTR-10 selesai lokal; browser QA dan live backend gate tetap residual.
 - [ ] **C5 Authoring/purchase:** MTR-11 dan MTR-12 dikerjakan sebagai fase terpisah, bukan satu batch besar.
 
 ---

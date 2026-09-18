@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Receipt,
   ClipboardList,
+  BookOpen,
   User
 } from "lucide-react";
 
@@ -47,6 +48,11 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
       label: "Program",
       href: "/app/program",
       icon: GraduationCap,
+    },
+    {
+      label: "Materi",
+      href: "/app/materi",
+      icon: BookOpen,
     },
     {
       label: "Jadwal",

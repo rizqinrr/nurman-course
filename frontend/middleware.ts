@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from './lib/supabase/middleware';
+import { isContentReturnPath, safeReturnPath } from './lib/navigation';
 
 export async function middleware(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request);
@@ -11,16 +12,14 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
-      url.searchParams.set('redirectedFrom', path);
+      url.searchParams.set('redirectedFrom', `${path}${request.nextUrl.search}`);
       return NextResponse.redirect(url);
     }
 
     const role = user.user_metadata?.role || 'wali';
 
     if (role !== 'admin') {
-      // 1. User biasa ber-role 'wali'
       if (role === 'wali') {
-        // Wali dilarang mengakses /app (portal selector), /app/admin/*, dan /app/tentor/*
         if (path === '/app' || path.startsWith('/app/admin') || path.startsWith('/app/tentor')) {
           const url = request.nextUrl.clone();
           url.pathname = '/app/dashboard';
@@ -28,11 +27,8 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // 2. User biasa ber-role 'tentor'
       if (role === 'tentor') {
-        // Tentor hanya boleh mengakses /app/tentor/*
-        // Dilarang mengakses /app (portal selector), /app/admin/*, dan halaman wali
-        const isTentorPath = path.startsWith('/app/tentor');
+        const isTentorPath = path.startsWith('/app/tentor') || path === '/app/materi';
         if (!isTentorPath) {
           const url = request.nextUrl.clone();
           url.pathname = '/app/tentor/dashboard';
@@ -44,6 +40,10 @@ export async function middleware(request: NextRequest) {
 
   // Redirect jika sudah login tapi coba buka /login
   if (path === '/login' && user) {
+    const requestedReturn = safeReturnPath(request.nextUrl.searchParams.get('next') ?? request.nextUrl.searchParams.get('redirectedFrom'));
+    if (requestedReturn && isContentReturnPath(requestedReturn)) {
+      return NextResponse.redirect(new URL(requestedReturn, request.url));
+    }
     const role = user.user_metadata?.role || 'wali';
     let redirectPath = '/app/dashboard';
     if (role === 'admin') {

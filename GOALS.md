@@ -59,7 +59,9 @@ Selesai lokal:
 - backfill content dry-run, fail-closed, atomic, dan idempotent;
 - kontrak API katalog/reader dan identity boundary MTR-1/MTR-2;
 - schema/migration Entitlement offline dengan multi-source;
-- optional-auth dan centralized Lesson access policy MTR-4.
+- optional-auth dan centralized Lesson access policy MTR-4;
+- API katalog, reader, library, progress, dan lockdown Data API offline MTR-5–MTR-9;
+- frontend katalog `/materi`, detail `/kelas/[slug]`, reader `/materi/[slug]`, dan library `/app/materi` MTR-10.
 
 Belum live atau belum disetujui:
 
@@ -67,8 +69,8 @@ Belum live atau belum disetujui:
 - hitungan data content live;
 - keputusan item ambigu dan `MaterialItem.sessionId`;
 - frontend cutover/single writer production;
-- endpoint publik content yang aman;
-- entitlement/member/reading progress;
+- browser QA dan verifikasi runtime/live untuk katalog-reader;
+- entitlement issuance/purchase flow;
 - smoke login tiga role dan deployment.
 
 ## Keputusan materi/blog (MTR-0)

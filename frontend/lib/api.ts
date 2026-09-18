@@ -46,8 +46,27 @@ interface CacheEntry {
   timestamp: number;
 }
 
+export class ApiFetchError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+    readonly payload?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiFetchError";
+  }
+}
+
 const getCache = new Map<string, CacheEntry>();
-const CACHE_TTL = 60 * 60 * 1000; // 1 Jam dalam milidetik
+const CACHE_TTL = 60 * 60 * 1000;
+
+function isSensitiveGet(path: string): boolean {
+  return path.startsWith("/api/me")
+    || path.startsWith("/api/users/me")
+    || path.startsWith("/api/reader")
+    || path.startsWith("/api/programs");
+}
 
 function invalidateCache(mutatedPath: string) {
   const cleanMutated = mutatedPath.toLowerCase();
@@ -100,8 +119,9 @@ export async function apiFetch<T = unknown>(
   const { bypassCache, ...fetchOptions } = options;
   const method = fetchOptions.method || 'GET';
   const isGet = method.toUpperCase() === 'GET';
+  const canCache = isGet && !bypassCache && !isSensitiveGet(path);
 
-  if (isGet && !bypassCache) {
+  if (canCache) {
     const cached = getCache.get(path);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
@@ -166,20 +186,25 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
+    const errorBody = await response.json().catch(() => ({})) as {
+      error?: string | {
+        code?: string;
+        message?: string;
+        details?: { fieldErrors?: Record<string, string[]> };
+      };
+    };
     let message = 'Gagal memproses request.';
+    let code: string | undefined;
     if (typeof errorBody.error === 'string') {
       message = errorBody.error;
-    } else if (errorBody.error?.message) {
-      message = errorBody.error.message;
-      if (errorBody.error.code === 'VALIDATION_ERROR' && errorBody.error.details?.fieldErrors) {
-        const fieldErrors = errorBody.error.details.fieldErrors;
-        const detailMsgs = Object.entries(fieldErrors)
-          .map(([field, errs]) => `${field}: ${(errs as string[]).join(', ')}`)
+    } else if (errorBody.error) {
+      code = errorBody.error.code;
+      if (errorBody.error.message) message = errorBody.error.message;
+      if (code === 'VALIDATION_ERROR' && errorBody.error.details?.fieldErrors) {
+        const detailMsgs = Object.entries(errorBody.error.details.fieldErrors)
+          .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
           .join('; ');
-        if (detailMsgs) {
-          message = `${message} (${detailMsgs})`;
-        }
+        if (detailMsgs) message = `${message} (${detailMsgs})`;
       }
     } else {
       message = `HTTP error! status: ${response.status}`;
@@ -197,12 +222,12 @@ export async function apiFetch<T = unknown>(
       });
       notifyLogListeners();
     }
-    throw new Error(message);
+    throw new ApiFetchError(message, response.status, code, errorBody);
   }
 
   const data = await response.json();
 
-  if (isGet && !bypassCache) {
+  if (canCache) {
     getCache.set(path, { data, timestamp: Date.now() });
   }
 
@@ -222,6 +247,9 @@ export async function apiFetch<T = unknown>(
 
   return data as T;
 }
+
+export const apiFetchPrivate = <T = unknown>(path: string, options: RequestInit = {}) =>
+  apiFetch<T>(path, { ...options, bypassCache: true });
 
 export function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
   const searchParams = new URLSearchParams();
