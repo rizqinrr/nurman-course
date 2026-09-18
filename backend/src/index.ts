@@ -9,6 +9,9 @@ import { publicProgramsRouter, adminProgramsRouter } from './routes/content/prog
 import { roadmapStepsRouter } from './routes/content/roadmap';
 import { materialsRouter } from './routes/content/materials';
 import { authoringRouter } from './routes/authoring/content-authoring';
+import { catalogRouter } from './routes/catalog/catalog';
+import { readerRouter } from './routes/reader/reader';
+import { meRouter } from './routes/me/membership';
 import {
   createEnrollmentSchema,
   createInvoiceSchema,
@@ -931,6 +934,9 @@ app.use(adminProgramsRouter);
 app.use(roadmapStepsRouter);
 app.use(materialsRouter);
 app.use(authoringRouter);
+app.use(catalogRouter);
+app.use(readerRouter);
+app.use(meRouter);
 
 // 13. Admin-Only Users Management
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res) => {

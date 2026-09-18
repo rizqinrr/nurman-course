@@ -83,7 +83,39 @@ Verifikasi lokal tidak membuktikan DB live, auth staging, browser, deployment, a
 
 ## Catatan sesi
 
-### 2026-09-18 — MTR-3 dan MTR-4 selesai lokal
+### 2026-09-18 — MTR-5 sampai MTR-9 selesai lokal dengan residual verifikasi
+
+**Request:** lanjut MTR-5–MTR-9.
+
+**Dikerjakan:**
+
+- `backend/src/routes/catalog/`: katalog Course published/active dengan pagination bounded, search/filter, ordering stabil, DTO metadata allowlist, author publik minimum, count published lesson, dan outline tanpa body.
+- `backend/src/routes/reader/`: reader lesson dengan optional-auth, access policy terpusat, 401/403/404 contract, body hanya setelah access allowed, breadcrumb, prev/next yang hanya menunjuk lesson accessible, dan cache public wajib revalidate/private no-store.
+- Review adversarial memperbaiki navigasi paywall, tier-null library mismatch, entitlement history exposure, legacy Data API grants, dan explicit legacy DTO.
+- `backend/prisma/schema.prisma` + `nc5_lesson_progress`: `LessonProgress` terpisah dari progress Murid/RoadmapStep, unique User-Lesson, dan index user/update.
+- `backend/src/routes/me/membership.ts`: entitlement milik user sendiri, library Course yang free/entitled aktif, progress ringkas, dan update progress idempotent setelah access policy.
+- `backend/src/routes/content/programs-public.ts`: compatibility guard legacy `/api/programs*`; anonymous tidak menerima `RoadmapStep.bodyText`, user aktif hanya menerima body untuk Program dengan enrollment aktif/role admin; DTO legacy eksplisit.
+- `backend/prisma/migrations/nc6_content_data_api_lockdown/migration.sql`: RLS + revoke `PUBLIC`/`anon`/`authenticated` untuk content legacy (`programs`, `roadmap_steps`, `material_items`) dan content baru (`courses`, `sections`, `lessons`), entitlement, dan progress; tetap offline.
+- `packages/shared/src/index.ts`: author, entitlement, library, progress DTO dan schema progress.
+- `frontend/.env.example` diaudit: service-role tidak memakai prefix public; tidak diubah.
+
+**Verifikasi:**
+
+- `npm run typecheck --workspace=backend` — exit 0.
+- `npm run typecheck:test --workspace=backend` — exit 0.
+- `npm run lint --workspace=backend` — exit 0; 14 warning `any` baseline, 0 error.
+- Prisma format/validate/generate — berhasil dengan URL dummy lokal.
+- `git diff --check` — lulus; warning LF→CRLF hanya normalisasi line-ending.
+- Static audit route/DTO menemukan `bodyText` hanya di reader success dan legacy/admin protected paths.
+
+**Residual dan batas bukti:**
+
+- Backend runtime suite, artifact test, dan build tidak dijalankan pada sesi ini; contract runtime MTR-9 belum terbukti penuh.
+- Migration `nc5`/`nc6`, migration content sebelumnya, RLS, grants, Data API, DB terisolasi, auth live, dan deployment belum dijalankan.
+- Legacy `/api/programs*` masih mempertahankan body untuk enrolled wali/tentor/admin demi compatibility; release gate tetap memerlukan frontend cutover sebelum surface itu dapat dihapus total.
+- Tidak ada frontend reader, browser QA, purchase writer, entitlement issuance, atau commit/push.
+
+
 
 **Request:** lanjut MTR-3 dan MTR-4 memakai todo, kemudian push.
 

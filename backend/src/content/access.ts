@@ -3,18 +3,31 @@ import type { AuthenticatedUser } from '../middleware/auth';
 
 export type ContentAccessDecision =
   | { kind: 'not_found' }
-  | { kind: 'allowed'; lesson: LessonWithContext; cache: 'public' | 'private' }
+  | { kind: 'allowed'; lesson: LessonAccessContext; cache: 'public' | 'private' }
   | { kind: 'login_required'; courseSlug: string; courseTitle: string; price: number | null }
   | { kind: 'purchase_required'; courseSlug: string; courseTitle: string; price: number | null };
 
-type LessonWithContext = NonNullable<Awaited<ReturnType<typeof findLesson>>>;
+export type LessonAccessContext = NonNullable<Awaited<ReturnType<typeof findLessonAccessContext>>>;
 
-async function findLesson(slug: string) {
+async function findLessonAccessContext(slug: string) {
   return prisma.lesson.findUnique({
     where: { slug },
-    include: {
+    select: {
+      id: true,
+      sectionId: true,
+      slug: true,
+      title: true,
+      summary: true,
+      bodyText: true,
+      visibility: true,
+      status: true,
+      publishedAt: true,
+      order: true,
+      estimatedMinutes: true,
       section: {
-        include: {
+        select: {
+          title: true,
+          order: true,
           course: {
             select: {
               id: true,
@@ -38,7 +51,7 @@ export async function resolveLessonAccess(
   user: AuthenticatedUser | null,
   now = new Date(),
 ): Promise<ContentAccessDecision> {
-  const lesson = await findLesson(slug);
+  const lesson = await findLessonAccessContext(slug);
   if (
     !lesson
     || lesson.status !== 'published'
@@ -54,7 +67,7 @@ export async function resolveLessonAccess(
 
   const course = lesson.section.course;
   if (lesson.visibility === 'public') {
-    return { kind: 'allowed', lesson, cache: 'public' };
+    return { kind: 'allowed', lesson, cache: user ? 'private' : 'public' };
   }
 
   if (!user) {

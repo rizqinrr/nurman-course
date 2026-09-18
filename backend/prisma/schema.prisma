@@ -39,20 +39,21 @@ enum EntitlementSource {
 }
 
 model User {
-  id              String        @id @default(uuid())
-  role            String
-  name            String
-  phone           String        @unique
-  email           String?       @unique
-  createdAt       DateTime      @default(now()) @map("created_at")
-  active          Boolean       @default(true)
-  address         String?
-  photoPath       String?       @map("photo_path")
-  murids          Murid[]       @relation("WaliToMurids")
-  sessions        Session[]     @relation("TentorToSessions")
-  enrollments     Enrollment[]  @relation("TentorToEnrollments")
-  authoredCourses Course[]      @relation("CourseAuthor")
-  entitlements    Entitlement[]
+  id               String           @id @default(uuid())
+  role             String
+  name             String
+  phone            String           @unique
+  email            String?          @unique
+  createdAt        DateTime         @default(now()) @map("created_at")
+  active           Boolean          @default(true)
+  address          String?
+  photoPath        String?          @map("photo_path")
+  murids           Murid[]          @relation("WaliToMurids")
+  sessions         Session[]        @relation("TentorToSessions")
+  enrollments      Enrollment[]     @relation("TentorToEnrollments")
+  authoredCourses  Course[]         @relation("CourseAuthor")
+  entitlements     Entitlement[]
+  lessonProgresses LessonProgress[]
 
   @@map("users")
 }
@@ -272,7 +273,22 @@ model Course {
   entitlements Entitlement[]
 
   @@index([authorId, status])
+  @@index([active, status, publishedAt])
   @@map("courses")
+}
+
+model LessonProgress {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  lessonId  String   @map("lesson_id")
+  completed Boolean  @default(false)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId, updatedAt])
+  @@map("lesson_progresses")
 }
 
 model Entitlement {
@@ -329,8 +345,10 @@ model Lesson {
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
   section              Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  progresses           LessonProgress[]
 
   @@unique([sectionId, order])
   @@index([sectionId])
+  @@index([status, publishedAt])
   @@map("lessons")
 }

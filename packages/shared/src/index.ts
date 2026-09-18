@@ -295,6 +295,10 @@ export type CatalogCoursesQuery = z.infer<typeof catalogCoursesQuerySchema>;
 
 export type ContentAccessRequirement = "public" | "login" | "purchase";
 
+export interface CatalogAuthorDto {
+  name: string;
+}
+
 export interface CatalogCourseDto {
   slug: string;
   title: string;
@@ -303,6 +307,7 @@ export interface CatalogCourseDto {
   category: string | null;
   accessTier: CourseAccessTier | null;
   price: number | null;
+  author: CatalogAuthorDto | null;
   lessonCount: number;
 }
 
@@ -357,6 +362,34 @@ export interface ReaderAccessDeniedDto {
 export type ReaderResponse =
   | { data: ReaderLessonDto }
   | { error: ReaderAccessDeniedDto };
+
+export interface EntitlementDto {
+  courseSlug: string;
+  courseTitle: string;
+  source: EntitlementSource;
+  expiresAt: string | null;
+  active: boolean;
+}
+
+export interface CourseReadingProgressDto {
+  completedLessons: number;
+  totalLessons: number;
+  percentage: number;
+}
+
+export interface LibraryCourseDto extends CatalogCourseDto {
+  progress: CourseReadingProgressDto;
+}
+
+export const updateLessonProgressSchema = z.object({
+  completed: z.boolean(),
+});
+
+export interface LessonProgressDto {
+  lessonSlug: string;
+  completed: boolean;
+  updatedAt: string;
+}
 
 // --- Zod Input Validation Schemas ---
 

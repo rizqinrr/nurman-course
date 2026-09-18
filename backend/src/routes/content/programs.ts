@@ -2,46 +2,10 @@ import express from 'express';
 import { createProgramSchema, updateProgramSchema } from '@nurman-course/shared';
 import { prisma } from '../../lib/prisma';
 import { requireAdmin, requireAuth } from '../../middleware/auth';
+import { publicProgramsRouter } from './programs-public';
 
-export const publicProgramsRouter = express.Router();
+export { publicProgramsRouter };
 export const adminProgramsRouter = express.Router();
-publicProgramsRouter.get('/api/programs', async (req, res) => {
-  try {
-    const programs = await prisma.program.findMany({
-      where: { active: true },
-      include: {
-        roadmapSteps: {
-          orderBy: { order: 'asc' }
-        }
-      }
-    });
-    res.json({ programs });
-  } catch (error) {
-    console.error('Error fetching programs:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-publicProgramsRouter.get('/api/programs/:id', async (req, res) => {
-  try {
-    const program = await prisma.program.findUnique({
-      where: { id: req.params.id },
-      include: {
-        roadmapSteps: {
-          orderBy: { order: 'asc' }
-        }
-      }
-    });
-    if (!program) {
-      res.status(404).json({ error: 'Program not found' });
-      return;
-    }
-    res.json({ program });
-  } catch (error) {
-    console.error('Error fetching program detail:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 adminProgramsRouter.get('/api/admin/programs', requireAuth, requireAdmin, async (req, res) => {
   try {
