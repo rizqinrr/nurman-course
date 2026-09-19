@@ -1,107 +1,30 @@
 "use client";
 
-import {
-  BarChart3,
-  CalendarClock,
-  MessagesSquare,
-  UserCheck,
-  type LucideIcon,
-} from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
-import Reveal from "@/components/course/Reveal";
+import { BarChart3, CalendarClock, MessagesSquare, UserCheck, type LucideIcon } from "lucide-react";
 import { aboutPoints } from "@/data/landing";
 
-const ICONS: Record<string, LucideIcon> = {
-  chart: BarChart3,
-  user: UserCheck,
-  calendar: CalendarClock,
-  message: MessagesSquare,
-};
+const icons: Record<string, LucideIcon> = { chart: BarChart3, user: UserCheck, calendar: CalendarClock, message: MessagesSquare };
 
 export default function LandingAbout() {
-  const reduceMotion = useReducedMotion();
-
   return (
-    <section
-      id="tentang"
-      className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 sm:py-20 animate-fade-in"
-      aria-label="Tentang Nurman Course"
-    >
-      <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14">
-        <Reveal>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-primary">
-              Tentang Kami
-            </p>
-            <h2 className="mt-2 font-playfair text-3xl font-normal tracking-tight text-app-text sm:text-4xl">
-              Les privat yang dekat dengan keluarga
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-app-text-mid sm:text-lg">
-              Nurman Course hadir untuk menemani anak belajar dengan pendekatan
-              personal, bukan kelas ramai. Pendampingan yang menyesuaikan
-              kecepatan dan kebutuhan tiap siswa. Orang tua tetap terhubung
-              lewat laporan progres berkala.
-            </p>
-
-            <div className="mt-6 inline-flex items-center gap-2 rounded-[6px] border border-app-border bg-app-white px-4 py-2 text-sm font-semibold text-app-primary shadow-sm">
-              <MessagesSquare size={16} strokeWidth={2.25} aria-hidden="true" />
-              Online &amp; offline, di rumah tentor atau siswa
-            </div>
-
-            <div className="mt-4">
-              <motion.a
-                href="https://discord.gg/ydZx8h5Uj"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-[6px] border border-app-border bg-app-white px-5 py-2.5 text-sm font-semibold text-[#5865F2] shadow-sm hover:bg-app-surface transition-colors"
-                whileHover={reduceMotion ? undefined : { 
-                  scale: 1.03,
-                }}
-                transition={{ duration: 0.2 }}
-              >
-                <svg
-                  viewBox="0 0 127.14 96.36"
-                  className="h-5 w-5 fill-[#5865F2]"
-                  aria-hidden="true"
-                >
-                  <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,52.8,6.83,77.19,77.19,0,0,0,49.5,0,105.15,105.15,0,0,0,19.06,8.07C-3.41,41.51-1,74,10.26,90.68A105.73,105.73,0,0,0,41.9,96.36a77.7,77.7,0,0,0,8.77-14.28,68.7,68.7,0,0,1-13.85-6.65c1.17-.85,2.3-1.74,3.37-2.67a75.52,75.52,0,0,0,73.88,0c1.07.93,2.2,1.82,3.37,2.67a68.66,68.66,0,0,1-13.86,6.65,77.86,77.86,0,0,0,8.78,14.28,105.73,105.73,0,0,0,31.64-5.68C128.52,74,130.91,41.51,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
-                </svg>
-                Gabung Server Discord
-              </motion.a>
-            </div>
+    <section id="tentang" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-10" aria-label="Tentang Nurman Course">
+      <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
+        <div>
+          <h2 className="text-4xl font-black leading-[1.02] tracking-[-0.05em] text-[#14233a] sm:text-5xl">Pendampingan yang mengikuti kecepatan anak.</h2>
+          <p className="mt-5 max-w-xl text-base leading-7 text-[#627894]">Bukan kelas ramai. Setiap anak didampingi sesuai kebutuhan, dan orang tua tetap terhubung lewat laporan progres berkala.</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <span className="inline-flex items-center gap-2 rounded-2xl border border-[#c4d3e3] bg-white/70 px-4 py-3 text-sm font-bold text-[#355276]"><MessagesSquare size={17} className="text-[#4a70a9]" /> Online &amp; offline</span>
+            <span className="inline-flex items-center gap-2 rounded-2xl border border-[#c4d3e3] bg-white/70 px-4 py-3 text-sm font-bold text-[#355276]"><CalendarClock size={17} className="text-[#4a70a9]" /> Jadwal fleksibel</span>
           </div>
-        </Reveal>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-          {aboutPoints.map((point, index) => {
-            const Icon = ICONS[point.icon] ?? UserCheck;
+        </div>
+        <div className="divide-y divide-[#c4d3e3] border-y border-[#c4d3e3]">
+          {aboutPoints.map((point) => {
+            const Icon = icons[point.icon] ?? UserCheck;
             return (
-              <motion.div
-                key={point.id}
-                initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.35 }}
-                transition={{
-                  duration: 0.45,
-                  ease: "easeOut",
-                  delay: reduceMotion ? 0 : index * 0.08,
-                }}
-              >
-                <div className="rounded-2xl border border-app-border bg-app-surface p-5 shadow-sm h-full">
-                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-[6px] bg-app-primary/10">
-                    <Icon
-                      size={22}
-                      strokeWidth={2.25}
-                      className="text-app-primary"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <h3 className="font-playfair text-base font-normal text-app-text">{point.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-app-text-mid">
-                    {point.description}
-                  </p>
-                </div>
-              </motion.div>
+              <div key={point.id} className="flex gap-5 py-6">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#dbe6f3] text-[#2e4b7a]"><Icon size={21} /></span>
+                <div><h3 className="text-lg font-black tracking-[-0.03em] text-[#294568]">{point.title}</h3><p className="mt-1.5 text-sm leading-6 text-[#627894]">{point.description}</p></div>
+              </div>
             );
           })}
         </div>

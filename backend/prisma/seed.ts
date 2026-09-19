@@ -18,11 +18,12 @@ if (!databaseUrl.includes('localhost') && !databaseUrl.includes('127.0.0.1') && 
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
-type SeedUser = { role: 'admin' | 'tentor' | 'wali'; name: string; email: string; phone: string };
+type SeedUser = { role: 'admin' | 'tentor' | 'wali' | 'member'; name: string; email: string; phone: string };
 const seedUsers: SeedUser[] = [
   { role: 'admin', name: 'Admin Nurman Course', email: 'admin@nurmancourse.com', phone: '081234567890' },
   ...Array.from({ length: 4 }, (_, index) => ({ role: 'tentor' as const, name: `Tentor Demo ${index + 1}`, email: `tentor${index + 1}@nurmancourse.com`, phone: `08133344455${index}` })),
   ...Array.from({ length: 8 }, (_, index) => ({ role: 'wali' as const, name: `Wali Demo ${index + 1}`, email: `wali${index + 1}@nurmancourse.com`, phone: `0898765432${String(index).padStart(2, '0')}` })),
+  { role: 'member', name: 'Member Demo', email: 'member@nurmancourse.com', phone: '081111111111' },
 ];
 
 async function clearAuthUsers() {
@@ -102,7 +103,11 @@ async function buildUserMap() {
   for (const seed of seedUsers) {
     const id = await createAuthUser(seed);
     ids.set(seed.email, id);
-    await prisma.user.create({ data: { id, role: seed.role, name: seed.name, phone: seed.phone, email: seed.email, active: true } });
+    await prisma.user.upsert({
+      where: { id },
+      update: { role: seed.role, name: seed.name, phone: seed.phone, email: seed.email, active: true },
+      create: { id, role: seed.role, name: seed.name, phone: seed.phone, email: seed.email, active: true },
+    });
   }
   return ids;
 }

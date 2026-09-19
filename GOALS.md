@@ -27,9 +27,8 @@ Pertahankan selama proses:
 - frontend writer/reader dan cutover;
 - halaman publik `/kelas` dan `/materi/[slug]`;
 - signup member dan perubahan routing frontend;
-- payment gateway atau subscription;
-- redesign UI, browser QA, dan deploy;
-- migrasi/drop legacy tanpa verifikasi data dan izin DB.
+- browser QA dan verifikasi runtime/live untuk katalog-reader;
+- entitlement issuance/purchase flow;- migrasi/drop legacy tanpa verifikasi data dan izin DB.
 
 ## Keputusan arsitektur
 
@@ -64,17 +63,18 @@ Selesai lokal:
 - frontend katalog `/materi`, detail `/kelas/[slug]`, reader `/materi/[slug]`, dan library `/app/materi` MTR-10;
 - frontend katalog/reader/library backend-backed: `/materi`, `/kelas/[slug]`, `/materi/[slug]`, `/jalur-belajar`, `/app/materi`;
 - tracking login/read lesson dan total `Lesson.readCount` untuk development;
-- seed development besar dan migration tunggal offline.
+- seed development besar dan migration tunggal diterapkan serta diverifikasi pada remote development;
+- role `member` untuk signup publik email/password, verifikasi email, profile DB otomatis, dan content-only access.
 
 Belum live atau belum disetujui:
 
-- migration deploy dan backfill DB;
+- backfill dan keputusan mapping content legacy pada environment production;
 - hitungan data content live;
 - keputusan item ambigu dan `MaterialItem.sessionId`;
 - frontend cutover/single writer production;
 - browser QA dan verifikasi runtime/live untuk katalog-reader;
 - entitlement issuance/purchase flow;
-- smoke login tiga role dan deployment.
+- deployment production.
 
 ## Keputusan materi/blog (MTR-0)
 
@@ -83,6 +83,7 @@ Belum live atau belum disetujui:
 - Course `paid` memerlukan entitlement purchase aktif; purchase default lifetime (`expiresAt=null`).
 - Entitlement mendukung beberapa source melalui beberapa baris per User-Course-Source; revoke satu source tidak mencabut source lain yang masih aktif.
 - Fase awal memakai role existing `admin`, `tentor`, dan `wali`; role `member` serta signup ditunda.
+- **Update 2026-09-18:** role `member` diaktifkan untuk signup publik content-only; lihat entri PROGRESS untuk detail.
 - Reader memakai `401 LOGIN_REQUIRED`, `403 PURCHASE_REQUIRED`, dan `404` untuk konten draft/inactive/tidak ditemukan; response gagal tidak mengandung `bodyText`.
 - Namespace API: `/api/catalog/*`, `/api/reader/*`, dan `/api/me/*`.
 - MTR-0 selesai 2026-09-18; implementasi dimulai dari MTR-1 setelah kontrak API dan threat model siap.
@@ -130,10 +131,10 @@ Frontend baru dikerjakan setelah kontrak backend, migration, access guard, dan s
 
 - Lima akun Auth tidak memiliki profil aplikasi; rollout ditahan.
 - Parser JSON masih 100 KB; ukuran payload belum diputuskan.
-- Migration/backfill live memerlukan izin DB.
+- Backfill legacy dan mutasi database production tetap memerlukan izin DB.
 - Mapping `MaterialItem` session-only/ambiguous belum diverifikasi live.
 - Endpoint legacy `/api/programs*` masih berpotensi mengirim `bodyText`; NC-3.4 adalah release blocker.
-- Frontend masih memakai metadata role.
+- Frontend masih memakai metadata role untuk beberapa tampilan non-guard (mis. tampilan role di kartu profil); routing/guard portal sudah berpindah ke role DB.
 - Payload pembayaran UI/API masih mismatch (`paymentProof` vs `proofBase64`).
 
 ## Verification gate

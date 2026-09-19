@@ -1,3 +1,128 @@
+### 2026-09-19 — Redesign funnel course “Peta Bercabang”
+
+**Request:** redesign `/course/program` dan urutan halaman sesudahnya, mempertahankan warna utama landing, mobile-first, copy/data, route, serta CTA WhatsApp.
+
+**Keputusan:** funnel memakai komposisi “Peta Bercabang” yang memperluas dunia visual Peta Belajar landing. Empat langkah `Arah → Fokus → Level → Jadwal` selalu terlihat; data tetap berasal dari `materials.ts`, pricing tetap di `CourseConfigClient`, dan nomor WhatsApp tetap dari constants.
+
+**Dikerjakan:** shell `/course/*` memakai map ground landing; `CourseRouteHeader` menyediakan back action dan progress rail; program, materi, jenjang, calistung, detail level, chip, dan config memakai route node/panel baru; copy existing dipertahankan dan dikunci oleh test; `frontend/DESIGN.md`, sidecar Impeccable, dan surface brief ditambahkan.
+
+**Verifikasi:** course-funnel/auth tests 9/9 lulus; frontend typecheck dan lint lulus; production build menghasilkan artifacts semua route funnel; Impeccable detector kosong; browser QA 390px dan 1440px tanpa horizontal overflow dan console error. Review lanjutan memperbaiki duplikasi copy harga, label input nama, `aria-pressed`/`aria-current`, validasi kategori URL, penolakan level coming-soon, dan gate jumlah hari tepat sesuai frekuensi. URL config yang dimanipulasi ditolak dan CTA WhatsApp tetap disabled saat hari belum lengkap. Runtime API backend tidak diperlukan untuk funnel statis ini.
+
+**Residual dan batas bukti:** model tidak mendukung inspeksi piksel screenshot; visual diverifikasi melalui accessibility tree, geometry/overflow, computed state, screenshot capture, detector, dan browser interaction. Verifikasi lokal bukan bukti deployment production. Tidak ada DB mutation, commit, push, atau deploy.
+
+### 2026-09-19 — Redesign landing, auth toggle, dan akun development dummy
+
+**Request:** perbaiki landing page, gabungkan login/register tanpa reload, dan sediakan tombol akun dummy per role untuk development.
+
+**Keputusan:** redesign memakai dunia visual “Peta Belajar”; biru utama dan logo dipertahankan. Login/register menjadi satu surface `/login` dengan toggle state client-side; `/signup` tetap redirect kompatibilitas ke `/login?mode=register`. Quick-fill hanya dirender saat `NODE_ENV=development`, mengisi form saja, dan tidak melakukan login otomatis.
+
+**Dikerjakan:**
+
+- `frontend/app/landing/page.tsx` dan `frontend/components/landing/*`: landing dirombak menjadi peta rute kebutuhan → tutor → jadwal → WhatsApp, dengan responsive sections dan CTA funnel tetap.
+- `frontend/app/login/page.tsx`: auth surface baru, toggle Masuk/Daftar tanpa reload, signup member, login email/nomor WhatsApp, dan quick-fill Admin/Tentor/Wali/Member.
+- `frontend/app/signup/page.tsx`: kompatibilitas route diarahkan ke tab Daftar.
+- `frontend/app/globals.css`: material grid peta, auth grid, dan motion route dengan reduced-motion fallback.
+- `backend/prisma/seed.ts`: fixture development `member@nurmancourse.com` ditambahkan; seed tidak dijalankan.
+- `frontend/tests/auth-surface.test.mjs`: test kontrak toggle, production guard quick-fill, dan fixture Member.
+
+**Verifikasi:**
+
+- Auth surface test: **3/3 lulus**.
+- Frontend TypeScript check: lulus.
+- Frontend lint: lulus.
+- Frontend production build: lulus.
+- Browser QA lokal: landing desktop/mobile dan auth desktop/mobile termuat; toggle Daftar bekerja tanpa reload; quick-fill Member mengisi email/password; console tidak memiliki error/warning.
+- Impeccable detector: hanya advisory grid background yang disengaja sebagai material peta; tidak ada error mekanis.
+- Review lanjutan memperbaiki akses mode register untuk session aktif dan sign-out saat profile DB gagal.
+- Tidak ada migration, seed, mutasi DB remote, commit, push, atau deploy.
+
+**Residual dan batas bukti:**
+
+- Browser QA membuktikan layout dan interaksi lokal, bukan auth/login remote atau deployment production.
+- Akun Member fixture baru ada di source seed; seed belum dijalankan, sehingga tombol hanya akan login jika akun sudah tersedia di environment development.
+- Working tree memiliki perubahan lain yang sudah ada sebelum sesi ini; tidak direvert.
+
+### 2026-09-18 — Role `member` dan signup publik content-only
+
+**Request:** aktifkan role member.
+
+**Keputusan:** signup publik memakai email/password, email wajib diverifikasi, nomor WhatsApp opsional, dan member hanya memiliki akses content surface. Role operasional tetap `admin|tentor|wali`; member tidak boleh masuk portal operasional.
+
+**Dikerjakan:**
+
+- `packages/shared/src/index.ts`: `UserRole`/`userRoleSchema` menambahkan `member`; `User.phone` nullable; kontrak `memberSignupSchema` password minimal 8 karakter.
+- `backend/prisma/schema.prisma`: `User.phone` menjadi nullable.
+- `backend/prisma/migrations/nc7_member_phone_nullable/migration.sql`: nullable phone, CHECK role, dan trigger private `auth.users → public.users` yang membuat profile `member` hanya untuk signup tanpa role metadata. Function tidak executable oleh `PUBLIC`.
+- `backend/src/index.ts`: `POST /api/auth/signup` memakai Supabase `auth.signUp`, validasi shared schema, neutral duplicate response, dan tidak memakai service-role key.
+- `backend/src/middleware/auth.ts`: `requireOperational` membatasi endpoint operasional ke `admin|tentor|wali`; member tidak jatuh ke cabang admin.
+- `backend/src/middleware/http-security.ts`: signup mendapat rate limit auth.
+- `frontend/app/signup/page.tsx`: form signup dan state konfirmasi email.
+- `frontend/middleware.ts` dan `frontend/app/login/page.tsx`: routing memakai role dari `/api/users/me` (DB authority), bukan `user_metadata`; member diarahkan ke `/app/materi`.
+- `backend/prisma/seed.ts`: user seed memakai upsert agar kompatibel dengan trigger profile.
+
+**Verifikasi:**
+
+- Backend API: **188/188 lulus**; typecheck source/test lulus; lint 0 error dengan 14 warning `any` baseline.
+- Frontend typecheck, lint, dan production build lulus.
+- Prisma validate lulus dengan env dummy.
+- Remote `prisma migrate deploy` berhasil menerapkan `nc7_member_phone_nullable`.
+- Remote: role CHECK aktif, phone nullable, trigger member aktif, 13 Auth = 13 profile, 0 member/0 nullable phone existing, semua role valid.
+- Smoke signup Supabase berhasil dengan `session=false` (email verification wajib), trigger membuat profile `member`, lalu akun/profile smoke dibersihkan.
+- Tidak ada literal frontend/backend `user_metadata?.role` yang dipakai untuk routing/guard; metadata role tetap hanya dikirim oleh provisioning staff legacy dan fixture tests.
+
+**Residual dan batas bukti:**
+
+- Email delivery/klik verifikasi belum diuji di browser; hanya signup API/Supabase dan session absence diverifikasi.
+- Migration sudah diterapkan pada remote development, bukan production.
+- Tidak ada commit, push, atau deploy.
+
+### 2026-09-18 — Rebrand materi `Belajar.dev` menjadi `ncourse`
+
+**Request:** ganti brand `Belajar.dev` ke `ncourse` pada frontend/backend string literals dan data development.
+
+**Dikerjakan:**
+
+- `frontend/components/content/ContentShell.tsx`: wordmark header materi diubah menjadi `ncourse`.
+- Audit repository tidak menemukan literal `Belajar.dev`, `belajar.dev`, atau `belajar-dev` lain pada backend/shared maupun konfigurasi yang perlu diubah.
+- Audit remote development tidak menemukan nilai `belajar.dev` pada tabel seed; tidak ada migration atau update data remote yang diperlukan.
+
+**Verifikasi:**
+
+- Search source terarah untuk seluruh variasi wordmark lama: tidak ada hasil.
+- Perubahan hanya menyentuh UI content shell; route, domain, email, dan brand `Nurman Course` pada funnel/portal tidak diubah.
+
+**Residual dan batas bukti:**
+
+- Browser visual QA belum dijalankan.
+
+### 2026-09-18 — Remote reset, migration `0_init`, dan seed besar terverifikasi
+
+**Request:** reset schema remote development, terapkan migration tunggal, hapus Auth lama, jalankan seed besar, dan verifikasi hasilnya.
+
+**Dikerjakan:**
+
+- Koneksi Prisma pulih tanpa perubahan source; DNS lookup dan PostgreSQL SSL probe ke seluruh IP pooler berhasil, lalu `prisma migrate status` dapat terhubung ke session pooler port 5432.
+- State awal berisi 10 akun Auth, tabel aplikasi kosong, dan history `0_init` lama yang tidak mencerminkan migration hasil squash saat ini.
+- `npx prisma migrate reset --force --skip-seed --schema prisma/schema.prisma` berhasil mereset schema `public` dan menerapkan current `0_init` tepat sekali.
+- Seed pertama melewati timeout shell setelah membuat data parsial; seed dijalankan ulang dengan guard `NC_SEED_ALLOW_REMOTE_RESET=true`. Karena seed selalu membersihkan Auth dan database terlebih dahulu, rerun selesai dari state bersih.
+- 10 akun Auth lama dihapus dan diganti 13 akun seed development dengan password demo yang telah disepakati.
+
+**Verifikasi remote:**
+
+- Prisma migration: hanya `0_init`, `finished_at` terisi, tidak rollback, dan `prisma migrate status` melaporkan schema up to date.
+- Auth/aplikasi: 13 Auth user sama dengan 13 profile; seluruh email confirmed dan profile aktif, terdiri dari 1 admin, 4 tentor, dan 8 wali.
+- Smoke login Supabase berhasil untuk `admin@nurmancourse.com`, `tentor1@nurmancourse.com`, dan `wali1@nurmancourse.com`.
+- Fixture: 16 murid, 5 Program, 5 roadmap step, 5 material item, 5 session, 5 enrollment, 5 invoice, 2 payment account, 2 daily report, 5 progress report, 5 progress, 12 Course, 36 Section, 180 Lesson, 6 entitlement, dan 30 lesson progress.
+- `prepayments=0` dan `tracking_events=0` sesuai seed; tracking baru terisi oleh aktivitas runtime.
+- Keempat CHECK constraint domain tersedia. RLS aktif default-deny pada sembilan tabel content/tracking dan tidak ada grant tabel kepada `PUBLIC`, `anon`, atau `authenticated` pada tabel yang diverifikasi.
+
+**Residual dan batas bukti:**
+
+- Security advisor melaporkan sembilan tabel RLS aktif tanpa policy; ini sesuai desain default-deny karena akses melalui Express/Prisma. Operational tables masih tanpa RLS tetapi tidak memiliki grant Data API pada pemeriksaan ini.
+- Supabase Auth leaked-password protection masih disabled.
+- Password database dan service-role key yang pernah tampil harus dirotasi melalui Supabase Dashboard, lalu `backend/.env` diperbarui; rotasi belum dapat dilakukan melalui tool sesi ini.
+- Verifikasi membuktikan remote development database/Auth saat ini, bukan deployment production atau browser QA. Tidak ada commit, push, atau deploy.
+
 ### 2026-09-18 — MTR-14 backend-backed content cutover siap lokal
 
 **Request:** lanjut backend, siapkan seed besar, tracking user/login/read lesson, read count, dan pastikan halaman materi benar-benar siap memakai backend.

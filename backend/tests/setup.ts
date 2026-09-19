@@ -32,12 +32,14 @@ const boundary = vi.hoisted(() => {
     },
   });
   const stubs = {
-    getUser: stub('supabase.auth.getUser'),
+     getUser: stub('supabase.auth.getUser'),
+     signUp: stub('supabase.auth.signUp'),
     findUnique: stub('prisma.user.findUnique'),
     sessionFindMany: stub('prisma.session.findMany'),
     sessionFindUnique: stub('prisma.session.findUnique'),
     createUser: stub('supabase.admin.createUser'),
     prismaCreate: stub('prisma.user.create'),
+  prismaUpsert: stub('prisma.user.upsert'),
     connect: stub('prisma.$connect'),
     programFindMany: stub('prisma.program.findMany'),
     programFindUnique: stub('prisma.program.findUnique'),
@@ -75,7 +77,7 @@ const boundary = vi.hoisted(() => {
 });
 
 export const {
-  getUser, findUnique, sessionFindMany, sessionFindUnique, createUser, prismaCreate,
+  getUser, signUp, findUnique, sessionFindMany, sessionFindUnique, createUser, prismaCreate, prismaUpsert,
   programFindMany, programFindUnique, programCreate, programUpdate, programDelete, programCount,
   courseFindMany, lessonProgressFindMany,
   roadmapStepFindMany, roadmapStepFindFirst, roadmapStepFindUnique, roadmapStepCreate,
@@ -105,7 +107,7 @@ export const accountErrors = {
 vi.mock('dotenv', () => ({ default: { config: () => ({ parsed: {} }) } }));
 vi.mock('../src/lib/prisma', () => ({
   prisma: boundary.strict('prisma', {
-    user: boundary.strict('prisma.user', { findUnique, create: prismaCreate }),
+    user: boundary.strict('prisma.user', { findUnique, create: prismaCreate, upsert: prismaUpsert }),
     session: boundary.strict('prisma.session', {
       findMany: sessionFindMany,
       findUnique: sessionFindUnique,
@@ -161,7 +163,7 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: (_url: string, key: string) => {
     if (key === 'test-only-anon-key') {
       return boundary.strict('supabase', {
-        auth: boundary.strict('supabase.auth', { getUser }),
+        auth: boundary.strict('supabase.auth', { getUser, signUp }),
       });
     }
     if (key === 'test-only-service-key') {

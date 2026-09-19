@@ -1,8 +1,8 @@
 export interface User {
   id: string;
-  role: "admin" | "tentor" | "wali";
+  role: "admin" | "tentor" | "wali" | "member";
   name: string;
-  phone: string;
+  phone: string | null;
   email?: string;
   active?: boolean;
   address?: string | null;

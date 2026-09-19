@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { z } from 'zod';
 import { prisma } from './lib/prisma';
 import { supabaseAdmin } from './lib/supabase-admin';
-import { requireAuth, requireAdmin, validateAccountAccess, AuthenticatedRequest } from './middleware/auth';
+import { requireAuth, requireAdmin, requireOperational, validateAccountAccess, AuthenticatedRequest, supabase } from './middleware/auth';
 import { publicProgramsRouter, adminProgramsRouter } from './routes/content/programs';
 import { roadmapStepsRouter } from './routes/content/roadmap';
 import { materialsRouter } from './routes/content/materials';
@@ -32,7 +32,8 @@ import {
   updateTentorSessionSchema,
   submitPaymentSchema,
   createPrepaymentSchema,
-} from '@nurman-course/shared';
+  memberSignupSchema,
+ } from '@nurman-course/shared';
 
 dotenv.config();
 
@@ -61,6 +62,45 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date(),
     service: 'nurman-course-api'
   });
+});
+
+app.post('/api/auth/signup', async (req, res) => {
+  const parsed = memberSignupSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid signup data',
+        details: parsed.error.flatten(),
+      },
+    });
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      options: { data: { name: parsed.data.name } },
+    });
+    if (error || !data.user) {
+      const message = (error?.message ?? '').toLowerCase();
+      if (message.includes('already') || message.includes('registered') || message.includes('exists')) {
+        res.status(202).json({ message: 'Jika email valid, cek inbox untuk verifikasi.' });
+        return;
+      }
+      res.status(400).json({ error: { code: 'SIGNUP_FAILED', message: 'Signup gagal' } });
+      return;
+    }
+
+    res.status(201).json({
+      message: 'Jika email valid, cek inbox untuk verifikasi.',
+      confirmationRequired: !data.session,
+    });
+  } catch {
+    console.error('Member signup failed');
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+  }
 });
 
 // Auth Helper: Resolve phone number to email (Public)
@@ -121,7 +161,7 @@ app.get('/api/users/me', requireAuth, async (req: AuthenticatedRequest, res) => 
 app.use(publicProgramsRouter);
 
 // 4. Sessions (Terproteksi - per Role)
-app.get('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/sessions', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -172,7 +212,7 @@ app.get('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res) 
 });
 
 // 5. Daily Reports (Terproteksi - per Role)
-app.get('/api/me/daily-reports', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/daily-reports', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -232,7 +272,7 @@ app.get('/api/me/daily-reports', requireAuth, async (req: AuthenticatedRequest, 
   }
 });
 
-app.post('/api/daily-reports', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/daily-reports', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (user?.role !== 'tentor') {
@@ -307,7 +347,7 @@ app.post('/api/daily-reports', requireAuth, async (req: AuthenticatedRequest, re
 });
 
 // 6. Progress Reports (Terproteksi - per Role)
-app.get('/api/me/progress-reports', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/progress-reports', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -382,7 +422,7 @@ app.get('/api/me/progress-reports', requireAuth, async (req: AuthenticatedReques
   }
 });
 
-app.post('/api/progress-reports', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/progress-reports', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (user?.role !== 'tentor') {
@@ -437,7 +477,7 @@ app.post('/api/progress-reports', requireAuth, async (req: AuthenticatedRequest,
 });
 
 // 7. Enrollments (Terproteksi - per Role)
-app.get('/api/me/enrollments', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/enrollments', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -491,7 +531,7 @@ app.get('/api/me/enrollments', requireAuth, async (req: AuthenticatedRequest, re
 });
 
 // 8. Invoices (Terproteksi - per Role)
-app.get('/api/me/invoices', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/invoices', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -542,7 +582,7 @@ app.get('/api/me/invoices', requireAuth, async (req: AuthenticatedRequest, res) 
   }
 });
 
-app.post('/api/me/invoices/:id/payment', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/me/invoices/:id/payment', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   const parsed = submitPaymentSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -601,7 +641,7 @@ app.post('/api/me/invoices/:id/payment', requireAuth, async (req: AuthenticatedR
 });
 
 // 8b. Prepayments (Pembayaran mandiri/prabayar sebelum ada tagihan)
-app.get('/api/me/prepayments', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/prepayments', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -624,7 +664,7 @@ app.get('/api/me/prepayments', requireAuth, async (req: AuthenticatedRequest, re
   }
 });
 
-app.post('/api/me/prepayments', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/me/prepayments', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   const parsed = createPrepaymentSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -742,7 +782,7 @@ app.patch('/api/admin/prepayments/:id/status', requireAuth, requireAdmin, async 
   }
 });
 
-app.get('/api/me/notifications', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/notifications', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -824,7 +864,7 @@ app.get('/api/admin/dashboard', requireAuth, requireAdmin, async (req: Authentic
 });
 
 // 9. Progress (Roadmap step progress, Terproteksi - per Role)
-app.get('/api/me/progresses', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/progresses', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -2232,7 +2272,7 @@ app.delete('/api/admin/payment-accounts/:id', requireAuth, requireAdmin, async (
 });
 
 // 17.5 Tentor Sessions CRUD (Terproteksi - Tentor manual per enrollment)
-app.post('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/me/sessions', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user || user.role !== 'tentor') {
@@ -2319,7 +2359,7 @@ app.post('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res)
   }
 });
 
-app.patch('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.patch('/api/me/sessions/:id', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user || user.role !== 'tentor') {
@@ -2413,7 +2453,7 @@ app.patch('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest,
   }
 });
 
-app.delete('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.delete('/api/me/sessions/:id', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user || user.role !== 'tentor') {
@@ -2651,7 +2691,7 @@ app.delete('/api/admin/sessions/:id', requireAuth, requireAdmin, async (req: Aut
 });
 
 // 18. Public Payment Accounts (terproteksi auth - dipakai wali)
-app.get('/api/payment-accounts', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/payment-accounts', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const accounts = await prisma.paymentAccount.findMany({
       where: { isActive: true },

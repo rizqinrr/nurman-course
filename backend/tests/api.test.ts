@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  getUser, findUnique, createUser, prismaCreate, openTestServer, authLookup, accountErrors,
+  getUser, signUp, findUnique, createUser, prismaCreate, openTestServer, authLookup, accountErrors,
   sessionFindMany, sessionFindUnique,
 } from './setup';
 import { app } from '../src/index';
@@ -111,6 +111,15 @@ describe('GET /api/users/me', () => {
     expectProfileLookups(dbUser.id);
   });
 
+  it('returns a member profile with nullable phone from the DB-backed role', async () => {
+    const dbUser = { ...profileFixture(), role: 'member', phone: null, murids: [] };
+    profileReads(dbUser, 'member');
+    const response = await getProfile();
+    expect(response.status).toBe(200);
+    expect(response.body.user).toMatchObject({ role: 'member', phone: null, murids: [] });
+    expectProfileLookups(dbUser.id);
+  });
+
   it('returns PROFILE_NOT_FOUND in middleware without looking up a matching email', async () => {
     getUser.mockResolvedValueOnce({
       data: { user: { id: 'unmapped-user', email: 'matching@example.test', user_metadata: { role: 'admin' } } },
@@ -131,7 +140,7 @@ describe('GET /api/users/me', () => {
     expectProfileLookups();
   });
 
-  it.each(['admin', 'tentor', 'wali'])('refuses a %s profile that becomes inactive on the second read', async (role) => {
+  it.each(['admin', 'tentor', 'wali', 'member'])('refuses a %s profile that becomes inactive on the second read', async (role) => {
     profileReads({ ...profileFixture(), role, active: false }, role);
     const response = await getProfile();
     expect(response.status).toBe(403);
@@ -171,8 +180,61 @@ describe('GET /api/users/me', () => {
   });
 });
 
+describe('POST /api/auth/signup', () => {
+  it('creates a member via Supabase signUp without service-role escalation', async () => {
+    signUp.mockResolvedValueOnce({
+      data: { user: { id: 'member-1', email: 'new-member@example.test' }, session: null },
+      error: null,
+    });
+    const response = await request(await openTestServer(app)).post('/api/auth/signup')
+      .send({ name: 'New Member', email: 'new-member@example.test', password: 'strongpassword1' })
+      .timeout({ response: 1000, deadline: 3000 });
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      message: 'Jika email valid, cek inbox untuk verifikasi.',
+      confirmationRequired: true,
+    });
+    expect(signUp).toHaveBeenCalledExactlyOnceWith({
+      email: 'new-member@example.test',
+      password: 'strongpassword1',
+      options: { data: { name: 'New Member' } },
+    });
+    expect(createUser).not.toHaveBeenCalled();
+    expect(prismaCreate).not.toHaveBeenCalled();
+  });
+
+  it('returns the same neutral response for a duplicate email', async () => {
+    signUp.mockResolvedValueOnce({ data: { user: null, session: null }, error: { message: 'User already registered' } });
+    const response = await request(await openTestServer(app)).post('/api/auth/signup')
+      .send({ name: 'Dup', email: 'dup@example.test', password: 'strongpassword1' })
+      .timeout({ response: 1000, deadline: 3000 });
+    expect(response.status).toBe(202);
+    expect(response.body).toEqual({ message: 'Jika email valid, cek inbox untuk verifikasi.' });
+  });
+
+  it('rejects a short password before calling Supabase', async () => {
+    const response = await request(await openTestServer(app)).post('/api/auth/signup')
+      .send({ name: 'Short', email: 'short@example.test', password: 'short' })
+      .timeout({ response: 1000, deadline: 3000 });
+    expect(response.status).toBe(400);
+    expect(signUp).not.toHaveBeenCalled();
+  });
+});
+
+describe('member operational isolation', () => {
+  it('rejects a member before reading operational sessions', async () => {
+    authenticate('member-reader', 'member');
+    const response = await request(await openTestServer(app)).get('/api/me/sessions')
+      .set('Authorization', 'Bearer member-token')
+      .timeout({ response: 1000, deadline: 3000 });
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: { code: 'FORBIDDEN', message: 'Access is not allowed for this role' } });
+    expect(sessionFindMany).not.toHaveBeenCalled();
+  });
+});
+
 describe('POST /api/admin/users', () => {
-  it.each(['wali', 'tentor'])(
+  it.each(['wali', 'tentor', 'member'])(
     'rejects a valid body from DB role %s without any mutations', async (role) => {
       authenticate(`${role}-caller`, role);
       const response = await request(await openTestServer(app)).post('/api/admin/users')
@@ -195,7 +257,7 @@ describe('POST /api/admin/users', () => {
     expect(findUnique).toHaveBeenCalledExactlyOnceWith(authLookup('spoofed-admin'));
   });
 
-  it.each(['admin', 'tentor', 'wali'])(
+  it.each(['admin', 'tentor', 'wali', 'member'])(
     'rejects a valid body from an inactive %s before any mutation', async (role) => {
       authenticate('inactive-caller', role, false);
       const response = await request(await openTestServer(app)).post('/api/admin/users')

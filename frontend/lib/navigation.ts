@@ -15,3 +15,10 @@ export function isContentReturnPath(value: string): boolean {
     || value.startsWith("/kelas/")
     || value === "/app/materi";
 }
+
+export function roleHomePath(role: string | null | undefined): string {
+  if (role === "admin") return "/app/admin";
+  if (role === "tentor") return "/app/tentor/dashboard";
+  if (role === "wali") return "/app/dashboard";
+  return "/app/materi";
+}

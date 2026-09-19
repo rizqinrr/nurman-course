@@ -15,7 +15,7 @@ export default function ContentShell({ children }: { children: React.ReactNode }
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0e4d45] text-[#f5f0e7] shadow-[0_3px_0_#082e2a] transition-transform group-hover:-translate-y-0.5">
               <Grid3X3 size={19} aria-hidden="true" />
             </span>
-            <span className="font-display text-lg font-extrabold tracking-[-0.03em]">Belajar<span className="text-[#f0752d]">.dev</span></span>
+            <span className="font-display text-lg font-extrabold tracking-[-0.03em]">n<span className="text-[#f0752d]">course</span></span>
           </Link>
           <nav aria-label="Navigasi materi" className="flex items-center gap-1 sm:gap-2">
             <Link href="/materi" className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold text-[#0e4d45] transition-colors hover:bg-[#dcece2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f58a3d]"><BookOpen size={17} aria-hidden="true" /><span className="hidden sm:inline">Katalog</span></Link><Link href="/jalur-belajar" className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold text-[#55716c] transition-colors hover:bg-[#dcece2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f58a3d]"><Route size={17} aria-hidden="true" /><span className="hidden sm:inline">Jalur belajar</span></Link>

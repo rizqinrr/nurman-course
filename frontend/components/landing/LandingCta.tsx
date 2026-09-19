@@ -1,48 +1,23 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
-import Reveal from "@/components/course/Reveal";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
 
 export default function LandingCta() {
-  const router = useRouter();
-
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 pb-20 sm:px-6">
-      <Reveal>
-        <div className="relative overflow-hidden rounded-2xl border border-app-border bg-app-surface p-8 text-center shadow-sm sm:p-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-primary">
-            Siap mulai belajar?
-          </p>
-          <h2 className="mx-auto mt-3 max-w-2xl font-playfair text-3xl font-normal tracking-tight text-app-text sm:text-4xl">
-            Daftarkan anak Anda sekarang, konsultasi gratis dulu
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-sm text-app-text-mid sm:text-base">
-            Pilih program, atur konfigurasi belajar, dan lanjut ke WhatsApp
-            untuk konfirmasi jadwal. Semua cepat dan mudah.
-          </p>
-
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => router.push("/course/program")}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[6px] bg-app-primary px-7 py-3.5 text-sm font-semibold text-app-white shadow-sm transition-all hover:bg-app-secondary sm:w-auto"
-            >
-              Pilih Program
-              <ArrowRight size={18} strokeWidth={2.25} aria-hidden="true" />
-            </button>
-            <a
-              href="https://wa.me/6281234567890"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[6px] border border-app-border bg-app-white px-7 py-3.5 text-sm font-semibold text-app-primary transition-all hover:bg-app-surface hover:text-app-secondary sm:w-auto"
-            >
-              <MessageCircle size={18} strokeWidth={2.25} aria-hidden="true" />
-              Tanya Admin
-            </a>
+    <section className="mx-auto w-full max-w-7xl px-4 pb-24 sm:px-6 lg:px-10">
+      <div className="relative overflow-hidden rounded-[2.25rem] bg-[#2e4b7a] px-6 py-12 text-white sm:px-12 sm:py-16">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#4a70a9]/60 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
+          <div>
+            <h2 className="max-w-2xl text-3xl font-black leading-[1.05] tracking-[-0.05em] sm:text-5xl">Langkah terakhir di peta: mulai kelas pertama anak.</h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-[#d9e5f2]">Pilih program, atur konfigurasi belajar, lalu konfirmasi jadwal. Konsultasi gratis sebelum memulai.</p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <Link href="/course/program" className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#f2c14e] px-6 text-sm font-black text-[#493b12] transition hover:-translate-y-0.5">Pilih program <ArrowRight size={18} className="transition group-hover:translate-x-1" /></Link>
+            <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/40 px-6 text-sm font-bold text-white transition hover:bg-white/10"><MessageCircle size={18} /> Tanya admin</a>
           </div>
         </div>
-      </Reveal>
+      </div>
     </section>
   );
 }

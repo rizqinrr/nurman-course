@@ -42,7 +42,7 @@ const emptyForm: TutorForm = {
 function toForm(tutor: AdminTutor): TutorForm {
   return {
     name: tutor.name,
-    phone: tutor.phone,
+    phone: tutor.phone ?? "",
     email: tutor.email || "",
     address: tutor.address || "",
     photoPath: tutor.photoPath || "",

@@ -15,7 +15,7 @@ import { useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Chip from "@/components/ui/Chip";
 import GlassCard from "@/components/ui/GlassCard";
-import PageHeader from "@/components/ui/PageHeader";
+import CourseRouteHeader from "@/components/course/CourseRouteHeader";
 import { getLevelBasePrice, getMaterialById } from "@/data/materials";
 import { WHATSAPP_NUMBER } from "@/lib/constants";
 
@@ -78,6 +78,9 @@ export default function CourseConfigClient() {
     (item) => item.level === levelNumber,
   );
   const isCalistungProgram = programParam === "calistung";
+  const isProgramCategoryValid = isCalistungProgram
+    ? material?.category === "calistung"
+    : material?.category !== "calistung";
   const configSubjectLabel = isCalistungProgram ? "Program" : "Materi";
   const configSubjectValue = material?.name || "-";
 
@@ -112,7 +115,9 @@ export default function CourseConfigClient() {
   const isReadyToContinue =
     Boolean(material) &&
     Boolean(selectedLevelData) &&
-    selectedDays.length > 0 &&
+    !selectedLevelData?.comingSoon &&
+    isProgramCategoryValid &&
+    selectedDays.length === frequency &&
     Boolean(selectedTime) &&
     location === "siswa" &&
     isAllNamesFilled;
@@ -158,7 +163,8 @@ export default function CourseConfigClient() {
   };
 
   const handleContinueToWhatsApp = () => {
-    if (!material || !selectedLevelData || !selectedTime) return;
+    if (!material || !selectedLevelData || selectedLevelData.comingSoon || !isProgramCategoryValid || !selectedTime) return;
+    if (selectedDays.length !== frequency) return;
     if (location !== "siswa") return;
     if (!isAllNamesFilled) return;
 
@@ -204,10 +210,11 @@ export default function CourseConfigClient() {
     window.open(waUrl, "_blank");
   };
 
-  if (!material || !selectedLevelData) {
+  if (!material || !selectedLevelData || selectedLevelData.comingSoon || !isProgramCategoryValid) {
     return (
       <div className="pt-4 sm:pt-8">
-        <PageHeader
+        <CourseRouteHeader
+          current={4}
           title="Atur Jadwal"
           subtitle="Sesuaikan waktu dan kebutuhan belajar"
         />
@@ -227,23 +234,24 @@ export default function CourseConfigClient() {
 
   return (
     <div className="space-y-5 pb-44 pt-4 sm:space-y-6 sm:pt-8">
-      <PageHeader
+      <CourseRouteHeader
+        current={4}
         title="Atur Jadwal"
         subtitle="Sesuaikan waktu dan kebutuhan belajar"
       />
 
-      <GlassCard className="p-5 sm:p-6">
-        <p className="text-sm font-semibold text-gray-900 sm:text-base">
+      <GlassCard className="border-[#4a70a9] bg-[#2e4b7a] p-5 text-white shadow-[0_16px_38px_rgba(46,75,122,0.2)] sm:p-6">
+        <p className="text-sm font-black sm:text-base">
           {configSubjectLabel}: {configSubjectValue}
         </p>
         {!isCalistungProgram && (
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-[#d9e5f1]">
             Level {selectedLevelData.level} - {selectedLevelData.title}
           </p>
         )}
       </GlassCard>
 
-      <GlassCard className="p-5 sm:p-6">
+      <GlassCard className="border-[#c4d3e3] bg-white/75 p-5 shadow-[0_10px_28px_rgba(46,75,122,0.08)] sm:p-6">
         <h2 className="mb-3 text-base font-bold text-gray-900 sm:text-lg">
           Durasi
         </h2>
@@ -259,7 +267,7 @@ export default function CourseConfigClient() {
                 >
                   <span className="inline-flex items-center gap-1.5">
                     {item.label}
-                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800">
                       Coming Soon
                     </span>
                   </span>
@@ -282,7 +290,7 @@ export default function CourseConfigClient() {
         </div>
       </GlassCard>
 
-      <GlassCard className="p-5 sm:p-6">
+      <GlassCard className="border-[#c4d3e3] bg-white/75 p-5 shadow-[0_10px_28px_rgba(46,75,122,0.08)] sm:p-6">
         <h2 className="mb-3 text-base font-bold text-gray-900 sm:text-lg">
           Frekuensi
         </h2>
@@ -299,7 +307,7 @@ export default function CourseConfigClient() {
         </div>
       </GlassCard>
 
-      <GlassCard className="p-5 sm:p-6">
+      <GlassCard className="border-[#c4d3e3] bg-white/75 p-5 shadow-[0_10px_28px_rgba(46,75,122,0.08)] sm:p-6">
         <div className="mb-1 flex items-start justify-between gap-2">
           <h2 className="text-base font-bold text-gray-900 sm:text-lg">
             <span className="inline-flex items-center gap-2">
@@ -307,7 +315,7 @@ export default function CourseConfigClient() {
               Jumlah Peserta
             </span>
           </h2>
-          <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#4a70a9] sm:text-xs">
+          <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#4a70a9] sm:text-xs">
             {participants === 1
               ? "Harga penuh"
               : participants === 2
@@ -335,7 +343,7 @@ export default function CourseConfigClient() {
         </div>
       </GlassCard>
 
-      <GlassCard className="p-5 sm:p-6">
+      <GlassCard className="border-[#c4d3e3] bg-white/75 p-5 shadow-[0_10px_28px_rgba(46,75,122,0.08)] sm:p-6">
         <div className="space-y-2">
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-gray-800">
             <MapPin size={16} strokeWidth={2.25} aria-hidden="true" />
@@ -347,7 +355,7 @@ export default function CourseConfigClient() {
               <span className="inline-flex items-center gap-1.5">
                 <MapPin size={16} strokeWidth={2.25} aria-hidden="true" />
                 Tempat Tentor
-                <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800">
                   Coming Soon
                 </span>
               </span>
@@ -368,16 +376,16 @@ export default function CourseConfigClient() {
         </div>
       </GlassCard>
 
-      <GlassCard className="p-5 sm:p-6">
+      <GlassCard className="border-[#c4d3e3] bg-white/75 p-5 shadow-[0_10px_28px_rgba(46,75,122,0.08)] sm:p-6">
         <h2 className="mb-1 text-base font-bold text-gray-900 sm:text-lg">
           <span className="inline-flex items-center gap-2">
             <Calendar size={18} strokeWidth={2.25} aria-hidden="true" />
             Pilih Hari
           </span>
         </h2>
-        <p className="mb-3 text-sm text-gray-500">
-          Maksimal pilih {frequency} hari sesuai frekuensi.
-        </p>
+                <p className="mb-3 text-sm text-gray-500">
+                  Pilih tepat {frequency} hari sesuai frekuensi mingguan.
+                </p>
         <div className="flex flex-wrap gap-2">
           {DAYS.map((day) => (
             <Chip
@@ -391,7 +399,7 @@ export default function CourseConfigClient() {
         </div>
       </GlassCard>
 
-      <GlassCard className="p-5 sm:p-6">
+      <GlassCard className="border-[#c4d3e3] bg-white/75 p-5 shadow-[0_10px_28px_rgba(46,75,122,0.08)] sm:p-6">
         <h2 className="mb-1 text-base font-bold text-gray-900 sm:text-lg">
           <span className="inline-flex items-center gap-2">
             <Clock size={18} strokeWidth={2.25} aria-hidden="true" />
@@ -422,7 +430,7 @@ export default function CourseConfigClient() {
         </div>
       </GlassCard>
 
-      <GlassCard className="p-5 sm:p-6">
+      <GlassCard className="border-[#c4d3e3] bg-white/75 p-5 shadow-[0_10px_28px_rgba(46,75,122,0.08)] sm:p-6">
         <h2 className="mb-1 text-base font-bold text-gray-900 sm:text-lg">
           <span className="inline-flex items-center gap-2">
             <User size={18} strokeWidth={2.25} aria-hidden="true" />
@@ -443,12 +451,11 @@ export default function CourseConfigClient() {
 
             return (
               <div key={index} className="space-y-1">
-                {participants > 1 && (
-                  <label className="text-xs font-semibold text-gray-700 sm:text-sm">
-                    {label}
-                  </label>
-                )}
+                <label htmlFor={`participant-name-${index + 1}`} className={participants === 1 ? "sr-only" : "text-xs font-semibold text-gray-700 sm:text-sm"}>
+                  {label}
+                </label>
                 <input
+                  id={`participant-name-${index + 1}`}
                   type="text"
                   name={`participant-name-${index + 1}`}
                   autoComplete="name"
@@ -457,7 +464,7 @@ export default function CourseConfigClient() {
                     handleNameChange(index, event.target.value)
                   }
                   placeholder={placeholder}
-                  className="w-full rounded-xl border border-white/70 bg-white/80 px-4 py-3 text-sm text-gray-900 shadow-sm outline-none placeholder:text-gray-400 focus:border-[#4a70a9] focus:ring-2 focus:ring-[#4a70a9]/25 sm:text-base"
+                  className="w-full rounded-xl border border-[#c4d3e3] bg-white/90 px-4 py-3 text-sm text-[#14233a] shadow-sm outline-none placeholder:text-[#8da3bd] focus:border-[#4a70a9] focus:ring-2 focus:ring-[#4a70a9]/25 sm:text-base"
                 />
               </div>
             );
@@ -465,7 +472,7 @@ export default function CourseConfigClient() {
         </div>
       </GlassCard>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t border-white/70 bg-white/95 px-4 pb-5 pt-4 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-sm">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#c4d3e3] bg-[#f8fbff]/95 px-4 pb-5 pt-4 shadow-[0_-12px_34px_rgba(46,75,122,0.12)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 sm:text-base">

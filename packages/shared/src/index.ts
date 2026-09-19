@@ -1,16 +1,24 @@
 import { z } from "zod";
 
 // --- User & Role Types ---
-export type UserRole = "admin" | "tentor" | "wali";
+export type UserRole = "admin" | "tentor" | "wali" | "member";
 
 export interface User {
   id: string;
   role: UserRole;
   name: string;
-  phone: string;
+  phone: string | null;
   email?: string | null;
   createdAt: Date;
 }
+
+export const memberSignupSchema = z.object({
+  name: z.string().trim().min(1, "Nama wajib diisi").max(150),
+  email: z.string().trim().email("Email tidak valid").max(200),
+  password: z.string().min(8, "Password minimal 8 karakter").max(72),
+});
+
+export type MemberSignupInput = z.infer<typeof memberSignupSchema>;
 
 // --- Invoice Status ---
 export type InvoiceStatus = "unpaid" | "waiting" | "paid";
@@ -35,7 +43,7 @@ export interface ApiErrorPayload {
   };
 }
 
-export const userRoleSchema = z.enum(["admin", "tentor", "wali"]);
+export const userRoleSchema = z.enum(["admin", "tentor", "wali", "member"]);
 
 const manageableRoleSchema = z.enum(["tentor", "wali"]);
 

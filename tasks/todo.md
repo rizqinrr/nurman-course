@@ -9,7 +9,17 @@
 - Tidak ada migration deploy, backfill live, seed, mutasi DB remote, commit, push, atau deploy tanpa izin eksplisit.
 - Verifikasi wajib dicatat bersama batas buktinya.
 
-## Done lokal
+## Sesi frontend 2026-09-19 — selesai lokal
+
+- [x] Redesign landing “Peta Belajar” dengan biru/logo existing dan funnel `/course` tetap.
+- [x] Gabungkan login/register pada `/login` tanpa full-page reload; `/signup` kompatibel melalui mode register.
+- [x] Quick-fill dummy Admin, Tentor, Wali, Member hanya pada development dan hanya mengisi form.
+- [x] Fixture seed Member ditambahkan tanpa menjalankan seed.
+- [x] Test auth surface, frontend typecheck, lint, build, dan detector dijalankan.
+- [x] Browser screenshot/console/accessibility QA.
+- [x] Redesign funnel `/course/program` → materi/jenjang/calistung → level → config dengan komposisi Peta Belajar mobile-first; route, copy, pricing, data, dan WhatsApp authority tetap.
+- [x] Verifikasi funnel redesign: 9/9 regression test auth/funnel, typecheck, lint, build, detector, browser QA, dan review fixes.
+
 
 - [x] Dependency runtime backend dipatch dan diverifikasi.
 - [x] Auth backend memakai verified Supabase ID serta role/active dari DB.
@@ -32,7 +42,11 @@
 - [x] Tracking login best-effort ditambahkan setelah Supabase login berhasil.
 - [x] Endpoint admin tracking list/filter/delete ditambahkan; delete event tidak mereset read count.
 - [x] Test route tracking, read count, catalog paths, dan lesson progress ditambahkan; test API lulus 180/180.
-- [ ] Jalankan migration tunggal, hapus Auth remote, seed remote, dan verifikasi count setelah konfirmasi eksplisit.
+- [x] Jalankan migration tunggal, hapus Auth remote, seed remote, dan verifikasi count setelah konfirmasi eksplisit.
+- [x] Rebrand wordmark materi `Belajar.dev` menjadi `ncourse`; audit backend/shared dan remote seed tidak menemukan nilai lama.
+- [x] Tambahkan role `member`, phone nullable, signup publik email/password, verifikasi email, dan profile DB otomatis.
+- [x] Batasi member ke content surface; endpoint operasional dan routing portal memakai role DB.
+- [x] Terapkan migration `nc7_member_phone_nullable` ke remote development dan smoke-test signup/profile trigger.
 
 
 
@@ -46,7 +60,7 @@
 - [x] **MTR-0.2** Respons reader: anonymous/akses login diperlukan → `401 LOGIN_REQUIRED`; user login tanpa entitlement purchase → `403 PURCHASE_REQUIRED`; draft/inactive/tidak ada → `404`; respons gagal tidak membawa `bodyText`.
 - [x] **MTR-0.3** Purchase default lifetime dengan `expiresAt=null`; dukungan expiry tetap disiapkan di schema untuk kebutuhan berikutnya.
 - [x] **MTR-0.4** Entitlement memakai multi-baris per `(user, course, source)`; akses tetap aktif jika minimal satu source belum revoked dan belum expired.
-- [x] **MTR-0.5** Fase awal memakai role existing (`admin`, `tentor`, `wali`) sebagai pembaca; role `member` dan signup ditunda.
+- [x] **MTR-0.5** Fase operasional memakai role `admin`, `tentor`, dan `wali`; role `member` menjadi pembaca content-only melalui signup publik email/password terverifikasi.
 - [x] **MTR-0.6** Namespace disetujui: `/api/catalog/*` untuk metadata publik, `/api/reader/*` untuk body terjaga, `/api/me/*` untuk library/progress.
 
 **Gate MTR-0:** selesai 2026-09-18. Implementasi schema/API tetap mengikuti urutan MTR-1 dan checkpoint berikutnya.
@@ -64,8 +78,8 @@
 ### MTR-2 — Identity prerequisite pembaca
 
 - [x] **MTR-2.1** Keputusan MTR-0.5 memilih role existing; audit role/auth middleware/caller dilakukan dan tidak ada role `member` baru.
-- [x] **MTR-2.2** `User.phone` tidak diubah menjadi nullable pada fase ini; tidak ada akun email-only/member signup yang diaktifkan.
-- [x] **MTR-2.3** Provisioning profile baru tidak diperlukan untuk role existing; verified Supabase ID + profile DB tetap menjadi authority.
+- [x] **MTR-2.2** `User.phone` nullable untuk member; akun operasional existing tetap memakai nomor WhatsApp.
+- [x] **MTR-2.3** Provisioning profile member otomatis melalui trigger `auth.users`; verified Supabase ID + profile DB tetap menjadi authority.
 - [x] **MTR-2.4** Role DB tetap authority; `user_metadata` tidak dipakai untuk access decision.
 
 **Gate MTR-2:** selesai 2026-09-18 tanpa schema/auth mutation. Optional-auth runtime dan access policy dikerjakan pada MTR-4.
@@ -156,7 +170,7 @@
 - [x] **MTR-14.4** `/materi`, `/kelas/[slug]`, `/materi/[slug]`, dan `/jalur-belajar` sudah memakai API backend; dataset dummy runtime dan local progress fallback dihapus.
 - [x] **MTR-14.5** Reader success mengirim `readCount`/`completed`, update progress memakai endpoint server, dan anonymous diarahkan login untuk menyimpan progress.
 - [x] **MTR-14.6** Legacy program tests disinkronkan dengan DTO allowlist `select`; API suite lulus 180/180.
-- [x] **MTR-14.7** Migration tunggal dan seed besar siap offline; migration deploy, reset Auth, seed remote, dan verifikasi DB remote belum dijalankan.
+- [x] **MTR-14.7** Migration tunggal diterapkan ke remote development; Auth lama dihapus, seed besar dijalankan, dan count/migration/login/RLS diverifikasi.
 
 
 **Acceptance:** selesai lokal 2026-09-18; responsive/browser QA tidak dijalankan atas instruksi user. Body hanya berasal dari reader API yang lolos guard backend.

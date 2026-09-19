@@ -1,90 +1,33 @@
-"use client";
-
-import {
-  BookOpen,
-  GraduationCap,
-  Monitor,
-  Sparkles,
-  ArrowRight,
-  type LucideIcon,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
-import Reveal from "@/components/course/Reveal";
+import Link from "next/link";
+import { ArrowRight, BookOpen, GraduationCap, Monitor, Sparkles, type LucideIcon } from "lucide-react";
 import { landingCategories } from "@/data/landing";
 
-const ICONS: Record<string, LucideIcon> = {
-  monitor: Monitor,
-  graduation: GraduationCap,
-  book: BookOpen,
-  sparkles: Sparkles,
-};
+const icons: Record<string, LucideIcon> = { monitor: Monitor, graduation: GraduationCap, book: BookOpen, sparkles: Sparkles };
 
 export default function LandingCategories() {
-  const router = useRouter();
-  const reduceMotion = useReducedMotion();
-
   return (
-    <section id="program" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-      <Reveal>
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-app-primary">
-            Program Belajar
-          </p>
-          <h2 className="mt-2 font-playfair text-3xl font-normal tracking-tight text-app-text sm:text-4xl">
-            Pilih jalur yang paling pas
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-app-text-muted sm:text-base">
-            Semua program bisa online atau offline, dengan jadwal yang fleksibel
-            dan laporan progres untuk orang tua.
-          </p>
+    <section id="program" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
+      <div className="grid gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:gap-20">
+        <div className="lg:sticky lg:top-28 lg:self-start">
+          <h2 className="text-4xl font-black leading-[1.02] tracking-[-0.05em] text-[#14233a] sm:text-5xl">Mulai dari kebutuhan yang paling terasa.</h2>
+          <p className="mt-5 max-w-md text-base leading-7 text-[#627894]">Tidak perlu memilih paket yang rumit. Tentukan fokus anak, lalu lanjutkan ke konfigurasi jadwal yang sesuai.</p>
+          <Link href="/course/program" className="mt-7 inline-flex items-center gap-2 text-sm font-black text-[#2e4b7a] underline decoration-[#f2c14e] decoration-4 underline-offset-8">Lihat semua pilihan <ArrowRight size={17} /></Link>
         </div>
-      </Reveal>
-
-      <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-        {landingCategories.map((category, index) => {
-          const Icon = ICONS[category.icon] ?? Sparkles;
-          return (
-            <motion.div
-              key={category.id}
-              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-              whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.35 }}
-              transition={{
-                duration: 0.45,
-                ease: "easeOut",
-                delay: reduceMotion ? 0 : index * 0.08,
-              }}
-            >
-              <div
-                onClick={() => router.push(category.route)}
-                className="group h-full p-6 text-center rounded-2xl border border-app-border bg-app-surface shadow-sm cursor-pointer transition-all hover:bg-app-white"
-              >
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[6px] bg-app-primary/10 transition-transform duration-300 group-hover:scale-105">
-                  <Icon
-                    size={28}
-                    strokeWidth={2.25}
-                    className="text-app-primary"
-                    aria-hidden="true"
-                  />
-                </div>
-                <h3 className="font-playfair text-lg font-normal text-app-text">{category.label}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-app-text-mid">
-                  {category.description}
-                </p>
-                <p className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-app-primary">
-                  {category.countLabel}
-                  <ArrowRight
-                    size={14}
-                    strokeWidth={2.5}
-                    className="transition-transform duration-300 group-hover:translate-x-1"
-                    aria-hidden="true"
-                  />
-                </p>
-              </div>
-            </motion.div>
-          );
-        })}
+        <div className="relative">
+          <div className="absolute bottom-10 left-7 top-10 w-px bg-[#afc2d8]" aria-hidden="true" />
+          <div className="space-y-4">
+            {landingCategories.map((category, index) => {
+              const Icon = icons[category.icon] ?? Sparkles;
+              return (
+                <Link key={category.id} href={category.route} className="group relative grid grid-cols-[3.5rem_1fr_auto] items-center gap-4 rounded-[1.75rem] border border-[#c4d3e3] bg-white/75 p-4 transition hover:-translate-y-1 hover:border-[#4a70a9] hover:bg-white hover:shadow-[0_18px_45px_rgba(46,75,122,0.12)] sm:gap-6 sm:p-6">
+                  <span className={`relative z-10 grid h-14 w-14 place-items-center rounded-2xl ${index === landingCategories.length - 1 ? "bg-[#f2c14e] text-[#493b12]" : "bg-[#4a70a9] text-white"}`}><Icon size={23} /></span>
+                  <span><span className="block text-lg font-black tracking-[-0.03em] text-[#294568] sm:text-xl">{category.label}</span><span className="mt-1 hidden text-sm leading-6 text-[#627894] sm:block">{category.description}</span><span className="mt-2 block text-xs font-bold text-[#4a70a9]">{category.countLabel}</span></span>
+                  <ArrowRight size={20} className="mr-1 text-[#8da3bd] transition group-hover:translate-x-1 group-hover:text-[#4a70a9]" />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );

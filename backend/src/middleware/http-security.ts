@@ -90,6 +90,7 @@ export function installHttpSecurity(app: Express, config: HttpSecurityConfig): v
   });
   app.use('/api', limiter(config.rateLimitMax, config.rateLimitWindowMs, 'api'));
   app.use('/api/auth/resolve-phone', limiter(config.authRateLimitMax, config.authRateLimitWindowMs, 'resolve-phone'));
+  app.use('/api/auth/signup', limiter(config.authRateLimitMax, config.authRateLimitWindowMs, 'signup'));
   app.use(express.json({ limit: '100kb' }));
 }
 
