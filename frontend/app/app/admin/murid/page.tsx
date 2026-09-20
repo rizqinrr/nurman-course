@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState, useRef } from "react";
+import NextImage from "next/image";
 import { Edit3, Plus, Search, UserRound, XCircle, Camera, Trash2, KeyRound, Copy, Check } from "lucide-react";
 import { createMuridSchema } from "@nurman-course/shared";
 import Button from "@/components/ui/Button";
@@ -298,7 +299,7 @@ export default function AdminMuridPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full flex-grow flex flex-col gap-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[90rem] mx-auto w-full flex-grow flex flex-col gap-6">
       <PageHeader
         title="Murid"
         subtitle="Kelola data murid beserta akun wali penanggung jawabnya."
@@ -354,7 +355,7 @@ export default function AdminMuridPage() {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-3 min-w-0">
                       {murid.photoPath ? (
-                        <img src={murid.photoPath} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/70" />
+                        <NextImage src={murid.photoPath} alt="" width={48} height={48} unoptimized className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/70" />
                       ) : (
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#4a70a9]/15 text-[#4a70a9]">
                           <UserRound size={22} />
@@ -445,7 +446,7 @@ export default function AdminMuridPage() {
             <div className="flex flex-col items-center gap-2 pb-2 border-b border-gray-100">
               <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 {form.photoPath ? (
-                  <img src={form.photoPath} alt="Preview" className="h-20 w-20 rounded-full object-cover border-2 border-[#4a70a9]/35" />
+                  <NextImage src={form.photoPath} alt="Preview" width={80} height={80} unoptimized className="h-20 w-20 rounded-full object-cover border-2 border-[#4a70a9]/35" />
                 ) : (
                   <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 group-hover:border-[#4a70a9] transition-colors">
                     <Camera size={24} />
@@ -529,7 +530,7 @@ export default function AdminMuridPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 {selectedMurid.photoPath ? (
-                  <img src={selectedMurid.photoPath} alt="" className="h-14 w-14 rounded-full object-cover ring-2 ring-[#4a70a9]/30" />
+                  <NextImage src={selectedMurid.photoPath} alt="" width={56} height={56} unoptimized className="h-14 w-14 rounded-full object-cover ring-2 ring-[#4a70a9]/30" />
                 ) : (
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#4a70a9]/15 text-[#4a70a9]">
                     <UserRound size={26} />

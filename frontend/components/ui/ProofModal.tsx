@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import { FileText, X, ZoomIn } from "lucide-react";
 
 export interface ProofInvoiceData {
@@ -40,6 +42,41 @@ function dataUrlToBlobUrl(dataUrl: string): string | null {
   }
 }
 
+export function ProofImage({ src, alt, className, sizes }: {
+  src: string;
+  alt: string;
+  className: string;
+  sizes: string;
+}) {
+  const [dimensions, setDimensions] = useState<{ src: string; width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const image = new window.Image();
+    image.onload = () => setDimensions({ src, width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => setDimensions({ src, width: 0, height: 0 });
+    image.src = src;
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+    };
+  }, [src]);
+
+  if (!dimensions || dimensions.src !== src) return null;
+  if (!dimensions.width || !dimensions.height) return <span role="img" aria-label={alt}>{alt}</span>;
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={dimensions.width}
+      height={dimensions.height}
+      sizes={sizes}
+      unoptimized
+      className={className}
+    />
+  );
+}
+
 export default function ProofModal({ invoice, onClose, detailHref, hideLink = false }: ProofModalProps) {
   const proof = invoice.paymentProof;
   const isImage = proof?.startsWith("data:image") ?? false;
@@ -78,9 +115,10 @@ export default function ProofModal({ invoice, onClose, detailHref, hideLink = fa
           isImage ? (
             hideLink ? (
               <div className="relative block overflow-hidden rounded-2xl bg-black/5">
-                <img
+                <ProofImage
                   src={proof}
                   alt={`Bukti pembayaran ${invoice.paymentProofName || ""}`}
+                  sizes="(min-width: 544px) 470px, calc(100vw - 74px)"
                   className="mx-auto max-h-[50vh] w-auto object-contain"
                 />
               </div>
@@ -92,9 +130,10 @@ export default function ProofModal({ invoice, onClose, detailHref, hideLink = fa
                 className="group relative block overflow-hidden rounded-2xl bg-black/5"
                 title="Buka di halaman baru"
               >
-                <img
+                <ProofImage
                   src={proof}
                   alt={`Bukti pembayaran ${invoice.paymentProofName || ""}`}
+                  sizes="(min-width: 544px) 470px, calc(100vw - 74px)"
                   className="mx-auto max-h-[50vh] w-auto object-contain transition-transform duration-200 group-hover:scale-[1.02]"
                 />
                 <span className="absolute inset-x-0 bottom-0 inline-flex items-center justify-center gap-1.5 bg-gradient-to-t from-black/60 to-transparent px-3 py-2 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">

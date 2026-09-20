@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import GlassCard from "@/components/ui/GlassCard";
-import PageHeader from "@/components/ui/PageHeader";
+import CourseRouteHeader from "@/components/course/CourseRouteHeader";
 import CourseConfigClient from "./CourseConfigClient";
 
 function ConfigPageFallback() {
   return (
     <div className="space-y-5 pt-4 sm:space-y-6 sm:pt-8">
-      <PageHeader
+      <CourseRouteHeader
+        current={4}
         title="Atur Jadwal"
         subtitle="Sesuaikan waktu dan kebutuhan belajar"
       />

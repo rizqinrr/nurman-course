@@ -25,9 +25,12 @@ export default function TentorLayout({ children }: TentorLayoutProps) {
   const { askLogout, logoutDialog } = useLogout();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  useEffect(() => {
+  const [navPathname, setNavPathname] = useState(pathname);
+
+  if (navPathname !== pathname) {
+    setNavPathname(pathname);
     setMobileNavOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

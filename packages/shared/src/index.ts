@@ -1,16 +1,24 @@
 import { z } from "zod";
 
 // --- User & Role Types ---
-export type UserRole = "admin" | "tentor" | "wali";
+export type UserRole = "admin" | "tentor" | "wali" | "member";
 
 export interface User {
   id: string;
   role: UserRole;
   name: string;
-  phone: string;
+  phone: string | null;
   email?: string | null;
   createdAt: Date;
 }
+
+export const memberSignupSchema = z.object({
+  name: z.string().trim().min(1, "Nama wajib diisi").max(150),
+  email: z.string().trim().email("Email tidak valid").max(200),
+  password: z.string().min(8, "Password minimal 8 karakter").max(72),
+});
+
+export type MemberSignupInput = z.infer<typeof memberSignupSchema>;
 
 // --- Invoice Status ---
 export type InvoiceStatus = "unpaid" | "waiting" | "paid";
@@ -35,7 +43,7 @@ export interface ApiErrorPayload {
   };
 }
 
-export const userRoleSchema = z.enum(["admin", "tentor", "wali"]);
+export const userRoleSchema = z.enum(["admin", "tentor", "wali", "member"]);
 
 const manageableRoleSchema = z.enum(["tentor", "wali"]);
 
@@ -212,6 +220,218 @@ export const updateMaterialItemSchema = createMaterialItemSchema.omit({ roadmapS
 
 export type CreateMaterialItemInput = z.infer<typeof createMaterialItemSchema>;
 export type UpdateMaterialItemInput = z.infer<typeof updateMaterialItemSchema>;
+
+export const courseAccessTierSchema = z.enum(["free", "paid"]);
+export const contentStatusSchema = z.enum(["draft", "published"]);
+export const lessonVisibilitySchema = z.enum(["public", "entitled"]);
+export const entitlementSourceSchema = z.enum(["free", "purchase", "enrollment"]);
+export const entitlementSourceRefSchema = z.string().trim().min(1, "Referensi entitlement wajib diisi").max(200);
+
+export type CourseAccessTier = z.infer<typeof courseAccessTierSchema>;
+export type ContentStatus = z.infer<typeof contentStatusSchema>;
+export type LessonVisibility = z.infer<typeof lessonVisibilitySchema>;
+export type EntitlementSource = z.infer<typeof entitlementSourceSchema>;
+
+const contentSlugSchema = z
+  .string()
+  .trim()
+  .min(1, "Slug wajib diisi")
+  .max(120, "Slug maksimal 120 karakter")
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung");
+
+export const createCourseSchema = z.object({
+  slug: contentSlugSchema,
+  title: z.string().trim().min(1, "Judul wajib diisi").max(150, "Judul maksimal 150 karakter"),
+  description: z.string().trim().min(1, "Deskripsi wajib diisi").max(5000, "Deskripsi maksimal 5000 karakter"),
+  level: z.string().trim().max(100, "Level maksimal 100 karakter").optional().nullable(),
+  category: z.string().trim().max(100, "Kategori maksimal 100 karakter").optional().nullable(),
+  accessTier: courseAccessTierSchema.optional().nullable(),
+  price: z.number().finite().positive("Harga harus lebih dari 0").optional().nullable(),
+  authorId: z.string().trim().min(1, "Author wajib dipilih").optional(),
+  active: z.boolean().default(true),
+});
+
+export const updateCourseSchema = createCourseSchema.omit({ authorId: true }).partial();
+
+export const createSectionSchema = z.object({
+  courseId: z.string().trim().min(1, "Course wajib dipilih"),
+  order: z.number().int().nonnegative("Order harus bilangan non-negatif").optional(),
+  title: z.string().trim().min(1, "Judul wajib diisi").max(150, "Judul maksimal 150 karakter"),
+  level: z.string().trim().max(100, "Level maksimal 100 karakter").optional().nullable(),
+  summary: z.string().trim().max(1000, "Ringkasan maksimal 1000 karakter").optional().nullable(),
+});
+
+export const updateSectionSchema = createSectionSchema.omit({ courseId: true }).partial();
+
+export const createLessonSchema = z.object({
+  sectionId: z.string().trim().min(1, "Section wajib dipilih"),
+  slug: contentSlugSchema,
+  order: z.number().int().nonnegative("Order harus bilangan non-negatif").optional(),
+  title: z.string().trim().min(1, "Judul wajib diisi").max(200, "Judul maksimal 200 karakter"),
+  summary: z.string().trim().max(1000, "Ringkasan maksimal 1000 karakter").optional().nullable(),
+  bodyText: z.string().trim().min(1, "Konten wajib diisi").max(50000, "Konten maksimal 50000 karakter"),
+  visibility: lessonVisibilitySchema.default("entitled"),
+  estimatedMinutes: z.number().int().positive("Estimasi baca harus lebih dari 0").max(1440).optional().nullable(),
+});
+
+export const updateLessonSchema = createLessonSchema.omit({ sectionId: true }).partial();
+
+export const reorderContentSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1, "Minimal satu ID wajib dikirim"),
+}).refine(({ ids }) => new Set(ids).size === ids.length, {
+  message: "ID tidak boleh duplikat",
+  path: ["ids"],
+});
+
+export type CreateCourseInput = z.infer<typeof createCourseSchema>;
+export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
+export type CreateSectionInput = z.infer<typeof createSectionSchema>;
+export type UpdateSectionInput = z.infer<typeof updateSectionSchema>;
+export type CreateLessonInput = z.infer<typeof createLessonSchema>;
+export type UpdateLessonInput = z.infer<typeof updateLessonSchema>;
+
+export const catalogCoursesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().trim().max(100).optional(),
+  category: z.string().trim().max(100).optional(),
+  level: z.string().trim().max(100).optional(),
+  accessTier: courseAccessTierSchema.optional(),
+});
+
+export type CatalogCoursesQuery = z.infer<typeof catalogCoursesQuerySchema>;
+
+export const catalogLessonsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().trim().max(100).optional(),
+  category: z.string().trim().max(100).optional(),
+  level: z.string().trim().max(100).optional(),
+});
+
+export type CatalogLessonsQuery = z.infer<typeof catalogLessonsQuerySchema>;
+
+
+export type ContentAccessRequirement = "public" | "login" | "purchase";
+
+export interface CatalogLessonDto extends CatalogLessonOutlineDto {
+  courseSlug: string;
+  courseTitle: string;
+  courseCategory: string | null;
+  courseLevel: string | null;
+}
+
+export interface CatalogLessonListResponse {
+  data: CatalogLessonDto[];
+  pagination: { page: number; limit: number; totalItems: number; totalPages: number };
+}
+
+export interface CatalogAuthorDto {
+  name: string;
+}
+
+export interface CatalogCourseDto {
+  slug: string;
+  title: string;
+  description: string;
+  level: string | null;
+  category: string | null;
+  accessTier: CourseAccessTier | null;
+  price: number | null;
+  author: CatalogAuthorDto | null;
+  lessonCount: number;
+}
+
+export interface CatalogLessonOutlineDto {
+  slug: string;
+  title: string;
+  summary: string | null;
+  order: number;
+  estimatedMinutes: number | null;
+  readCount: number;
+  visibility: LessonVisibility;
+  accessRequirement: ContentAccessRequirement;
+}
+
+export interface CatalogSectionDto {
+  order: number;
+  title: string;
+  level: string | null;
+  summary: string | null;
+  lessons: CatalogLessonOutlineDto[];
+}
+
+export interface CatalogCourseDetailDto extends CatalogCourseDto {
+  sections: CatalogSectionDto[];
+}
+
+export interface CatalogPathResponse {
+  data: CatalogCourseDetailDto[];
+}
+
+export interface MyLessonProgressDto {
+  completedLessonSlugs: string[];
+}
+
+export interface ReaderBreadcrumbDto {
+  courseSlug: string;
+  courseTitle: string;
+  sectionTitle: string;
+}
+
+export interface ReaderLessonDto {
+  slug: string;
+  title: string;
+  summary: string | null;
+  bodyText: string;
+  estimatedMinutes: number | null;
+  readCount: number;
+  completed: boolean;
+  breadcrumb: ReaderBreadcrumbDto;
+  previousSlug: string | null;
+  nextSlug: string | null;
+}
+
+export interface ReaderAccessDeniedDto {
+  code: "LOGIN_REQUIRED" | "PURCHASE_REQUIRED";
+  message: string;
+  requiredAccess: Exclude<ContentAccessRequirement, "public">;
+  courseSlug: string;
+  courseTitle: string;
+  price: number | null;
+}
+
+export type ReaderResponse =
+  | { data: ReaderLessonDto }
+  | { error: ReaderAccessDeniedDto };
+
+export interface EntitlementDto {
+  courseSlug: string;
+  courseTitle: string;
+  source: EntitlementSource;
+  expiresAt: string | null;
+  active: boolean;
+}
+
+export interface CourseReadingProgressDto {
+  completedLessons: number;
+  totalLessons: number;
+  percentage: number;
+}
+
+export interface LibraryCourseDto extends CatalogCourseDto {
+  progress: CourseReadingProgressDto;
+}
+
+export const updateLessonProgressSchema = z.object({
+  completed: z.boolean(),
+});
+
+export interface LessonProgressDto {
+  lessonSlug: string;
+  completed: boolean;
+  updatedAt: string;
+}
 
 // --- Zod Input Validation Schemas ---
 

@@ -1,5 +1,158 @@
 @import "tailwindcss";
 
+/* Landing — Peta Belajar */
+.landing-map {
+  background-color: #edf4fb;
+  background-image:
+    linear-gradient(rgba(74, 112, 169, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 112, 169, 0.055) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.auth-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.6;
+  background-image:
+    linear-gradient(rgba(74, 112, 169, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 112, 169, 0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+.route-node {
+  animation: route-node-in 5.5s ease-in-out infinite;
+}
+
+.route-node:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+.route-node:nth-child(4) {
+  animation-delay: 1.6s;
+}
+
+.route-node:nth-child(5) {
+  animation-delay: 2.4s;
+}
+
+@keyframes route-node-in {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  8%, 18% {
+    transform: translateX(4px);
+  }
+  25% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-node {
+    animation: none;
+  }
+}
+
+
+@theme inline {
+  --font-display: var(--font-learn-display);
+  --font-learn-body: var(--font-learn-body);
+  --font-mono: var(--font-learn-mono);
+}
+
+.learn-shell {
+  background-color: #f5f0e7;
+  background-image:
+    radial-gradient(#d9d2c2 1px, transparent 1px),
+    radial-gradient(#d9d2c2 1px, transparent 1px);
+  background-position: 0 0, 9px 9px;
+  background-size: 18px 18px;
+  font-family: var(--font-learn-body), system-ui, sans-serif;
+}
+
+.learn-shell h1,
+.learn-shell h2,
+.learn-shell h3,
+.font-display {
+  font-family: var(--font-learn-display), system-ui, sans-serif;
+}
+
+.learn-shell .font-mono {
+  font-family: var(--font-learn-mono), ui-monospace, monospace;
+}
+
+.pegboard-hero {
+  position: relative;
+  background-color: #0e4d45;
+  background-image: radial-gradient(rgba(245, 240, 231, 0.16) 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
+  background-position: 0 0;
+}
+
+.paper-card {
+  background-color: #fffdf8;
+  border-radius: 1.25rem;
+  box-shadow:
+    0 1px 0 #ffffff inset,
+    0 18px 34px -22px rgba(16, 45, 43, 0.45);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.paper-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 1px 0 #ffffff inset,
+    0 26px 44px -22px rgba(16, 45, 43, 0.5);
+}
+
+.sheet-rise {
+  animation: sheet-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sheet-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.learn-shell ::selection {
+  background: rgba(240, 117, 45, 0.3);
+}
+
+.learn-shell :focus-visible {
+  outline-color: #f0752d;
+}
+
+.learn-shell ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.learn-shell ::-webkit-scrollbar-track {
+  background: #eae3d5;
+}
+
+.learn-shell ::-webkit-scrollbar-thumb {
+  background: #9abaae;
+  border: 2px solid #eae3d5;
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-rise,
+  .paper-card {
+    animation: none;
+    transition: none;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -25,17 +178,17 @@
   --color-app-secondary: #3a5a99;
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
-}
+} */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
 
 /* Ensure touch events work properly on mobile */
@@ -75,6 +228,17 @@ button,
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+@media (max-width: 767px) {
+  .wali-mobile-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .wali-mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes chip-pulse {

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-19T01:50:00Z",
+  "title": "Design System: Nurman Course Funnel",
+  "extensions": {
+    "shadows": [
+      { "name": "route-rest", "value": "0 10px 28px rgba(46,75,122,0.08)", "purpose": "Ambient lift for selectable route panels." },
+      { "name": "route-hover", "value": "0 20px 50px rgba(46,75,122,0.14)", "purpose": "Responsive lift on an actionable route." },
+      { "name": "sticky-action", "value": "0 -12px 34px rgba(46,75,122,0.12)", "purpose": "Separate the persistent next action from scrolling content." }
+    ],
+    "motion": [
+      { "name": "route-transition", "value": "transition 200ms ease-out", "purpose": "Small lift and color change for route selection." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" }
+    ]
+  },
+  "narrative": {
+    "northStar": "Peta Belajar",
+    "overview": "The course funnel extends the landing page's plotted learning map into a focused selection flow.",
+    "keyCharacteristics": ["Cool map-blue ground", "Functional route lines", "Warm destination gold", "Mobile-first touch targets"],
+    "rules": [
+      { "name": "The Route Rule", "body": "A route line or progress marker must clarify the next decision, never exist only as decoration.", "section": "layout" },
+      { "name": "The Destination Rule", "body": "Gold is reserved for destination and selected states.", "section": "colors" }
+    ],
+    "dos": ["Do preserve funnel copy and route behavior."],
+    "donts": ["Don't introduce a second palette inside the funnel."]
+  }
+}

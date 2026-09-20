@@ -1,17 +1,23 @@
 import express from 'express';
-import cors from 'cors';
-import morgan from 'morgan';
+import { installHttpSecurity, readHttpSecurityConfig, httpErrorHandler } from './middleware/http-security';
 import dotenv from 'dotenv';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
-import { PrismaClient } from './generated/client';
-import { requireAuth, requireAdmin, AuthenticatedRequest } from './middleware/auth';
+import { prisma } from './lib/prisma';
+import { supabaseAdmin } from './lib/supabase-admin';
+import { requireAuth, requireAdmin, requireOperational, validateAccountAccess, AuthenticatedRequest, supabase } from './middleware/auth';
+import { publicProgramsRouter, adminProgramsRouter } from './routes/content/programs';
+import { roadmapStepsRouter } from './routes/content/roadmap';
+import { materialsRouter } from './routes/content/materials';
+import { authoringRouter } from './routes/authoring/content-authoring';
+import { catalogRouter } from './routes/catalog/catalog';
+import { readerRouter } from './routes/reader/reader';
+import { meRouter } from './routes/me/membership';
+import { trackingRouter } from './routes/tracking/tracking';
 import {
   createEnrollmentSchema,
   createInvoiceSchema,
   createMuridSchema,
   createPaymentAccountSchema,
-  createProgramSchema,
   createUserSchema,
   dailyReportSchema,
   invoiceStatusSchema,
@@ -21,41 +27,19 @@ import {
   updateMuridSchema,
   normalizePhone,
   updatePaymentAccountSchema,
-  updateProgramSchema,
   updateUserSchema,
-  createRoadmapStepSchema,
-  updateRoadmapStepSchema,
-  createMaterialItemSchema,
-  updateMaterialItemSchema,
   createTentorSessionSchema,
   updateTentorSessionSchema,
   submitPaymentSchema,
   createPrepaymentSchema,
-} from '@nurman-course/shared';
+  memberSignupSchema,
+ } from '@nurman-course/shared';
 
 dotenv.config();
 
-export const prisma = new PrismaClient(
-  process.env.NODE_ENV !== 'production'
-    ? { log: [{ level: 'query', emit: 'event' }] }
-    : undefined
-);
+export { prisma };
 
-if (process.env.NODE_ENV !== 'production') {
-  (prisma as any).$on('query', (e: any) => {
-    console.log(`\x1b[36m[SQL]\x1b[0m ${e.query} \x1b[33m(${e.duration}ms)\x1b[0m`);
-  });
-}
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-  : null;
-
-const app = express();
+export const app = express();
 
 function generateWaliEmail(phone: string): string {
   return `${phone}@nurmancourse.local`;
@@ -68,9 +52,7 @@ const DEFAULT_NEW_USER_PASSWORD = "12345678";
 const PORT = Number(process.env.PORT) || 5000;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(morgan('dev'));
+installHttpSecurity(app, readHttpSecurityConfig(process.env));
 
 // Routing
 // 1. Health-check
@@ -80,6 +62,45 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date(),
     service: 'nurman-course-api'
   });
+});
+
+app.post('/api/auth/signup', async (req, res) => {
+  const parsed = memberSignupSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid signup data',
+        details: parsed.error.flatten(),
+      },
+    });
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      options: { data: { name: parsed.data.name } },
+    });
+    if (error || !data.user) {
+      const message = (error?.message ?? '').toLowerCase();
+      if (message.includes('already') || message.includes('registered') || message.includes('exists')) {
+        res.status(202).json({ message: 'Jika email valid, cek inbox untuk verifikasi.' });
+        return;
+      }
+      res.status(400).json({ error: { code: 'SIGNUP_FAILED', message: 'Signup gagal' } });
+      return;
+    }
+
+    res.status(201).json({
+      message: 'Jika email valid, cek inbox untuk verifikasi.',
+      confirmationRequired: !data.session,
+    });
+  } catch {
+    console.error('Member signup failed');
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+  }
 });
 
 // Auth Helper: Resolve phone number to email (Public)
@@ -117,82 +138,30 @@ app.get('/api/users/me', requireAuth, async (req: AuthenticatedRequest, res) => 
       return;
     }
 
-    // Ambil data user dari database Prisma
-    let dbUser = await prisma.user.findUnique({
+    const dbUser = await prisma.user.findUnique({
       where: { id: authUser.id },
-      include: {
-        murids: true // wali murid data
-      }
+      include: { murids: true },
     });
-
-    // Fallback: Jika tidak ketemu via ID, cari via email
-    if (!dbUser && authUser.email) {
-      dbUser = await prisma.user.findUnique({
-        where: { email: authUser.email },
-        include: {
-          murids: true
-        }
-      });
-      if (dbUser) {
-        console.log(`Reconciled user ${authUser.email} via email (auth ID: ${authUser.id}, DB ID: ${dbUser.id})`);
-      }
-    }
-
-    if (!dbUser) {
-      res.status(404).json({ error: 'User not found in application database' });
+    const access = validateAccountAccess(dbUser);
+    if (!access.ok) {
+      res.status(403).json({ error: access.error });
       return;
     }
 
     res.json({
       user: dbUser
     });
-  } catch (error) {
-    console.error('Error fetching current user profile:', error);
+  } catch {
+    console.error('Error fetching current user profile');
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// 3. Programs (Publik)
-app.get('/api/programs', async (req, res) => {
-  try {
-    const programs = await prisma.program.findMany({
-      where: { active: true },
-      include: {
-        roadmapSteps: {
-          orderBy: { order: 'asc' }
-        }
-      }
-    });
-    res.json({ programs });
-  } catch (error) {
-    console.error('Error fetching programs:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/api/programs/:id', async (req, res) => {
-  try {
-    const program = await prisma.program.findUnique({
-      where: { id: req.params.id },
-      include: {
-        roadmapSteps: {
-          orderBy: { order: 'asc' }
-        }
-      }
-    });
-    if (!program) {
-      res.status(404).json({ error: 'Program not found' });
-      return;
-    }
-    res.json({ program });
-  } catch (error) {
-    console.error('Error fetching program detail:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+// 3. Programs (Publik) — handler dipindahkan ke routes/content/programs.ts
+app.use(publicProgramsRouter);
 
 // 4. Sessions (Terproteksi - per Role)
-app.get('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/sessions', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -243,7 +212,7 @@ app.get('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res) 
 });
 
 // 5. Daily Reports (Terproteksi - per Role)
-app.get('/api/me/daily-reports', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/daily-reports', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -303,7 +272,7 @@ app.get('/api/me/daily-reports', requireAuth, async (req: AuthenticatedRequest, 
   }
 });
 
-app.post('/api/daily-reports', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/daily-reports', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (user?.role !== 'tentor') {
@@ -378,7 +347,7 @@ app.post('/api/daily-reports', requireAuth, async (req: AuthenticatedRequest, re
 });
 
 // 6. Progress Reports (Terproteksi - per Role)
-app.get('/api/me/progress-reports', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/progress-reports', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -453,7 +422,7 @@ app.get('/api/me/progress-reports', requireAuth, async (req: AuthenticatedReques
   }
 });
 
-app.post('/api/progress-reports', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/progress-reports', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (user?.role !== 'tentor') {
@@ -508,7 +477,7 @@ app.post('/api/progress-reports', requireAuth, async (req: AuthenticatedRequest,
 });
 
 // 7. Enrollments (Terproteksi - per Role)
-app.get('/api/me/enrollments', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/enrollments', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -562,7 +531,7 @@ app.get('/api/me/enrollments', requireAuth, async (req: AuthenticatedRequest, re
 });
 
 // 8. Invoices (Terproteksi - per Role)
-app.get('/api/me/invoices', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/invoices', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -613,7 +582,7 @@ app.get('/api/me/invoices', requireAuth, async (req: AuthenticatedRequest, res) 
   }
 });
 
-app.post('/api/me/invoices/:id/payment', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/me/invoices/:id/payment', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   const parsed = submitPaymentSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -672,7 +641,7 @@ app.post('/api/me/invoices/:id/payment', requireAuth, async (req: AuthenticatedR
 });
 
 // 8b. Prepayments (Pembayaran mandiri/prabayar sebelum ada tagihan)
-app.get('/api/me/prepayments', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/prepayments', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -695,7 +664,7 @@ app.get('/api/me/prepayments', requireAuth, async (req: AuthenticatedRequest, re
   }
 });
 
-app.post('/api/me/prepayments', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/me/prepayments', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   const parsed = createPrepaymentSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -813,7 +782,7 @@ app.patch('/api/admin/prepayments/:id/status', requireAuth, requireAdmin, async 
   }
 });
 
-app.get('/api/me/notifications', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/notifications', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -895,7 +864,7 @@ app.get('/api/admin/dashboard', requireAuth, requireAdmin, async (req: Authentic
 });
 
 // 9. Progress (Roadmap step progress, Terproteksi - per Role)
-app.get('/api/me/progresses', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/me/progresses', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -999,577 +968,17 @@ app.get('/api/admin/tentors', requireAuth, requireAdmin, async (req: Authenticat
   }
 });
 
-// 12. Admin-Only Program Management
-app.get('/api/admin/programs', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
-    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
-    const active = req.query.active === undefined
-      ? undefined
-      : req.query.active === 'true';
+// 12. Admin-Only Program Management — handler dipindahkan ke routes/content/programs.ts
+app.use(adminProgramsRouter);
 
-    const where = {
-      ...(search ? {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' as const } },
-          { slug: { contains: search, mode: 'insensitive' as const } },
-        ],
-      } : {}),
-      ...(category ? { category } : {}),
-      ...(active === undefined ? {} : { active }),
-    };
-
-    const [programs, total] = await prisma.$transaction([
-      prisma.program.findMany({
-        where,
-        include: {
-          _count: {
-            select: { roadmapSteps: true, enrollments: true, sessions: true },
-          },
-        },
-        orderBy: { name: 'asc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.program.count({ where }),
-    ]);
-
-    res.json({
-      data: programs,
-      pagination: {
-        page,
-        limit,
-        totalItems: total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error('Error fetching admin programs:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.get('/api/admin/programs/:id', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const program = await prisma.program.findUnique({
-      where: { id: req.params.id },
-      include: {
-        roadmapSteps: { orderBy: { order: 'asc' } },
-        _count: { select: { enrollments: true, sessions: true } },
-      },
-    });
-
-    if (!program) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Program not found' } });
-      return;
-    }
-
-    res.json({ data: program });
-  } catch (error) {
-    console.error('Error fetching admin program:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.post('/api/admin/programs', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = createProgramSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid program data',
-        details: parsed.error.flatten(),
-      },
-    });
-    return;
-  }
-
-  try {
-    const program = await prisma.program.create({ data: parsed.data });
-    res.status(201).json({ data: program });
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
-      res.status(409).json({ error: { code: 'CONFLICT', message: 'Program slug already exists' } });
-      return;
-    }
-    console.error('Error creating admin program:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.patch('/api/admin/programs/:id', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = updateProgramSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid program data',
-        details: parsed.error.flatten(),
-      },
-    });
-    return;
-  }
-
-  if (Object.keys(parsed.data).length === 0) {
-    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'At least one field is required' } });
-    return;
-  }
-
-  try {
-    const program = await prisma.program.update({
-      where: { id: req.params.id },
-      data: parsed.data,
-    });
-    res.json({ data: program });
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'code' in error) {
-      if (error.code === 'P2025') {
-        res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Program not found' } });
-        return;
-      }
-      if (error.code === 'P2002') {
-        res.status(409).json({ error: { code: 'CONFLICT', message: 'Program slug already exists' } });
-        return;
-      }
-    }
-    console.error('Error updating admin program:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.delete('/api/admin/programs/:id', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const program = await prisma.program.findUnique({
-      where: { id: req.params.id },
-      include: { _count: { select: { enrollments: true, sessions: true } } },
-    });
-
-    if (!program) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Program not found' } });
-      return;
-    }
-
-    if (program._count.enrollments > 0 || program._count.sessions > 0) {
-      const updated = await prisma.program.update({
-        where: { id: program.id },
-        data: { active: false },
-      });
-      res.json({ data: updated, deactivated: true });
-      return;
-    }
-
-    await prisma.program.delete({ where: { id: program.id } });
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error deleting admin program:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-// 12.5. Admin-Only RoadmapStep Management
-app.get('/api/admin/programs/:programId/roadmap', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const program = await prisma.program.findUnique({
-      where: { id: req.params.programId },
-    });
-    if (!program) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Program tidak ditemukan' } });
-      return;
-    }
-    const steps = await prisma.roadmapStep.findMany({
-      where: { programId: req.params.programId },
-      orderBy: { order: 'asc' },
-    });
-    res.json({ data: steps });
-  } catch (error) {
-    console.error('Error fetching admin roadmap steps:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.post('/api/admin/programs/:programId/roadmap', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = createRoadmapStepSchema.safeParse({ ...req.body, programId: req.params.programId });
-  if (!parsed.success) {
-    res.status(400).json({
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid roadmap step data',
-        details: parsed.error.flatten(),
-      },
-    });
-    return;
-  }
-
-  const { programId, order, title, bodyText, level } = parsed.data;
-
-  try {
-    const program = await prisma.program.findUnique({
-      where: { id: programId },
-    });
-    if (!program) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Program tidak ditemukan' } });
-      return;
-    }
-    if (!program.hasRoadmap) {
-      res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Program ini tidak menggunakan roadmap' } });
-      return;
-    }
-
-    let targetOrder = order;
-    if (targetOrder === undefined) {
-      const maxStep = await prisma.roadmapStep.findFirst({
-        where: { programId },
-        orderBy: { order: 'desc' },
-        select: { order: true },
-      });
-      targetOrder = maxStep ? maxStep.order + 1 : 0;
-    }
-
-    const step = await prisma.roadmapStep.create({
-      data: {
-        programId,
-        order: targetOrder,
-        title,
-        bodyText,
-        level,
-      },
-    });
-    res.status(201).json({ data: step });
-  } catch (error) {
-    console.error('Error creating admin roadmap step:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.post('/api/admin/programs/:programId/roadmap/reorder', requireAuth, requireAdmin, async (req, res) => {
-  const { stepIds } = req.body;
-  if (!Array.isArray(stepIds) || stepIds.some(id => typeof id !== 'string')) {
-    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'stepIds harus berupa array string ID' } });
-    return;
-  }
-
-  try {
-    const program = await prisma.program.findUnique({
-      where: { id: req.params.programId },
-      include: { roadmapSteps: { select: { id: true } } }
-    });
-
-    if (!program) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Program tidak ditemukan' } });
-      return;
-    }
-
-    const existingStepIds = new Set(program.roadmapSteps.map(s => s.id));
-
-    for (const id of stepIds) {
-      if (!existingStepIds.has(id)) {
-        res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: `Step ID ${id} tidak valid untuk program ini` } });
-        return;
-      }
-    }
-
-    await prisma.$transaction(
-      stepIds.map((id, index) =>
-        prisma.roadmapStep.update({
-          where: { id },
-          data: { order: index },
-        })
-      )
-    );
-
-    const updatedSteps = await prisma.roadmapStep.findMany({
-      where: { programId: req.params.programId },
-      orderBy: { order: 'asc' },
-    });
-
-    res.json({ data: updatedSteps });
-  } catch (error) {
-    console.error('Error reordering roadmap steps:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.patch('/api/admin/roadmap-steps/:id', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = updateRoadmapStepSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid roadmap step data',
-        details: parsed.error.flatten(),
-      },
-    });
-    return;
-  }
-
-  if (Object.keys(parsed.data).length === 0) {
-    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'At least one field is required' } });
-    return;
-  }
-
-  try {
-    const existingStep = await prisma.roadmapStep.findUnique({
-      where: { id: req.params.id },
-      include: { program: { select: { hasRoadmap: true } } },
-    });
-    if (!existingStep) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Roadmap step tidak ditemukan' } });
-      return;
-    }
-    if (!existingStep.program.hasRoadmap) {
-      res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Program ini tidak menggunakan roadmap' } });
-      return;
-    }
-
-    const updated = await prisma.roadmapStep.update({
-      where: { id: req.params.id },
-      data: parsed.data,
-    });
-    res.json({ data: updated });
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Roadmap step tidak ditemukan' } });
-      return;
-    }
-    console.error('Error updating admin roadmap step:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.delete('/api/admin/roadmap-steps/:id', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const existingStep = await prisma.roadmapStep.findUnique({
-      where: { id: req.params.id },
-      include: { program: { select: { hasRoadmap: true } } },
-    });
-    if (!existingStep) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Roadmap step tidak ditemukan' } });
-      return;
-    }
-    if (!existingStep.program.hasRoadmap) {
-      res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Program ini tidak menggunakan roadmap' } });
-      return;
-    }
-
-    await prisma.roadmapStep.delete({
-      where: { id: req.params.id },
-    });
-    res.status(204).send();
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Roadmap step tidak ditemukan' } });
-      return;
-    }
-    console.error('Error deleting admin roadmap step:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-// 12.6. Admin-Only MaterialItem Management
-async function assertRoadmapStepHasRoadmap(stepId: string) {
-  const step = await prisma.roadmapStep.findUnique({
-    where: { id: stepId },
-    include: { program: { select: { hasRoadmap: true } } },
-  });
-  if (!step) {
-    return { ok: false as const, status: 404, code: 'NOT_FOUND', message: 'Roadmap step tidak ditemukan' };
-  }
-  if (!step.program.hasRoadmap) {
-    return { ok: false as const, status: 400, code: 'VALIDATION_ERROR', message: 'Program ini tidak menggunakan roadmap' };
-  }
-  return { ok: true as const, step };
-}
-
-app.get('/api/admin/roadmap-steps/:stepId/materials', requireAuth, requireAdmin, async (req, res) => {
-  const result = await assertRoadmapStepHasRoadmap(req.params.stepId);
-  if (!result.ok) {
-    res.status(result.status).json({ error: { code: result.code, message: result.message } });
-    return;
-  }
-  try {
-    const materials = await prisma.materialItem.findMany({
-      where: { roadmapStepId: req.params.stepId },
-      orderBy: { order: 'asc' },
-    });
-    res.json({ data: materials });
-  } catch (error) {
-    console.error('Error fetching admin material items:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.post('/api/admin/roadmap-steps/:stepId/materials', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = createMaterialItemSchema.safeParse({ ...req.body, roadmapStepId: req.params.stepId });
-  if (!parsed.success) {
-    res.status(400).json({
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid material item data',
-        details: parsed.error.flatten(),
-      },
-    });
-    return;
-  }
-
-  const result = await assertRoadmapStepHasRoadmap(req.params.stepId);
-  if (!result.ok) {
-    res.status(result.status).json({ error: { code: result.code, message: result.message } });
-    return;
-  }
-
-  const { roadmapStepId, order, title, bodyText } = parsed.data;
-
-  try {
-    let targetOrder = order;
-    if (targetOrder === undefined) {
-      const maxItem = await prisma.materialItem.findFirst({
-        where: { roadmapStepId },
-        orderBy: { order: 'desc' },
-        select: { order: true },
-      });
-      targetOrder = maxItem ? maxItem.order + 1 : 0;
-    }
-
-    const material = await prisma.materialItem.create({
-      data: {
-        roadmapStepId,
-        order: targetOrder,
-        title,
-        bodyText,
-      },
-    });
-    res.status(201).json({ data: material });
-  } catch (error) {
-    console.error('Error creating admin material item:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.patch('/api/admin/material-items/:id', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = updateMaterialItemSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid material item data',
-        details: parsed.error.flatten(),
-      },
-    });
-    return;
-  }
-
-  if (Object.keys(parsed.data).length === 0) {
-    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'At least one field is required' } });
-    return;
-  }
-
-  try {
-    const existing = await prisma.materialItem.findUnique({
-      where: { id: req.params.id },
-      include: { roadmapStep: { include: { program: { select: { hasRoadmap: true } } } } },
-    });
-    if (!existing) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Material item tidak ditemukan' } });
-      return;
-    }
-    if (!existing.roadmapStep?.program.hasRoadmap) {
-      res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Program ini tidak menggunakan roadmap' } });
-      return;
-    }
-
-    const updated = await prisma.materialItem.update({
-      where: { id: req.params.id },
-      data: parsed.data,
-    });
-    res.json({ data: updated });
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Material item tidak ditemukan' } });
-      return;
-    }
-    console.error('Error updating admin material item:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.delete('/api/admin/material-items/:id', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const existing = await prisma.materialItem.findUnique({
-      where: { id: req.params.id },
-      include: { roadmapStep: { include: { program: { select: { hasRoadmap: true } } } } },
-    });
-    if (!existing) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Material item tidak ditemukan' } });
-      return;
-    }
-    if (!existing.roadmapStep?.program.hasRoadmap) {
-      res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Program ini tidak menggunakan roadmap' } });
-      return;
-    }
-
-    await prisma.materialItem.delete({
-      where: { id: req.params.id },
-    });
-    res.status(204).send();
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Material item tidak ditemukan' } });
-      return;
-    }
-    console.error('Error deleting admin material item:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
-
-app.post('/api/admin/roadmap-steps/:stepId/materials/reorder', requireAuth, requireAdmin, async (req, res) => {
-  const { materialIds } = req.body;
-  if (!Array.isArray(materialIds) || materialIds.some(id => typeof id !== 'string')) {
-    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'materialIds harus berupa array string ID' } });
-    return;
-  }
-
-  const result = await assertRoadmapStepHasRoadmap(req.params.stepId);
-  if (!result.ok) {
-    res.status(result.status).json({ error: { code: result.code, message: result.message } });
-    return;
-  }
-
-  try {
-    const existingMaterials = await prisma.materialItem.findMany({
-      where: { roadmapStepId: req.params.stepId },
-      select: { id: true },
-    });
-    const existingIds = new Set(existingMaterials.map(m => m.id));
-
-    for (const id of materialIds) {
-      if (!existingIds.has(id)) {
-        res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: `Material ID ${id} tidak valid untuk step ini` } });
-        return;
-      }
-    }
-
-    await prisma.$transaction(
-      materialIds.map((id, index) =>
-        prisma.materialItem.update({
-          where: { id },
-          data: { order: index },
-        })
-      )
-    );
-
-    const updatedMaterials = await prisma.materialItem.findMany({
-      where: { roadmapStepId: req.params.stepId },
-      orderBy: { order: 'asc' },
-    });
-
-    res.json({ data: updatedMaterials });
-  } catch (error) {
-    console.error('Error reordering material items:', error);
-    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
-  }
-});
+// 12.5 / 12.6. Roadmap & MaterialItem — handler dipindahkan ke routes/content/
+app.use(roadmapStepsRouter);
+app.use(materialsRouter);
+app.use(authoringRouter);
+app.use(catalogRouter);
+app.use(readerRouter);
+app.use(meRouter);
+app.use(trackingRouter);
 
 // 13. Admin-Only Users Management
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res) => {
@@ -1733,10 +1142,46 @@ app.patch('/api/admin/users/:id', requireAuth, requireAdmin, async (req: Authent
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { id: targetId }, select: { email: true, phone: true } });
+    const existing = await prisma.user.findUnique({
+      where: { id: targetId },
+      select: {
+        id: true,
+        role: true,
+        email: true,
+        phone: true,
+        _count: {
+          select: {
+            murids: true,
+            sessions: true,
+            enrollments: true,
+          },
+        },
+      },
+    });
     if (!existing) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
       return;
+    }
+
+    if (parsed.data.role !== undefined && parsed.data.role !== existing.role) {
+      if (existing.role === 'wali' && existing._count.murids > 0) {
+        res.status(400).json({
+          error: {
+            code: 'ROLE_CHANGE_RESTRICTED',
+            message: 'Role wali tidak bisa diubah karena masih memiliki data murid terhubung',
+          },
+        });
+        return;
+      }
+      if (existing.role === 'tentor' && (existing._count.sessions > 0 || existing._count.enrollments > 0)) {
+        res.status(400).json({
+          error: {
+            code: 'ROLE_CHANGE_RESTRICTED',
+            message: 'Role tentor tidak bisa diubah karena masih memiliki sesi atau enrollment mengajar',
+          },
+        });
+        return;
+      }
     }
 
     const updatePayload: Record<string, unknown> = {};
@@ -2665,6 +2110,22 @@ app.patch('/api/admin/invoices/:id/status', requireAuth, requireAdmin, async (re
       return;
     }
 
+    const allowedTransitions: Record<string, string[]> = {
+      unpaid: ['waiting', 'paid', 'unpaid'],
+      waiting: ['paid', 'unpaid', 'waiting'],
+      paid: ['unpaid', 'paid'],
+    };
+
+    if (!allowedTransitions[existing.status]?.includes(status)) {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_TRANSITION',
+          message: `Tidak dapat mengubah status invoice dari ${existing.status} ke ${status}`,
+        },
+      });
+      return;
+    }
+
     const invoice = await prisma.invoice.update({
       where: { id: req.params.id },
       data: {
@@ -2811,7 +2272,7 @@ app.delete('/api/admin/payment-accounts/:id', requireAuth, requireAdmin, async (
 });
 
 // 17.5 Tentor Sessions CRUD (Terproteksi - Tentor manual per enrollment)
-app.post('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/me/sessions', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user || user.role !== 'tentor') {
@@ -2860,16 +2321,21 @@ app.post('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res)
 
     const overlapping = await prisma.session.findFirst({
       where: {
-        tentorId: user.id,
         status: { not: 'cancelled' },
         OR: [
-          { startsAt: { lt: endsAt }, endsAt: { gt: startsAt } },
+          { tentorId: user.id },
+          { muridId: enrollment.muridId },
         ],
+        startsAt: { lt: endsAt },
+        endsAt: { gt: startsAt },
       },
-      select: { id: true },
+      select: { id: true, tentorId: true, muridId: true },
     });
     if (overlapping) {
-      res.status(409).json({ error: { code: 'CONFLICT', message: 'Jadwal bentrok dengan sesi lain pada jam yang sama' } });
+      const msg = overlapping.muridId === enrollment.muridId
+        ? 'Jadwal bentrok: Murid sudah memiliki sesi belajar di jam ini'
+        : 'Jadwal bentrok: Tentor sudah memiliki sesi mengajar di jam ini';
+      res.status(409).json({ error: { code: 'CONFLICT', message: msg } });
       return;
     }
 
@@ -2893,7 +2359,7 @@ app.post('/api/me/sessions', requireAuth, async (req: AuthenticatedRequest, res)
   }
 });
 
-app.patch('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.patch('/api/me/sessions/:id', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user || user.role !== 'tentor') {
@@ -2907,7 +2373,7 @@ app.patch('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest,
       return;
     }
 
-    const existing = await prisma.session.findUnique({ where: { id: req.params.id! }, select: { id: true, tentorId: true, status: true, startsAt: true, endsAt: true } });
+    const existing = await prisma.session.findUnique({ where: { id: req.params.id! }, select: { id: true, tentorId: true, muridId: true, status: true, startsAt: true, endsAt: true } });
     if (!existing) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Sesi tidak ditemukan' } });
       return;
@@ -2950,15 +2416,21 @@ app.patch('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest,
       const overlapping = await prisma.session.findFirst({
         where: {
           id: { not: existing.id },
-          tentorId: user.id,
           status: { not: 'cancelled' },
+          OR: [
+            { tentorId: user.id },
+            { muridId: existing.muridId },
+          ],
           startsAt: { lt: eAt },
           endsAt: { gt: sAt },
         },
-        select: { id: true },
+        select: { id: true, tentorId: true, muridId: true },
       });
       if (overlapping) {
-        res.status(409).json({ error: { code: 'CONFLICT', message: 'Jadwal bentrok' } });
+        const msg = overlapping.muridId === existing.muridId
+          ? 'Jadwal bentrok: Murid sudah memiliki sesi belajar di jam ini'
+          : 'Jadwal bentrok: Tentor sudah memiliki sesi mengajar di jam ini';
+        res.status(409).json({ error: { code: 'CONFLICT', message: msg } });
         return;
       }
     }
@@ -2981,7 +2453,7 @@ app.patch('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest,
   }
 });
 
-app.delete('/api/me/sessions/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.delete('/api/me/sessions/:id', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
     if (!user || user.role !== 'tentor') {
@@ -3072,14 +2544,21 @@ app.post('/api/admin/sessions', requireAuth, requireAdmin, async (req: Authentic
 
     const overlapping = await prisma.session.findFirst({
       where: {
-        tentorId: enrollment.tentorId!,
         status: { not: 'cancelled' },
-        OR: [{ startsAt: { lt: endsAt }, endsAt: { gt: startsAt } }],
+        OR: [
+          { tentorId: enrollment.tentorId! },
+          { muridId: enrollment.muridId },
+        ],
+        startsAt: { lt: endsAt },
+        endsAt: { gt: startsAt },
       },
-      select: { id: true },
+      select: { id: true, tentorId: true, muridId: true },
     });
     if (overlapping) {
-      res.status(409).json({ error: { code: 'CONFLICT', message: 'Jadwal bentrok dengan sesi lain pada jam yang sama' } });
+      const msg = overlapping.muridId === enrollment.muridId
+        ? 'Jadwal bentrok: Murid sudah memiliki sesi belajar di jam ini'
+        : 'Jadwal bentrok: Tentor sudah memiliki sesi mengajar di jam ini';
+      res.status(409).json({ error: { code: 'CONFLICT', message: msg } });
       return;
     }
 
@@ -3111,7 +2590,7 @@ app.patch('/api/admin/sessions/:id', requireAuth, requireAdmin, async (req: Auth
       return;
     }
 
-    const existing = await prisma.session.findUnique({ where: { id: req.params.id! }, select: { id: true, tentorId: true, status: true, startsAt: true, endsAt: true } });
+    const existing = await prisma.session.findUnique({ where: { id: req.params.id! }, select: { id: true, tentorId: true, muridId: true, status: true, startsAt: true, endsAt: true } });
     if (!existing) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Sesi tidak ditemukan' } });
       return;
@@ -3150,15 +2629,21 @@ app.patch('/api/admin/sessions/:id', requireAuth, requireAdmin, async (req: Auth
       const overlapping = await prisma.session.findFirst({
         where: {
           id: { not: existing.id },
-          tentorId: existing.tentorId,
           status: { not: 'cancelled' },
+          OR: [
+            { tentorId: existing.tentorId },
+            { muridId: existing.muridId },
+          ],
           startsAt: { lt: eAt },
           endsAt: { gt: sAt },
         },
-        select: { id: true },
+        select: { id: true, tentorId: true, muridId: true },
       });
       if (overlapping) {
-        res.status(409).json({ error: { code: 'CONFLICT', message: 'Jadwal bentrok' } });
+        const msg = overlapping.muridId === existing.muridId
+          ? 'Jadwal bentrok: Murid sudah memiliki sesi belajar di jam ini'
+          : 'Jadwal bentrok: Tentor sudah memiliki sesi mengajar di jam ini';
+        res.status(409).json({ error: { code: 'CONFLICT', message: msg } });
         return;
       }
     }
@@ -3206,7 +2691,7 @@ app.delete('/api/admin/sessions/:id', requireAuth, requireAdmin, async (req: Aut
 });
 
 // 18. Public Payment Accounts (terproteksi auth - dipakai wali)
-app.get('/api/payment-accounts', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.get('/api/payment-accounts', requireAuth, requireOperational, async (req: AuthenticatedRequest, res) => {
   try {
     const accounts = await prisma.paymentAccount.findMany({
       where: { isActive: true },
@@ -3218,6 +2703,8 @@ app.get('/api/payment-accounts', requireAuth, async (req: AuthenticatedRequest, 
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
   }
 });
+
+app.use(httpErrorHandler);
 
 // Start Server
 async function startServer() {

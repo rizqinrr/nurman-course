@@ -68,21 +68,24 @@ export default function TentorProfilePage() {
   };
 
   useEffect(() => {
+    let active = true;
     async function load() {
       try {
         const res = await apiFetch<{ user: TentorProfile & { enrollments?: EnrollmentSummary[] } }>("/api/users/me");
+        if (!active) return;
         setProfile(res.user);
         try {
           const enr = await apiFetch<{ data?: EnrollmentSummary[]; enrollments?: EnrollmentSummary[] }>("/api/me/enrollments");
-          setEnrollments((enr as any).data || (enr as any).enrollments || []);
+          if (active) setEnrollments(enr.data || enr.enrollments || []);
         } catch {}
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Gagal memuat profil");
+        if (active) setError(e instanceof Error ? e.message : "Gagal memuat profil");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
-    load();
+    void load();
+    return () => { active = false; };
   }, []);
 
   if (loading) {

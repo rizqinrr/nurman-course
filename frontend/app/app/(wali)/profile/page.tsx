@@ -1,26 +1,25 @@
-/* Hallmark · genre: playful-glassmorphism · design-system: design.md · designed-as-app */
+/* Hallmark · genre: warm-editorial · design-system: google-stitch · designed-as-mobile-app */
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useLogout } from "@/lib/useLogout";
-import GlassCard from "@/components/ui/GlassCard";
-import Button from "@/components/ui/Button";
-import { 
-  User, 
-  Phone, 
-  Mail, 
-  GraduationCap, 
+import {
+  ArrowLeft,
+  Phone,
+  Mail,
+  GraduationCap,
   LogOut,
-  ChevronLeft,
   KeyRound,
   Eye,
   EyeOff,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck,
+  CalendarCheck
 } from "lucide-react";
-import Link from "next/link";
 
 interface DbMurid {
   id: string;
@@ -68,7 +67,7 @@ export default function ProfilePage() {
         setPwError(error.message || "Gagal mengubah password.");
         return;
       }
-      setPwSuccess("Password berhasil diubah.");
+      setPwSuccess("Password berhasil diubah!");
       setNewPassword("");
       setConfirmPassword("");
       setShowPw(false);
@@ -93,221 +92,237 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto w-full flex-grow flex flex-col gap-6 items-center justify-center min-h-[50vh]">
-        <div className="w-12 h-12 rounded-full border-4 border-white/20 border-t-[#4a70a9] animate-spin"></div>
-        <p className="text-sm font-semibold text-gray-600">Memuat profil...</p>
+      <div className="p-6 w-full flex-grow flex flex-col gap-4 items-center justify-center min-h-[50vh]">
+        <div className="w-10 h-10 rounded-full border-3 border-[#4a70a9]/20 border-t-[#4a70a9] animate-spin"></div>
+        <p className="text-xs font-semibold text-[#737781]">Memuat profil pengguna...</p>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto w-full flex-grow flex flex-col gap-6">
-        <div className="p-8 text-center text-gray-600 bg-app-white border border-app-border rounded-2xl shadow-md">
-          <p className="font-bold">Gagal memuat profil</p>
-          <p className="text-sm text-gray-500 mt-1">Silakan coba beberapa saat lagi.</p>
+      <div className="px-4 py-8 text-center text-[#737781]">
+        <div className="p-6 bg-white border border-[#e5ddd0] rounded-xl shadow-xs">
+          <p className="font-bold text-sm text-[#1a1a2e]">Gagal Memuat Profil</p>
+          <p className="text-xs text-[#737781] mt-1">Silakan coba beberapa saat lagi.</p>
         </div>
       </div>
     );
   }
 
-  const child = profile.murids[0];
-
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto w-full flex-grow flex flex-col gap-6 animate-[fadeIn_0.5s_ease-out] font-dm text-app-text-mid">
-      {/* Header */}
-      <header className="flex items-center gap-4 bg-app-white border border-app-border shadow-md rounded-2xl p-6 relative">
-        <Link 
-          href="/app/dashboard"
-          className="p-2.5 rounded-xl hover:bg-app-surface text-gray-600 transition-colors border border-transparent hover:border-app-border active:scale-95"
-        >
-          <ChevronLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-normal text-app-text tracking-tight font-playfair">
-            Profil Saya
-          </h1>
-          <p className="text-sm text-app-text-muted">
-            Detail akun wali murid Nurman Course
-          </p>
+    <div className="px-4 pt-2 pb-24 space-y-4 animate-[fadeIn_0.3s_ease-out] font-dm text-[#1a1a2e]">
+      {/* 1. Top Bar Navigation (Stitch Universal Header) */}
+      <header className="flex items-center justify-between pt-1 pb-1">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/app/dashboard"
+            aria-label="Kembali ke Dashboard"
+            className="w-9 h-9 rounded-full bg-white border border-[#e5ddd0] flex items-center justify-center text-[#1a1a2e] hover:bg-[#eaf0f8] hover:text-[#4a70a9] transition-colors shadow-xs active:scale-95"
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold font-playfair text-[#1a1a2e] tracking-tight leading-tight">
+              Profil Saya
+            </h1>
+            <p className="text-[11px] text-[#737781] leading-none mt-0.5">
+              Pengaturan Akun &amp; Data Anak
+            </p>
+          </div>
         </div>
       </header>
 
-      {/* Profile Details */}
-      <div className="p-6 sm:p-8 flex flex-col gap-6 bg-app-white border border-app-border shadow-md rounded-2xl hover:shadow-lg transition-all duration-300">
-        {/* Avatar Placeholder (Child) */}
-        <div className="flex flex-col items-center gap-3 border-b border-app-border/40 pb-6">
-          {child && (child.photoPath || child.avatarUrl) ? (
-            <img 
-              src={child.photoPath || child.avatarUrl || ""} 
-              alt={child?.name || "Foto Anak"} 
-              className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-[#4a70a9]/10 border-2 border-white flex items-center justify-center text-[#4a70a9] shadow-inner">
-              <GraduationCap size={40} />
-            </div>
-          )}
-          <h2 className="text-xl font-bold text-gray-800">{child?.name || "Nama Anak"}</h2>
-          <span className="px-3 py-1 bg-[#4a70a9]/10 text-[#4a70a9] text-xs font-bold rounded-full">
-            {child?.schoolLevel || "Murid"}
-          </span>
-        </div>
-
-        {/* Read-only Fields */}
-        <div className="space-y-4">
-          {/* Section: Informasi Anak (Sekarang di Atas) */}
-          {child && (
-            <div className="pb-4">
-              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <GraduationCap size={18} className="text-[#4a70a9]" />
-                Informasi Anak
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Nama Anak
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={child.name}
-                    className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Kelas / Jenjang
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={child.schoolLevel || "-"}
-                    className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Section: Informasi Wali (Sekarang di Bawah) */}
-          <div className="border-t border-app-border/40 pt-4 mt-2">
-            <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <User size={18} className="text-[#4a70a9]" />
-              Informasi Wali
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                  Nama Lengkap Wali
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={profile.name}
-                  className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    Nomor WhatsApp
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={profile.phone}
-                    className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    Alamat Email
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={profile.email || "-"}
-                    className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed border-dashed"
-                  />
-                </div>
-              </div>
-            </div>
+      {/* 2. Hero Card: Identitas Wali Murid */}
+      <section className="bg-white rounded-xl border border-[#e5ddd0] p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)] space-y-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-14 h-14 rounded-full bg-[#4a70a9] text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0 font-playfair border-2 border-white">
+            {getInitials(profile.name)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="inline-flex items-center gap-1 bg-[#eaf0f8] text-[#30578f] px-2 py-0.5 rounded-full text-[10px] font-bold tracking-normal mb-1">
+              <ShieldCheck size={11} />
+              <span>Wali Murid Terdaftar</span>
+            </span>
+            <h2 className="text-base font-bold font-playfair text-[#1a1a2e] truncate">
+              {profile.name}
+            </h2>
+            <p className="text-xs text-[#737781]">Akun Orang Tua / Wali</p>
           </div>
         </div>
 
-        {/* Ubah Kata Sandi */}
-        <div className="border-t border-app-border/40 pt-5">
-          <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-            <KeyRound size={18} className="text-[#4a70a9]" />
-            Ubah Kata Sandi
+        {/* Informasi Kontak */}
+        <div className="border-t border-[#e5ddd0]/60 pt-3 space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-[#737781]">
+              <Phone size={14} className="text-[#4a70a9]" />
+              <span>WhatsApp:</span>
+            </div>
+            <span className="font-semibold text-[#1a1a2e] font-mono">
+              {profile.phone}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-[#737781]">
+              <Mail size={14} className="text-[#4a70a9]" />
+              <span>Email:</span>
+            </div>
+            <span className="font-semibold text-[#1a1a2e] truncate max-w-[200px]">
+              {profile.email || "-"}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Section: Data Anak Bimbingan */}
+      <section className="space-y-2.5">
+        <div className="flex items-center gap-1.5 px-1">
+          <GraduationCap size={16} className="text-[#4a70a9]" />
+          <h3 className="text-sm font-bold font-playfair text-[#1a1a2e]">
+            Data Anak Bimbingan
           </h3>
-          <form onSubmit={handleUpdatePassword} className="space-y-3">
-            {pwSuccess && (
-              <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs text-emerald-700 flex items-center gap-2">
-                <CheckCircle2 size={15} className="shrink-0" /> {pwSuccess}
-              </div>
-            )}
-            {pwError && (
-              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs text-red-700 flex items-center gap-2">
-                <AlertCircle size={15} className="shrink-0" /> {pwError}
-              </div>
-            )}
+        </div>
+
+        {profile.murids.length > 0 ? (
+          <div className="space-y-2.5">
+            {profile.murids.map((child, idx) => (
+              <article
+                key={child.id}
+                className="bg-white rounded-xl border border-[#e5ddd0] p-3.5 shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs ${idx === 0 ? "bg-[#4a70a9]" : "bg-[#c8b99a]"}`}>
+                    {getInitials(child.name)}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-[#1a1a2e] truncate">
+                      {child.name}
+                    </h4>
+                    <p className="text-[11px] text-[#737781] mt-0.5">
+                      {child.schoolLevel || "Murid Terdaftar"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-1 bg-[#dcfce7] text-[#16a34a] px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0">
+                  <CalendarCheck size={11} />
+                  <span>Aktif Belajar</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border border-[#e5ddd0] rounded-xl p-4 text-center text-xs text-[#737781]">
+            Belum ada profil anak terdaftar.
+          </div>
+        )}
+      </section>
+
+      {/* 4. Section: Keamanan Akun (Ganti Password) */}
+      <section className="bg-white rounded-xl border border-[#e5ddd0] p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)] space-y-3.5">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#e5ddd0]/60">
+          <KeyRound size={16} className="text-[#4a70a9]" />
+          <div>
+            <h3 className="text-sm font-bold font-playfair text-[#1a1a2e]">
+              Keamanan Akun
+            </h3>
+            <p className="text-[10px] text-[#737781]">
+              Perbarui kata sandi untuk melindungi akses portal
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleUpdatePassword} className="space-y-3">
+          {pwSuccess && (
+            <div role="status" className="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-2.5 text-xs text-[#16a34a] flex items-center gap-2">
+              <CheckCircle2 size={15} className="shrink-0" />
+              <span>{pwSuccess}</span>
+            </div>
+          )}
+          {pwError && (
+            <div role="alert" className="rounded-xl border border-[#fecaca] bg-[#fef2f2] p-2.5 text-xs text-[#dc2626] flex items-center gap-2">
+              <AlertCircle size={15} className="shrink-0" />
+              <span>{pwError}</span>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[#737781]">
+              Password Baru
+            </label>
             <div className="relative">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                Password Baru
-              </label>
               <input
                 type={showPw ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
                 minLength={6}
-                className="w-full rounded-xl border border-gray-200 bg-app-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-[#4a70a9]"
+                placeholder="Minimal 6 karakter"
+                className="w-full text-xs rounded-xl border border-[#e5ddd0] bg-white px-3 py-2.5 text-[#1a1a2e] outline-none focus:border-[#4a70a9] pr-10"
+                required
               />
               <button
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
                 aria-label={showPw ? "Sembunyikan password" : "Tampilkan password"}
-                className="absolute right-3 bottom-2.5 text-gray-400 hover:text-[#4a70a9]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#737781] hover:text-[#4a70a9]"
               >
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                Konfirmasi Password Baru
-              </label>
-              <input
-                type={showPw ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                minLength={6}
-                className="w-full rounded-xl border border-gray-200 bg-app-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-[#4a70a9]"
-              />
-            </div>
-            <Button type="submit" disabled={updating} className="inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#4a70a9] hover:bg-[#3a5a99] text-white text-sm px-4 py-2.5 border-none">
-              <KeyRound size={15} /> {updating ? "Menyimpan..." : "Simpan Kata Sandi"}
-            </Button>
-          </form>
-        </div>
+          </div>
 
-        {/* Action Button */}
-        <div className="border-t border-app-border/40 pt-6 flex justify-center">
-          <Button
-            onClick={askLogout}
-            className="inline-flex items-center gap-2 rounded-[6px] bg-red-500 hover:bg-red-600 text-white border-none shadow-sm px-4 py-2 text-sm"
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[#737781]">
+              Konfirmasi Password
+            </label>
+            <input
+              type={showPw ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              minLength={6}
+              placeholder="Ulangi password baru"
+              className="w-full text-xs rounded-xl border border-[#e5ddd0] bg-white px-3 py-2.5 text-[#1a1a2e] outline-none focus:border-[#4a70a9]"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={updating}
+            className="w-full py-2.5 rounded-xl bg-[#4a70a9] hover:bg-[#3d5d8c] active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all disabled:opacity-50"
           >
-            <LogOut size={16} />
-            <span>Keluar dari Akun</span>
-          </Button>
-        </div>
-      </div>
+            <KeyRound size={14} />
+            <span>{updating ? "Menyimpan..." : "Simpan Kata Sandi"}</span>
+          </button>
+        </form>
+      </section>
+
+      {/* 5. Section: Keluar dari Akun */}
+      <section className="pt-2">
+        <button
+          onClick={askLogout}
+          type="button"
+          className="w-full py-3 rounded-xl bg-[#fef2f2] hover:bg-[#fee2e2] active:scale-98 text-[#dc2626] border border-[#fecaca] text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+        >
+          <LogOut size={16} />
+          <span>Keluar dari Akun</span>
+        </button>
+      </section>
+
       {logoutDialog}
     </div>
   );

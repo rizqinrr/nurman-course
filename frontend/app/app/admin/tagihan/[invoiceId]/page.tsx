@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { ProofImage } from "@/components/ui/ProofModal";
 
 interface ProofInvoice {
   id: string;
@@ -97,9 +98,10 @@ export default function AdminInvoiceProofPage() {
         ) : invoice?.paymentProof ? (
           isImage ? (
             <div className="flex flex-col items-center gap-4">
-              <img
+              <ProofImage
                 src={invoice.paymentProof}
                 alt={`Bukti pembayaran ${invoice.paymentProofName || ""}`}
+                sizes="(min-width: 640px) calc(100vw - 64px), calc(100vw - 32px)"
                 className="max-h-[75vh] w-auto max-w-full rounded-2xl border border-white/10 bg-white shadow-2xl object-contain"
               />
               {invoice.paymentProofName && (

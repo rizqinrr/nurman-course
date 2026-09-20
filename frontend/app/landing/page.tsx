@@ -11,13 +11,12 @@ import LandingFooter from "@/components/landing/LandingFooter";
 
 export const metadata: Metadata = {
   title: "Nurman Course | Les Privat SD–SMP",
-  description:
-    "Les privat online & offline untuk SD–SMP. Pilih program, atur jadwal, dan daftar lewat WhatsApp.",
+  description: "Les privat online & offline untuk SD–SMP. Pilih program, atur jadwal, dan daftar lewat WhatsApp.",
 };
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-app-bg font-dm text-app-text-mid antialiased">
+    <main className="min-h-screen bg-[#edf4fb] font-dm text-[#536781] antialiased">
       <LandingNav />
       <LandingHero />
       <LandingStats />

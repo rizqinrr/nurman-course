@@ -1,8 +1,8 @@
 export interface User {
   id: string;
-  role: "admin" | "tentor" | "wali";
+  role: "admin" | "tentor" | "wali" | "member";
   name: string;
-  phone: string;
+  phone: string | null;
   email?: string;
   active?: boolean;
   address?: string | null;
@@ -17,6 +17,16 @@ export interface Murid {
   schoolLevel: string;
   avatarUrl?: string;
   active?: boolean;
+}
+
+export interface DbMurid {
+  id: string;
+  waliId: string;
+  name: string;
+  birthDate?: string | null;
+  schoolLevel?: string | null;
+  avatarUrl?: string | null;
+  address?: string | null;
 }
 
 export interface Program {
