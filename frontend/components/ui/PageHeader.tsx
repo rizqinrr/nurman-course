@@ -17,22 +17,22 @@ export default function PageHeader({
   const router = useRouter();
 
   return (
-    <header className="mb-6">
+    <header className="border-b border-[#d4dfeb] pb-6">
       {showBack && (
         <button
           type="button"
           onClick={() => router.back()}
-          className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/25 px-4 py-2 text-sm font-medium text-white border border-white/40 shadow-md active:scale-95"
+          className="mb-4 inline-flex min-h-9 items-center gap-2 rounded-lg border border-[#cbd8e5] bg-white px-3 text-xs font-bold text-[#284970] transition-colors hover:border-[#4a70a9] hover:bg-[#f4f8fc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"
         >
-          <ArrowLeft size={18} strokeWidth={2.25} aria-hidden="true" />
+          <ArrowLeft size={16} strokeWidth={2.25} aria-hidden="true" />
           Kembali
         </button>
       )}
 
-      <h1 className="text-2xl sm:text-3xl font-bold text-white">{title}</h1>
+      <h1 className="text-2xl font-black tracking-[-0.04em] text-[#14233a] sm:text-3xl">{title}</h1>
 
       {subtitle && (
-        <p className="mt-1 text-sm sm:text-base text-white/80">{subtitle}</p>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#657991]">{subtitle}</p>
       )}
     </header>
   );

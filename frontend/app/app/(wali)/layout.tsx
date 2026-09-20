@@ -8,11 +8,9 @@ import { usePathname } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import {
   Home,
-  GraduationCap,
   CalendarDays,
   Receipt,
   ClipboardList,
-  BookOpen,
   User
 } from "lucide-react";
 
@@ -45,34 +43,24 @@ export default function WaliLayout({ children }: WaliLayoutProps) {
       icon: Home,
     },
     {
-      label: "Program",
-      href: "/app/program",
-      icon: GraduationCap,
-    },
-    {
-      label: "Materi",
-      href: "/app/materi",
-      icon: BookOpen,
-    },
-    {
       label: "Jadwal",
       href: "/app/jadwal",
       icon: CalendarDays,
-    },
-    {
-      label: "Tagihan",
-      href: "/app/tagihan",
-      icon: Receipt,
     },
     {
       label: "Laporan",
       href: "/app/laporan",
       icon: ClipboardList,
     },
+    {
+      label: "Tagihan",
+      href: "/app/tagihan",
+      icon: Receipt,
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-[#F0ECE1] text-app-text-mid font-dm flex justify-center selection:bg-[#4a70a9]/20">
+    <div className="wali-mobile-scroll h-dvh overflow-y-auto bg-[#F0ECE1] text-app-text-mid font-dm flex justify-center selection:bg-[#4a70a9]/20 md:h-auto md:min-h-screen md:overflow-visible">
       {/* Mobile Frame Container (Max-W-MD, Centered on Desktop) */}
       <div className="w-full max-w-md min-h-screen bg-[#F7F4EF] flex flex-col relative shadow-2xl border-x border-[#E5DDD0]/60">
         {/* TopBar: Universal (Brand + Profile) */}

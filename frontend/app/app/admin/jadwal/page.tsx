@@ -260,7 +260,7 @@ export default function AdminJadwalPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex-grow flex flex-col gap-5 sm:gap-6 pb-32 animate-[fadeIn_0.5s_ease-out]">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[90rem] mx-auto w-full flex-grow flex flex-col gap-5 sm:gap-6 pb-32">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-[20px] bg-white/45 backdrop-blur-xl border border-white/60 shadow-sm p-4 sm:p-5">
         <div>
           <h1 className="text-[22px] sm:text-3xl font-extrabold text-gray-900 tracking-tight">Jadwal Mengajar</h1>

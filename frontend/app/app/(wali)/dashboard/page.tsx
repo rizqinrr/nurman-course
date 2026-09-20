@@ -333,7 +333,17 @@ export default function DashboardWaliPage() {
             </section>
           )}
 
-          {/* Rekap Rapor Terakhir */}
+          <section className="grid grid-cols-2 gap-2.5">
+            <Link href="/app/program" className="flex items-center justify-between rounded-xl border border-[#B8CDE4] bg-[#EAF0F8] px-3 py-2.5 text-xs font-bold text-[#30578F] transition-colors hover:bg-[#D5E3FF]">
+              <span className="flex items-center gap-2"><BookOpen size={15} />Program aktif</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+            <Link href="/app/materi" className="flex items-center justify-between rounded-xl border border-[#E5DDD0] bg-white px-3 py-2.5 text-xs font-bold text-[#30578F] transition-colors hover:bg-[#F1E1C0]/40">
+              <span className="flex items-center gap-2"><BookOpen size={15} />Materi belajar</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+          </section>
+
           {latestDailyReport ? (
             <section className="bg-white border border-[#E5DDD0] rounded-xl p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
               <div className="flex items-center justify-between pb-2 border-b border-[#E5DDD0]/40">

@@ -458,7 +458,7 @@ export default function RoadmapClient() {
   const materialsOf = (stepId: string) => materialsMap[stepId] || [];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col gap-5 sm:gap-6 pb-32">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[90rem] mx-auto w-full flex-grow flex flex-col gap-5 sm:gap-6 pb-32">
       <PageHeader
         title="Roadmap & Materi"
         subtitle="Susun peta jalan belajar bertingkat dan materi tiap langkah untuk program ber-roadmap."

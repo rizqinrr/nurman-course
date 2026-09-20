@@ -9,7 +9,17 @@
 - Tidak ada migration deploy, backfill live, seed, mutasi DB remote, commit, push, atau deploy tanpa izin eksplisit.
 - Verifikasi wajib dicatat bersama batas buktinya.
 
-## Sesi frontend 2026-09-19 — selesai lokal
+- [x] Sembunyikan scrollbar vertikal shell wali hanya pada mobile tanpa menonaktifkan scrolling; lint dan TypeScript check lulus, test tidak dijalankan sesuai instruksi.
+- [x] Sederhanakan bottom bar wali menjadi Beranda, Jadwal, Laporan, Tagihan; Profil tetap via avatar; Program/Materi tersedia sebagai CTA di Beranda.
+- [x] Verifikasi contract dashboard 5/5, frontend lint, dan TypeScript check; tanpa Playwright.
+
+- [x] Redesign `/app/admin` menjadi command center: ringkasan operasional, agenda hari ini, prioritas, akses cepat, materi paling dibaca, dan aktivitas terbaru memakai endpoint existing.
+- [x] Standardisasi shell admin: grouped navigation, active state, mobile drawer, container, `PageHeader`, dan `GlassCard` tanpa glassmorphism dekoratif.
+- [x] Redesign `/app/materi` sebagai learning desk member: profil member, ringkasan kelas/progres/selesai, CTA lanjut belajar, koleksi, error/loading/empty state, dan logout.
+- [x] Tambah regression contract `frontend/tests/dashboard-surface.test.mjs`.
+- [x] Verifikasi tanpa Playwright: dashboard/auth/course tests 12/12, frontend typecheck/lint/build, backend tracking 7/7, backend typecheck/test typecheck/lint, Prisma generate/validate/format, dan detector (advisory font-size saja).
+- [ ] Full `frontend/tests/*.mjs` masih memiliki 2 failure pre-existing pada `frontend/tests/api.test.mjs` terkait cache/log snapshot; tidak disentuh dalam scope redesign.
+
 
 - [x] Redesign landing “Peta Belajar” dengan biru/logo existing dan funnel `/course` tetap.
 - [x] Gabungkan login/register pada `/login` tanpa full-page reload; `/signup` kompatibel melalui mode register.

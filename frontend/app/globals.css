@@ -230,6 +230,17 @@ button,
   display: none;
 }
 
+@media (max-width: 767px) {
+  .wali-mobile-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .wali-mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @keyframes chip-pulse {
   0%,
   100% {

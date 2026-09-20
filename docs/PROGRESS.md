@@ -1,4 +1,63 @@
-### 2026-09-19 — Redesign funnel course “Peta Bercabang”
+### 2026-09-20 — Sembunyikan scrollbar mobile portal wali
+
+**Request:** hilangkan indikator scrollbar vertikal di sisi kanan pada mobile tanpa menjalankan test suite.
+
+**Dikerjakan:** shell wali memakai scroll container viewport khusus mobile; scrollbar disembunyikan melalui CSS Firefox, Chromium/WebKit, dan legacy Edge. Scroll touch/keyboard tetap aktif, sedangkan desktop tetap memakai scrollbar normal.
+
+**Verifikasi:** frontend lint dan `npx tsc --noEmit` lulus. Test dan Playwright tidak dijalankan sesuai instruksi user.
+
+### 2026-09-20 — Penyederhanaan bottom navigation wali
+
+**Request:** ringkas bottom bar portal orang tua/wali tanpa Playwright; profil tetap diakses melalui avatar kanan atas.
+
+**Keputusan:** bottom bar hanya memuat empat tujuan utama yang sering dipakai: `Beranda`, `Jadwal`, `Laporan`, dan `Tagihan`. `Program` dan `Materi` tetap dapat diakses melalui CTA pada Beranda, sedangkan `Profil` melalui tombol avatar di top bar.
+
+**Dikerjakan:** `frontend/app/app/(wali)/layout.tsx` menghapus Program dan Materi dari bottom navigation serta mempertahankan badge tagihan. `frontend/app/app/(wali)/dashboard/page.tsx` menambahkan CTA ringkas menuju Program aktif dan Materi belajar. Regression contract ditambahkan ke `frontend/tests/dashboard-surface.test.mjs`.
+
+**Verifikasi:** dashboard surface tests **5/5 lulus**, frontend lint lulus, dan `npx tsc --noEmit` lulus. Tidak memakai Playwright; verifikasi visual/interaksi browser tidak dijalankan.
+
+### 2026-09-20 — Perbaikan mobile drawer admin
+
+**Request:** perbaiki tombol burger pada halaman admin mobile yang tidak menampilkan sidebar; tanpa Playwright.
+
+**Akar masalah:** effect pada `frontend/app/app/admin/layout.tsx` bergantung pada `mobileNavOpen`, sehingga state langsung dikembalikan ke `false` setelah tombol membuka drawer.
+
+**Dikerjakan:** effect auto-close dihapus; drawer ditutup eksplisit melalui overlay, tombol tutup, atau klik link navigasi. Regression contract ditambahkan ke `frontend/tests/dashboard-surface.test.mjs`.
+
+**Verifikasi:** dashboard surface tests **4/4 lulus**, frontend lint lulus, dan `npx tsc --noEmit` lulus. Tidak memakai Playwright; verifikasi browser visual/interaksi tidak dijalankan.
+
+### 2026-09-20 — Redesign dashboard admin dan member
+
+**Request:** redesign dashboard admin dan member; admin lebih kaya dengan command center, data-heavy workspace, dan navigasi operasional. Eksekusi tanpa Playwright.
+
+**Keputusan:** tetap memakai visual direction `dashboard-command-center`: admin sebagai mission-control dengan blue-black surface, crisp rules, grouped dense navigation, dan gold untuk urgency; member sebagai learning desk dengan fokus overview progress dan lanjut belajar. Endpoint existing dipakai; tidak ada schema/migration/DB mutation baru.
+
+**Dikerjakan:**
+
+- `frontend/app/app/admin/page.tsx`: menambah agenda operasional, prioritas kerja, akses cepat, materi paling dibaca dari `/api/catalog/lessons`, dan aktivitas terbaru dari `/api/admin/tracking`, dengan fallback per-panel.
+- `frontend/app/app/admin/layout.tsx`: grouped navigation, active state, mobile drawer, profile initial dari `/api/users/me`, dan topbar command surface.
+- `frontend/app/app/admin/{murid,tentor,program,enrollment,tagihan,jadwal,rekening,roadmap}`: container diseragamkan agar workspace data-heavy menggunakan lebar command center.
+- `frontend/components/ui/GlassCard.tsx` dan `PageHeader.tsx`: glassmorphism dekoratif diganti surface putih dengan border/rule dan shadow ringan.
+- `frontend/app/app/materi/page.tsx`: profil member, overview jumlah kelas/rata-rata progress/kelas selesai, CTA `Lanjut belajar`, koleksi, empty/error/loading state, dan logout confirmation.
+- `frontend/tests/dashboard-surface.test.mjs`: kontrak statis untuk admin command center, member overview/continue, dan shared admin shell.
+- `frontend/.impeccable/surfaces/dashboard-command-center.md` serta `tasks/plan.md` dicatat sebagai arah dan rencana sesi.
+
+**Verifikasi:**
+
+- Dashboard/auth/course contract tests: **12/12 lulus**.
+- Backend tracking test: **7/7 lulus**; backend typecheck, test typecheck, lint: lulus (14 warning `any` baseline, 0 error).
+- Frontend typecheck, lint, production build: lulus.
+- Prisma generate, validate dengan placeholder env, format check: lulus.
+- Impeccable detector: advisory font-size literal di luar ramp; tidak ada error mekanis.
+- Tidak memakai Playwright, tidak ada migration deploy, DB mutation, commit, atau push.
+
+**Residual dan batas bukti:**
+
+- Full `node --test frontend/tests/*.mjs` masih gagal pada 2 test pre-existing `frontend/tests/api.test.mjs` terkait cache/log snapshot (`2 !== 1` dan cache value `2` vs `1`); file tersebut tidak disentuh pada sesi ini.
+- Browser runtime/visual pixel QA tidak dijalankan sesuai instruksi user; verifikasi terbatas pada static contract, typecheck, lint, build, detector.
+- Migration/schema click-tracking sempat dibuat sebagai eksperimen lalu dibersihkan; tidak ada perubahan schema atau migration tersisa.
+
+
 
 **Request:** redesign `/course/program` dan urutan halaman sesudahnya, mempertahankan warna utama landing, mobile-first, copy/data, route, serta CTA WhatsApp.
 

@@ -299,7 +299,7 @@ export default function AdminMuridPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full flex-grow flex flex-col gap-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[90rem] mx-auto w-full flex-grow flex flex-col gap-6">
       <PageHeader
         title="Murid"
         subtitle="Kelola data murid beserta akun wali penanggung jawabnya."

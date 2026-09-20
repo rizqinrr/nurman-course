@@ -154,7 +154,7 @@ export default function AdminRekeningPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col gap-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[90rem] mx-auto w-full flex-grow flex flex-col gap-6">
       <PageHeader
         title="Rekening Bank"
         subtitle="Kelola rekening tujuan transfer yang ditampilkan ke wali murid."
