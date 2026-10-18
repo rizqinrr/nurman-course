@@ -1,19 +1,10 @@
 import { Request, Response, NextFunction, type RequestHandler } from "express";
-import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import { userRoleSchema, type UserRole } from "@nurman-course/shared";
 import { prisma } from "../lib/prisma";
+import { verifyToken } from "../lib/auth-service";
 
 dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("WARNING: SUPABASE_URL or SUPABASE_ANON_KEY is not defined in backend .env");
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -65,9 +56,8 @@ async function resolveAuthentication(req: Request, allowAnonymous: boolean): Pro
   }
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error && ![400, 401, 403].includes(error.status ?? 0)) throw error;
-    if (error || !user) {
+    const decoded = verifyToken(token);
+    if (!decoded) {
       return {
         ok: false,
         status: 401,
@@ -76,7 +66,7 @@ async function resolveAuthentication(req: Request, allowAnonymous: boolean): Pro
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
+      where: { id: decoded.id },
       select: { id: true, email: true, role: true, active: true },
     });
     const access = validateAccountAccess(dbUser);
@@ -84,7 +74,7 @@ async function resolveAuthentication(req: Request, allowAnonymous: boolean): Pro
 
     return {
       ok: true,
-      user: { id: user.id, email: dbUser?.email || undefined, role: access.role },
+      user: { id: dbUser!.id, email: dbUser?.email || undefined, role: access.role },
     };
   } catch {
     console.error("Auth middleware error");

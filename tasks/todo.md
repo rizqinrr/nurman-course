@@ -56,7 +56,9 @@
 - [x] Rebrand wordmark materi `Belajar.dev` menjadi `ncourse`; audit backend/shared dan remote seed tidak menemukan nilai lama.
 - [x] Tambahkan role `member`, phone nullable, signup publik email/password, verifikasi email, dan profile DB otomatis.
 - [x] Batasi member ke content surface; endpoint operasional dan routing portal memakai role DB.
-- [x] Terapkan migration `nc7_member_phone_nullable` ke remote development dan smoke-test signup/profile trigger.
+- [x] Migrasi dari Supabase Cloud ke PostgreSQL lokal Laragon (`nurmancourse`) dan native JWT auth (`bcryptjs` + `jsonwebtoken`).
+- [x] Database lokal di-seed lengkap: 14 user aplikasi, 12 course, 180 lesson, operasional bimbel, dan progress.
+- [x] Frontend dan backend diverifikasi lulus typecheck; login API sukses mengembalikan token JWT.
 
 
 

@@ -2,19 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { removeAccessToken } from "@/lib/auth";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export function useLogout(options?: { message?: string }) {
   const router = useRouter();
-  const supabase = createClient();
   const [open, setOpen] = useState(false);
 
   const askLogout = () => setOpen(true);
   const cancelLogout = () => setOpen(false);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    removeAccessToken();
     router.push("/login");
     router.refresh();
   };

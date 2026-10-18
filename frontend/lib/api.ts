@@ -1,4 +1,4 @@
-import { createClient as createBrowserClient } from './supabase/client';
+import { getAccessToken } from './auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -149,10 +149,9 @@ export async function apiFetch<T = unknown>(
   
   // Ambil token JWT jika berada di browser
   if (typeof window !== 'undefined') {
-    const supabase = createBrowserClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      headers.set('Authorization', `Bearer ${session.access_token}`);
+    const token = getAccessToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
     }
   }
 

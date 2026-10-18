@@ -1,3 +1,34 @@
+### 2026-10-18 — Migrasi ke PostgreSQL Lokal (Laragon) dan Native JWT Auth
+
+**Request:** beralih dari Supabase Cloud (error P1001 paused) ke database PostgreSQL lokal Laragon dan menggunakan native auth.
+
+**Keputusan:**
+- Menggunakan database PostgreSQL lokal Laragon (`localhost:5432`, DB `nurmancourse`).
+- Menggantikan Supabase Auth dengan native password hashing (`bcryptjs`) dan JWT signing/verification (`jsonwebtoken`).
+- Menambahkan field `passwordHash` pada model `User` di `schema.prisma`.
+- Endpoint baru di backend: `POST /api/auth/login`, `POST /api/auth/signup`, dan `PATCH /api/users/me/password`.
+- Frontend mengelola token JWT via Cookie `access_token` (dan localStorage) sehingga middleware Next.js dan `apiFetch` langsung mengirim Bearer token secara native tanpa dependensi Supabase client.
+- Seed script dimodifikasi untuk membuat data awal dan meng-hash password `Password123!` langsung ke database lokal.
+
+**Dikerjakan:**
+- Database `nurmancourse` dibuat di PostgreSQL Laragon.
+- `schema.prisma` diperbarui dengan `passwordHash String? @map("password_hash")` dan disinkronkan via `npx prisma db push`.
+- `backend/.env` diarahkan ke `postgresql://postgres:@localhost:5432/nurmancourse` dengan `JWT_SECRET`.
+- Service `backend/src/lib/auth-service.ts` dibuat untuk bcrypt dan JWT.
+- Middleware `backend/src/middleware/auth.ts` diperbarui untuk memverifikasi JWT token lokal.
+- Endpoint `backend/src/index.ts` menambahkan native login/signup dan patch password.
+- `backend/prisma/seed.ts` diperbarui dan dijalankan: 14 user, 12 course, 180 lesson berhasil diisi.
+- `frontend/lib/auth.ts` dibuat untuk helper cookie/storage token.
+- `frontend/lib/api.ts`, `frontend/middleware.ts`, `frontend/app/login/page.tsx`, `frontend/lib/useLogout.tsx`, dan halaman profil tentor/wali diperbarui menggunakan native auth.
+
+**Verifikasi:**
+- Uji koneksi dan database creation ke PostgreSQL Laragon: berhasil.
+- `npx prisma db push` & client generation: berhasil (v5.22.0).
+- Seed local PostgreSQL: berhasil (14 user, 12 course, 180 lesson).
+- Uji API login `POST /api/auth/login` (admin@nurmancourse.com): status 200, JWT token dihasilkan, validasi password bcrypt sukses.
+- Backend typecheck (`tsc --project tsconfig.json --noEmit`): lulus 0 error.
+- Frontend typecheck (`tsc --noEmit`): lulus 0 error.
+
 ### 2026-09-20 — Sembunyikan scrollbar mobile portal wali
 
 **Request:** hilangkan indikator scrollbar vertikal di sisi kanan pada mobile tanpa menjalankan test suite.

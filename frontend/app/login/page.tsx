@@ -15,7 +15,7 @@ import {
   Mail,
   UserRound,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { setAccessToken } from "@/lib/auth";
 import { isContentReturnPath, roleHomePath, safeReturnPath } from "@/lib/navigation";
 
 const inputClass =
@@ -46,7 +46,6 @@ async function fetchDbRole(accessToken: string): Promise<string | null> {
 function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
   const [mode, setMode] = useState<"login" | "register">(
     searchParams.get("mode") === "register" ? "register" : "login",
   );
@@ -78,35 +77,38 @@ function AuthPage() {
   const handleLogin = async () => {
     const redirectedFrom = safeReturnPath(searchParams.get("next") ?? searchParams.get("redirectedFrom")) || "/app/dashboard";
     const loginValue = email.trim();
-    let loginEmail = loginValue;
 
-    if (!loginValue.includes("@")) {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/auth/resolve-phone`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: loginValue }),
-      });
-      const body = (await response.json().catch(() => ({}))) as { email?: string; error?: string };
-      if (!response.ok || !body.email) throw new Error(body.error ?? "Nomor WhatsApp tidak terdaftar.");
-      loginEmail = body.email;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...(loginValue.includes("@") ? { email: loginValue } : { phone: loginValue }),
+        password,
+      }),
+    });
+
+    const body = (await response.json().catch(() => ({}))) as {
+      token?: string;
+      user?: { role?: string; name?: string };
+      error?: { message?: string };
+    };
+
+    if (!response.ok || !body.token) {
+      throw new Error(body.error?.message ?? "Email/Nomor WhatsApp atau password salah.");
     }
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
-    if (authError) throw authError;
-
-    const session = (await supabase.auth.getSession()).data.session;
-    if (!session) throw new Error("Sesi login tidak tersedia. Silakan coba lagi.");
+    setAccessToken(body.token);
 
     await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/track/login`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${session.access_token}` },
+      headers: { Authorization: `Bearer ${body.token}` },
     }).catch(() => undefined);
 
-    const role = await fetchDbRole(session.access_token);
+    const role = body.user?.role ?? (await fetchDbRole(body.token));
     if (!role) {
-      await supabase.auth.signOut();
       throw new Error("Profil akun belum siap. Silakan coba lagi atau hubungi admin.");
     }
+
     router.push(isContentReturnPath(redirectedFrom) ? redirectedFrom : roleHomePath(role));
     router.refresh();
   };
@@ -117,9 +119,24 @@ function AuthPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
     });
-    const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-    if (!response.ok) throw new Error(body.error?.message ?? "Pendaftaran gagal.");
-    setNotice(`Tautan verifikasi sudah dikirim ke ${email.trim()}.`);
+
+    const body = (await response.json().catch(() => ({}))) as {
+      token?: string;
+      user?: { role?: string };
+      error?: { message?: string };
+      message?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(body.error?.message ?? "Pendaftaran gagal.");
+    }
+
+    if (body.token) {
+      setAccessToken(body.token);
+    }
+
+    setNotice("Pendaftaran berhasil! Akunmu sudah aktif, silakan masuk.");
+    setMode("login");
     setName("");
     setPassword("");
   };

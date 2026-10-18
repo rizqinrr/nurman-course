@@ -1,22 +1,11 @@
 import { PrismaClient } from '../src/generated/client';
-import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const prisma = new PrismaClient();
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const databaseUrl = process.env.DATABASE_URL ?? '';
 const seedPassword = process.env.NC_SEED_PASSWORD ?? 'Password123!';
-const allowReset = process.env.NC_SEED_ALLOW_REMOTE_RESET === 'true';
-
-if (!supabaseUrl || !supabaseServiceKey) throw new Error('SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY wajib diisi.');
-if (!databaseUrl.includes('localhost') && !databaseUrl.includes('127.0.0.1') && !allowReset) {
-  throw new Error('Seed remote diblokir. Set NC_SEED_ALLOW_REMOTE_RESET=true setelah konfirmasi eksplisit.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
 type SeedUser = { role: 'admin' | 'tentor' | 'wali' | 'member'; name: string; email: string; phone: string };
 const seedUsers: SeedUser[] = [
@@ -25,29 +14,6 @@ const seedUsers: SeedUser[] = [
   ...Array.from({ length: 8 }, (_, index) => ({ role: 'wali' as const, name: `Wali Demo ${index + 1}`, email: `wali${index + 1}@nurmancourse.com`, phone: `0898765432${String(index).padStart(2, '0')}` })),
   { role: 'member', name: 'Member Demo', email: 'member@nurmancourse.com', phone: '081111111111' },
 ];
-
-async function clearAuthUsers() {
-  while (true) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (error) throw error;
-    if (data.users.length === 0) break;
-    for (const user of data.users) {
-      const result = await supabase.auth.admin.deleteUser(user.id);
-      if (result.error) throw result.error;
-    }
-  }
-}
-
-async function createAuthUser(seed: SeedUser) {
-  const { data, error } = await supabase.auth.admin.createUser({
-    email: seed.email,
-    password: seedPassword,
-    email_confirm: true,
-    user_metadata: { role: seed.role, name: seed.name, phone: seed.phone },
-  });
-  if (error || !data.user) throw error ?? new Error(`Gagal membuat ${seed.email}`);
-  return data.user.id;
-}
 
 async function clearDatabase() {
   await prisma.trackingEvent.deleteMany();
@@ -100,18 +66,24 @@ function markdownBody(courseTitle: string, lessonTitle: string, index: number) {
 
 async function buildUserMap() {
   const ids = new Map<string, string>();
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash(seedPassword, salt);
+
   for (const seed of seedUsers) {
-    const id = await createAuthUser(seed);
-    ids.set(seed.email, id);
-    await prisma.user.upsert({
-      where: { id },
-      update: { role: seed.role, name: seed.name, phone: seed.phone, email: seed.email, active: true },
-      create: { id, role: seed.role, name: seed.name, phone: seed.phone, email: seed.email, active: true },
+    const user = await prisma.user.create({
+      data: {
+        role: seed.role,
+        name: seed.name,
+        phone: seed.phone,
+        email: seed.email,
+        passwordHash,
+        active: true,
+      },
     });
+    ids.set(seed.email, user.id);
   }
   return ids;
 }
-
 
 async function seedOperations(ids: Map<string, string>) {
   const adminId = ids.get(seedUsers[0].email)!;
@@ -188,7 +160,6 @@ async function seedAccess(ids: Map<string, string>, courses: { id: string; slug:
 
 async function main() {
   console.log('Resetting development seed data.');
-  await clearAuthUsers();
   await clearDatabase();
   const ids = await buildUserMap();
   await seedOperations(ids);

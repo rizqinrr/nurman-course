@@ -4,7 +4,8 @@ import dotenv from 'dotenv';
 import { z } from 'zod';
 import { prisma } from './lib/prisma';
 import { supabaseAdmin } from './lib/supabase-admin';
-import { requireAuth, requireAdmin, requireOperational, validateAccountAccess, AuthenticatedRequest, supabase } from './middleware/auth';
+import { requireAuth, requireAdmin, requireOperational, validateAccountAccess, AuthenticatedRequest } from './middleware/auth';
+import { hashPassword, comparePassword, generateToken } from './lib/auth-service';
 import { publicProgramsRouter, adminProgramsRouter } from './routes/content/programs';
 import { roadmapStepsRouter } from './routes/content/roadmap';
 import { materialsRouter } from './routes/content/materials';
@@ -64,6 +65,55 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.post('/api/auth/login', async (req, res) => {
+  const { email, phone, password } = req.body ?? {};
+  const identifier = email || phone;
+  if (!identifier || !password) {
+    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Email/Nomor WhatsApp dan password wajib diisi' } });
+    return;
+  }
+
+  try {
+    const rawId = String(identifier).trim();
+    const isEmail = rawId.includes('@');
+    const user = isEmail
+      ? await prisma.user.findFirst({ where: { email: rawId.toLowerCase() } })
+      : await prisma.user.findFirst({ where: { phone: normalizePhone(rawId) } });
+
+    if (!user || !user.passwordHash) {
+      res.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Email/Nomor WhatsApp atau password salah' } });
+      return;
+    }
+
+    const valid = await comparePassword(String(password), user.passwordHash);
+    if (!valid) {
+      res.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Email/Nomor WhatsApp atau password salah' } });
+      return;
+    }
+
+    const access = validateAccountAccess(user);
+    if (!access.ok) {
+      res.status(403).json({ error: access.error });
+      return;
+    }
+
+    const token = generateToken({ id: user.id, email: user.email || undefined, role: access.role });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: access.role,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+  }
+});
+
 app.post('/api/auth/signup', async (req, res) => {
   const parsed = memberSignupSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -78,27 +128,37 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: { data: { name: parsed.data.name } },
-    });
-    if (error || !data.user) {
-      const message = (error?.message ?? '').toLowerCase();
-      if (message.includes('already') || message.includes('registered') || message.includes('exists')) {
-        res.status(202).json({ message: 'Jika email valid, cek inbox untuk verifikasi.' });
-        return;
-      }
-      res.status(400).json({ error: { code: 'SIGNUP_FAILED', message: 'Signup gagal' } });
+    const email = parsed.data.email.trim().toLowerCase();
+    const existing = await prisma.user.findFirst({ where: { email } });
+    if (existing) {
+      res.status(409).json({ error: { code: 'EMAIL_ALREADY_EXISTS', message: 'Email sudah terdaftar. Silakan login.' } });
       return;
     }
 
-    res.status(201).json({
-      message: 'Jika email valid, cek inbox untuk verifikasi.',
-      confirmationRequired: !data.session,
+    const passwordHash = await hashPassword(parsed.data.password);
+    const user = await prisma.user.create({
+      data: {
+        name: parsed.data.name.trim(),
+        email,
+        passwordHash,
+        role: 'member',
+        active: true,
+      },
     });
-  } catch {
-    console.error('Member signup failed');
+
+    const token = generateToken({ id: user.id, email: user.email || undefined, role: 'member' });
+    res.status(201).json({
+      message: 'Pendaftaran berhasil. Silakan login.',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Member signup failed:', error);
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
   }
 });
@@ -154,6 +214,26 @@ app.get('/api/users/me', requireAuth, async (req: AuthenticatedRequest, res) => 
   } catch {
     console.error('Error fetching current user profile');
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.patch('/api/users/me/password', requireAuth, async (req: AuthenticatedRequest, res) => {
+  const { password } = req.body ?? {};
+  if (!password || typeof password !== 'string' || password.length < 6) {
+    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Password minimal 6 karakter' } });
+    return;
+  }
+
+  try {
+    const passwordHash = await hashPassword(password);
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { passwordHash },
+    });
+    res.json({ success: true, message: 'Password berhasil diubah' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
   }
 });
 
@@ -1048,13 +1128,6 @@ app.post('/api/admin/users', requireAuth, requireAdmin, async (req: Authenticate
     return;
   }
 
-  if (!supabaseAdmin) {
-    res.status(503).json({
-      error: { code: 'AUTH_UNAVAILABLE', message: 'Supabase service key is not configured' },
-    });
-    return;
-  }
-
   const { role, name, phone } = parsed.data;
   const emailInput = parsed.data.email ?? null;
   const address = parsed.data.address ?? null;
@@ -1064,37 +1137,44 @@ app.post('/api/admin/users', requireAuth, requireAdmin, async (req: Authenticate
   const password = parsed.data.password || DEFAULT_NEW_USER_PASSWORD;
 
   try {
-    const { data: createdAuth, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: resolvedEmail,
-      password,
-      email_confirm: true,
-      user_metadata: { role, name, phone: normalizedPhone },
-    });
+    const passwordHash = await hashPassword(password);
+    let authUserId: string | undefined = undefined;
 
-    if (authError || !createdAuth.user) {
-      const msg = (authError?.message || "").toLowerCase();
-      if (msg.includes('already been registered') || msg.includes('already exists') || msg.includes('duplicate')) {
-        res.status(409).json({
-          error: { code: 'CONFLICT', message: 'Email / nomor hape sudah terdaftar' },
+    if (supabaseAdmin) {
+      const { data: createdAuth, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: resolvedEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { role, name, phone: normalizedPhone },
+      });
+
+      if (authError || !createdAuth.user) {
+        const msg = (authError?.message || "").toLowerCase();
+        if (msg.includes('already been registered') || msg.includes('already exists') || msg.includes('duplicate')) {
+          res.status(409).json({
+            error: { code: 'CONFLICT', message: 'Email / nomor hape sudah terdaftar' },
+          });
+          return;
+        }
+        res.status(400).json({
+          error: { code: 'AUTH_CREATE_FAILED', message: authError?.message || 'Failed to create auth user' },
         });
         return;
       }
-      res.status(400).json({
-        error: { code: 'AUTH_CREATE_FAILED', message: authError?.message || 'Failed to create auth user' },
-      });
-      return;
+      authUserId = createdAuth.user.id;
     }
 
     try {
       const user = await prisma.user.create({
         data: {
-          id: createdAuth.user.id,
+          id: authUserId,
           role,
           name,
           phone: normalizedPhone,
           email: resolvedEmail,
           address,
           photoPath,
+          passwordHash,
         },
       });
       res.status(201).json({
@@ -1102,7 +1182,9 @@ app.post('/api/admin/users', requireAuth, requireAdmin, async (req: Authenticate
         temporaryPassword: password,
       });
     } catch (error) {
-      await supabaseAdmin.auth.admin.deleteUser(createdAuth.user.id).catch(() => {});
+      if (supabaseAdmin && authUserId) {
+        await supabaseAdmin.auth.admin.deleteUser(authUserId).catch(() => {});
+      }
       throw error;
     }
   } catch (error: unknown) {
@@ -1246,11 +1328,6 @@ app.post('/api/admin/users/:id/reset-password', requireAuth, requireAdmin, async
   const raw = (req.body as any)?.password ?? (req.body as any)?.newPassword;
   const desired = typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : DEFAULT_NEW_USER_PASSWORD;
 
-  if (!supabaseAdmin) {
-    res.status(503).json({ error: { code: 'AUTH_UNAVAILABLE', message: 'Supabase service key is not configured' } });
-    return;
-  }
-
   if (desired.length < 6) {
     res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Password minimal 6 karakter' } });
     return;
@@ -1263,10 +1340,14 @@ app.post('/api/admin/users/:id/reset-password', requireAuth, requireAdmin, async
       return;
     }
 
-    const { error: authError } = await (supabaseAdmin.auth.admin.updateUserById as any)(targetId, { password: desired });
-    if (authError) {
-      res.status(400).json({ error: { code: 'AUTH_UPDATE_FAILED', message: authError.message || 'Gagal reset password' } });
-      return;
+    const passwordHash = await hashPassword(desired);
+    await prisma.user.update({
+      where: { id: targetId },
+      data: { passwordHash },
+    });
+
+    if (supabaseAdmin) {
+      await (supabaseAdmin.auth.admin.updateUserById as any)(targetId, { password: desired }).catch(() => {});
     }
 
     res.json({ data: existing, temporaryPassword: desired, message: `Password direset ke ${desired}` });

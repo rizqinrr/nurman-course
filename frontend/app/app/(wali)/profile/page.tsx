@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import { createClient } from "@/lib/supabase/client";
 import { useLogout } from "@/lib/useLogout";
 import {
   ArrowLeft,
@@ -61,12 +60,10 @@ export default function ProfilePage() {
     }
     setUpdating(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        setPwError(error.message || "Gagal mengubah password.");
-        return;
-      }
+      await apiFetch("/api/users/me/password", {
+        method: "PATCH",
+        body: JSON.stringify({ password: newPassword }),
+      });
       setPwSuccess("Password berhasil diubah!");
       setNewPassword("");
       setConfirmPassword("");

@@ -1,10 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { updateSession } from './lib/supabase/middleware';
 import { isContentReturnPath, roleHomePath, safeReturnPath } from './lib/navigation';
 
 async function fetchDbRole(accessToken: string): Promise<string | null> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/users/me`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000'}/api/users/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: 'no-store',
     });
@@ -17,13 +16,12 @@ async function fetchDbRole(accessToken: string): Promise<string | null> {
 }
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user, accessToken } = await updateSession(request);
-
+  const accessToken = request.cookies.get('access_token')?.value ?? null;
   const path = request.nextUrl.pathname;
 
   // Proteksi rute /app (LMS)
   if (path.startsWith('/app')) {
-    if (!user || !accessToken) {
+    if (!accessToken) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('redirectedFrom', `${path}${request.nextUrl.search}`);
@@ -65,19 +63,19 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect jika sudah login tapi coba buka /login
-  if (path === '/login' && user && accessToken && request.nextUrl.searchParams.get('mode') !== 'register') {
+  if (path === '/login' && accessToken && request.nextUrl.searchParams.get('mode') !== 'register') {
     const requestedReturn = safeReturnPath(request.nextUrl.searchParams.get('next') ?? request.nextUrl.searchParams.get('redirectedFrom'));
     if (requestedReturn && isContentReturnPath(requestedReturn)) {
       return NextResponse.redirect(new URL(requestedReturn, request.url));
     }
     const role = await fetchDbRole(accessToken);
-    if (!role) return supabaseResponse;
+    if (!role) return NextResponse.next();
     const url = request.nextUrl.clone();
     url.pathname = roleHomePath(role);
     return NextResponse.redirect(url);
   }
 
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {

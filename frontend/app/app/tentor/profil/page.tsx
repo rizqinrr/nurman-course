@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import { createClient } from "@/lib/supabase/client";
 import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
 import { useLogout } from "@/lib/useLogout";
@@ -50,12 +49,10 @@ export default function TentorProfilePage() {
     }
     setUpdating(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        setPwError(error.message || "Gagal mengubah password.");
-        return;
-      }
+      await apiFetch("/api/users/me/password", {
+        method: "PATCH",
+        body: JSON.stringify({ password: newPassword }),
+      });
       setPwSuccess("Password berhasil diubah.");
       setNewPassword("");
       setConfirmPassword("");
