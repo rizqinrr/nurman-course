@@ -1,3 +1,36 @@
+### 2026-10-18 — Landing Page Opsi 2 Hybrid & Exploratory Landing2 (Interactive Video & 2.5D Hero)
+
+**Request:** 
+1. Eksplorasi tema/style halaman materi untuk landing page (Opsi 2 Hybrid: warm paper card, dot-grid, Bricolage Grotesque, Public Sans, JetBrains Mono).
+2. Membuat halaman eksplorasi `/landing2` berdasarkan file referensi:
+   - `Video promo Nurman Course.html`: stage 9:16 vertikal dengan Web Audio API synth, teks ketik interaktif, live preview, progress bar animasi, dan jalur belajar.
+   - `nCourse_ belajar mandiri dan les privat.html`: dual-track platform (kelas mandiri bikin web/app dari nol vs les privat Calistung, Ngaji, Komputer dengan laporan harian orang tua), floating stack 2.5D tilt, facts bar, interactive course filtering, roadmap timeline, Venn diagram parallax, dan FAQ accordion.
+3. Responsiveness: ukuran panggung video pas 1 layar hero tanpa terpotong (viewport-aware `min(calc(100vw - 32px), calc((100dvh - 190px) * 0.5625), 365px)`).
+4. Menghilangkan semua emoji pada UI ke bawah dan menggantinya dengan icon Lucide.
+
+**Keputusan:**
+- Menjaga keaslian konten dan alur video promo (100% identik dengan alur asli `Video promo Nurman Course.html`).
+- Menyediakan mode switcher di hero `/landing2` ("Video Promo (9:16)" vs "Kartu 2.5D") untuk perbandingan interaktif.
+- Semua emoji digantikan icon Lucide (`Layout`, `Code2`, `Monitor`, `Calculator`, `BookOpen`, `Compass`).
+
+**Dikerjakan:**
+- Update `frontend/app/globals.css` dengan utility animation keyframes (`animate-fade-in`, `animate-slide-up`, `animate-scale-in`).
+- Implementasi `frontend/app/landing2/page.tsx` dengan font Google `Host_Grotesk`.
+- Komponen `frontend/components/landing2/*`:
+  - `PromoStage.tsx`: stage 9:16 asli dengan Web Audio API synth & kontrol.
+  - `FloatingHeroStack.tsx`: kartu 2.5D tilt dengan interaksi progres & laporan harian.
+  - `Landing2Hero.tsx`: layout responsif fit 1 viewport hero.
+  - `Landing2Nav.tsx`, `Landing2Facts.tsx`, `Landing2PathChoice.tsx`.
+  - `CourseCatalogInteractive.tsx`: filter topik dengan icon Lucide & roadmap interaktif.
+  - `PrivateTutoringSection.tsx`: program les privat & simulasi rapor murid untuk orang tua.
+  - `VennBridgeSection.tsx`: diagram lingkaran beririsan dengan scroll parallax.
+  - `FaqInteractiveSection.tsx`, `Landing2Cta.tsx`, `Landing2Footer.tsx`.
+
+**Verifikasi:**
+- TypeScript typecheck (`npx tsc --project frontend/tsconfig.json --noEmit`): lulus 0 error.
+- HTTP status check `/landing2`: HTTP 200 OK.
+- Visual inspection & responsive viewport check: frame HP tampil penuh di hero tanpa terpotong.
+
 ### 2026-10-18 — Migrasi ke PostgreSQL Lokal (Laragon) dan Native JWT Auth
 
 **Request:** beralih dari Supabase Cloud (error P1001 paused) ke database PostgreSQL lokal Laragon dan menggunakan native auth.

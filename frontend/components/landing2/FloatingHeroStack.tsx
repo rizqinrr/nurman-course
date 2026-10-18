@@ -1,0 +1,151 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { CheckCircle2, Clock, Sparkles } from "lucide-react";
+
+export default function FloatingHeroStack() {
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [progress, setProgress] = useState(62);
+  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto animate progress after 1.5s
+  useEffect(() => {
+    const t1 = setTimeout(() => {
+      setProgress(100);
+    }, 1200);
+
+    const t2 = setTimeout(() => {
+      setIsCompleted(true);
+    }, 2400);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
+  // 2.5D Tilt on Mouse Move
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
+    const y = (e.clientY - rect.top) / rect.height - 0.5; // -0.5 to 0.5
+    setMouseOffset({ x, y });
+  };
+
+  const handleMouseLeave = () => {
+    setMouseOffset({ x: 0, y: 0 });
+  };
+
+  const handleToggleDone = () => {
+    if (!isCompleted) {
+      setProgress(100);
+      setIsCompleted(true);
+    } else {
+      setProgress(62);
+      setIsCompleted(false);
+    }
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="relative w-full h-[420px] sm:h-[440px] flex items-center justify-center select-none"
+      style={{ perspective: "1000px" }}
+    >
+      {/* Background Soft Glow */}
+      <div className="absolute w-72 h-72 rounded-full bg-[#5289ad]/15 blur-3xl -z-10 pointer-events-none" />
+
+      {/* CARD 1: Lesson Card (.m1) */}
+      <div
+        className="absolute top-4 left-2 sm:left-4 w-[88%] sm:w-[82%] bg-[#ffffff] border border-[#d3dddf] rounded-2xl p-5 shadow-[0_20px_40px_-12px_rgba(36,60,76,0.18)] transition-all duration-300 ease-out z-10 cursor-pointer"
+        style={{
+          transform: `rotate(-1.8deg) translate3d(${mouseOffset.x * 20}px, ${mouseOffset.y * 15}px, 0px)`,
+        }}
+        onClick={handleToggleDone}
+      >
+        <div className="flex items-center justify-between text-xs text-[#5c7787] mb-2 font-medium">
+          <span>Materi / Bikin Web Dari Nol</span>
+          <span className="flex items-center gap-1 text-[#3f7499]">
+            <Sparkles className="w-3.5 h-3.5" /> Praktik langsung
+          </span>
+        </div>
+
+        <h3 className="text-base sm:text-lg font-bold text-[#243c4c] mb-3">
+          Membuat Halaman Profil & Toko
+        </h3>
+
+        <ul className="list-none m-0 mb-4 pl-3 border-l-2 border-[#d3dddf] text-xs text-[#5c7787] flex flex-col gap-1.5">
+          <li>1. Menyiapkan struktur HTML dasar</li>
+          <li className="text-[#243c4c] font-semibold pl-2 -ml-3.5 border-l-2 border-[#3f7499]">
+            2. Menata tata letak & gambar produk
+          </li>
+          <li>3. Menghubungkan tombol pesan WhatsApp</li>
+        </ul>
+
+        {/* Animated Progress Bar */}
+        <div className="h-2 rounded-full bg-[#d3dddf] overflow-hidden mb-3">
+          <div
+            className="h-full bg-[#5289ad] transition-all duration-1000 cubic-bezier(0.3, 0.7, 0.2, 1)"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#5c7787] flex items-center gap-1 font-medium">
+            <Clock className="w-3.5 h-3.5" /> 8 menit baca
+          </span>
+          <button
+            type="button"
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 shadow-sm ${
+              isCompleted
+                ? "bg-[#243c4c] text-white"
+                : "bg-[#3f7499] text-white hover:bg-[#243c4c]"
+            }`}
+          >
+            {isCompleted ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Selesai</span>
+              </>
+            ) : (
+              <span>Tandai selesai</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* CARD 2: Daily Report Card (.m2) */}
+      <div
+        className="absolute bottom-4 right-2 sm:right-4 w-[85%] sm:w-[78%] bg-[#ffffff] border border-[#d3dddf] rounded-2xl p-5 shadow-[0_24px_48px_-14px_rgba(36,60,76,0.22)] transition-all duration-300 ease-out z-20"
+        style={{
+          transform: `rotate(1.5deg) translate3d(${mouseOffset.x * -24}px, ${mouseOffset.y * -18}px, 20px)`,
+        }}
+      >
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <span className="font-bold text-sm text-[#243c4c]">
+            Calistung & Ngaji, sesi hari ini
+          </span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 text-[11px] font-semibold">
+            ✓ Selesai
+          </span>
+        </div>
+        <div className="text-xs text-[#5c7787] mb-3">
+          16.00 – 17.00 WIB • Tentor Dina • Tatap Muka
+        </div>
+
+        <hr className="border-0 border-t border-[#d3dddf] my-2.5" />
+
+        <div className="text-[11px] font-semibold text-[#5c7787] uppercase tracking-wide mb-1">
+          Laporan Harian untuk Wali Murid:
+        </div>
+        <p className="text-xs text-[#243c4c] leading-relaxed bg-[#f8faf9] p-2.5 rounded-xl border border-[#e1e9ea]">
+          “Ananda sudah lancar membaca dua suku kata dan melafalkan makhraj huruf dengan tartil. Besok lanjut latihan berhitung penjumlahan santai.”
+        </p>
+      </div>
+    </div>
+  );
+}
