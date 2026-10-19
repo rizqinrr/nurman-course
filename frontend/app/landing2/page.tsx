@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Host_Grotesk } from "next/font/google";
+import { Bricolage_Grotesque, JetBrains_Mono, Public_Sans } from "next/font/google";
 import Landing2Nav from "@/components/landing2/Landing2Nav";
 import Landing2Hero from "@/components/landing2/Landing2Hero";
 import Landing2Facts from "@/components/landing2/Landing2Facts";
@@ -10,12 +10,11 @@ import VennBridgeSection from "@/components/landing2/VennBridgeSection";
 import FaqInteractiveSection from "@/components/landing2/FaqInteractiveSection";
 import Landing2Cta from "@/components/landing2/Landing2Cta";
 import Landing2Footer from "@/components/landing2/Landing2Footer";
+import "./landing2-interactive.css";
 
-const hostGrotesk = Host_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-host-grotesk",
-});
+const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-learn-display" });
+const body = Public_Sans({ subsets: ["latin"], variable: "--font-learn-body" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-learn-mono" });
 
 export const metadata: Metadata = {
   title: "Nurman Course — Belajar Mandiri Bikin Web & Les Privat",
@@ -26,7 +25,7 @@ export const metadata: Metadata = {
 export default function Landing2Page() {
   return (
     <main
-      className={`${hostGrotesk.className} min-h-screen bg-[#f7f9f8] text-[#243c4c] antialiased selection:bg-[#3f7499]/20 selection:text-[#243c4c]`}
+      className={`landing-hybrid ${display.variable} ${body.variable} ${mono.variable} min-h-screen text-[#2b3a4a] antialiased selection:bg-[#4a70a9]/20 selection:text-[#14233a]`}
     >
       <Landing2Nav />
       <Landing2Hero />

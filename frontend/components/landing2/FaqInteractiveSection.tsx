@@ -39,39 +39,46 @@ export default function FaqInteractiveSection() {
   };
 
   return (
-    <section id="faq" className="py-20 bg-white border-t border-[#d3dddf]">
+    <section id="faq" className="py-20 border-t-2 border-[#d9d2c2]">
       <div className="max-w-[840px] mx-auto px-6">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#5289ad]/15 text-xs font-semibold text-[#243c4c] mb-2">
-            <HelpCircle className="w-3.5 h-3.5 text-[#3f7499]" /> Tanya Jawab
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#4a70a9]/10 border-2 border-[#4a70a9]/20 font-mono text-xs font-bold text-[#2e4b7a] mb-2 shadow-xs">
+            <HelpCircle className="w-3.5 h-3.5 text-[#4a70a9]" /> Tanya Jawab
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#243c4c]">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-[#14233a]">
             Pertanyaan yang Sering Diajukan
           </h2>
-          <p className="text-sm text-[#5c7787] mt-1.5">
+          <p className="text-sm sm:text-base text-[#50647a] mt-1.5">
             Hal penting seputar belajar mandiri, les privat, dan pemantauan orang tua.
           </p>
         </div>
 
-        <div className="flex flex-col divide-y divide-[#e5ebee] border-y border-[#e5ebee]">
+        <div className="flex flex-col gap-3">
           {FAQS.map((item, idx) => {
             const isOpen = openIdx === idx;
             return (
-              <div key={item.q} className="py-4">
+              <div
+                key={item.q}
+                className={`bg-[#fffdf9] border-2 rounded-2xl p-5 transition-all duration-200 ${
+                  isOpen
+                    ? "border-[#4a70a9] shadow-[0_12px_24px_-16px_rgba(27,48,77,0.18)]"
+                    : "border-[#d9d2c2] hover:border-[#4a70a9]/60"
+                }`}
+              >
                 <button
                   type="button"
                   onClick={() => toggle(idx)}
-                  className="w-full flex items-center justify-between text-left gap-4 font-bold text-sm sm:text-base text-[#243c4c] hover:text-[#3f7499] transition-colors cursor-pointer py-1"
+                  className="w-full flex items-center justify-between text-left gap-4 font-display font-bold text-base sm:text-lg text-[#14233a] hover:text-[#4a70a9] transition-colors cursor-pointer"
                 >
                   <span>{item.q}</span>
                   <ChevronDown
-                    className={`w-4 h-4 text-[#5c7787] flex-none transition-transform duration-200 ${
-                      isOpen ? "rotate-180 text-[#3f7499]" : ""
+                    className={`w-5 h-5 text-[#627894] flex-none transition-transform duration-200 ${
+                      isOpen ? "rotate-180 text-[#4a70a9]" : ""
                     }`}
                   />
                 </button>
                 {isOpen && (
-                  <p className="text-xs sm:text-sm text-[#5c7787] leading-relaxed mt-2.5 pr-6 animate-fade-in">
+                  <p className="text-sm text-[#50647a] leading-relaxed mt-3 pt-3 border-t border-[#e6dfd1] animate-fade-in">
                     {item.a}
                   </p>
                 )}

@@ -22,31 +22,31 @@ export default function VennBridgeSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-20 bg-[#1e2f3b] text-[#f7f9f8] overflow-hidden">
+    <section ref={sectionRef} className="py-20 bg-[#14233a] text-[#fffdf9] overflow-hidden">
       <div className="max-w-[1140px] mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Text */}
           <div className="lg:col-span-6">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold text-[#78aacb] mb-3">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/10 border border-white/20 font-mono text-xs font-bold text-[#f2c14e] mb-3">
               <Sparkles className="w-3.5 h-3.5" /> Ekosistem Terpadu
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight text-white leading-tight">
               Satu Akun, Dua Cara Belajar.
             </h2>
-            <p className="text-[#acbcbf] text-base mt-3 mb-8 leading-relaxed">
+            <p className="text-[#a4b4c7] text-base sm:text-lg mt-3 mb-8 leading-relaxed">
               Murid les privat bisa melanjutkan belajar mandiri lewat modul bacaan interaktif di rumah. Member kelas mandiri yang butuh pendampingan intensif bisa langsung request tentor privat kapan saja—semua progres tersimpan di satu akun.
             </p>
 
             <div className="flex flex-wrap gap-4">
               <a
                 href="/login"
-                className="px-6 py-3 rounded-full bg-[#5289ad] hover:bg-[#6ba3c8] text-[#0f1a22] text-sm font-bold shadow-lg transition-all active:scale-95 cursor-pointer inline-flex items-center gap-2"
+                className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#4a70a9] px-6 text-sm font-bold text-white shadow-[0_4px_0_#2b4875] transition-transform hover:-translate-y-0.5 hover:bg-[#3d6094]"
               >
-                Buat Akun Gratis <ArrowRight className="w-4 h-4" />
+                Buat Akun Gratis <ArrowRight size={18} className="transition group-hover:translate-x-1" />
               </a>
               <a
                 href="/course/config"
-                className="px-6 py-3 rounded-full border border-white/20 hover:border-white/40 text-white text-sm font-medium transition-colors inline-flex items-center gap-2"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-white/20 bg-white/5 px-6 text-sm font-bold text-white transition hover:border-white/40"
               >
                 Konsultasi Les Privat
               </a>
@@ -73,40 +73,40 @@ export default function VennBridgeSection() {
                     cx="150"
                     cy="130"
                     r="92"
-                    fill="rgba(172, 188, 191, 0.08)"
-                    stroke="#acbcbf"
+                    fill="rgba(217, 210, 194, 0.08)"
+                    stroke="#d9d2c2"
                     strokeWidth="1.75"
                     strokeDasharray="4 2"
                   />
                   <text
                     x="105"
                     y="124"
-                    fill="#f7f9f8"
+                    fill="#fffdf9"
                     fontSize="15"
                     fontWeight="700"
                     textAnchor="middle"
-                    className="select-none"
+                    className="select-none font-display"
                   >
                     Kelas
                   </text>
                   <text
                     x="105"
                     y="144"
-                    fill="#f7f9f8"
+                    fill="#fffdf9"
                     fontSize="15"
                     fontWeight="700"
                     textAnchor="middle"
-                    className="select-none"
+                    className="select-none font-display"
                   >
                     Mandiri
                   </text>
                   <text
                     x="105"
                     y="164"
-                    fill="#acbcbf"
+                    fill="#d9d2c2"
                     fontSize="11"
                     textAnchor="middle"
-                    className="select-none"
+                    className="select-none font-mono font-medium"
                   >
                     Baca & Praktik
                   </text>
@@ -123,29 +123,29 @@ export default function VennBridgeSection() {
                     cx="250"
                     cy="130"
                     r="92"
-                    fill="rgba(82, 137, 173, 0.12)"
-                    stroke="#5289ad"
+                    fill="rgba(74, 112, 169, 0.18)"
+                    stroke="#4a70a9"
                     strokeWidth="2"
                   />
                   <text
                     x="295"
                     y="124"
-                    fill="#f7f9f8"
+                    fill="#fffdf9"
                     fontSize="15"
                     fontWeight="700"
                     textAnchor="middle"
-                    className="select-none"
+                    className="select-none font-display"
                   >
                     Les
                   </text>
                   <text
                     x="295"
                     y="144"
-                    fill="#f7f9f8"
+                    fill="#fffdf9"
                     fontSize="15"
                     fontWeight="700"
                     textAnchor="middle"
-                    className="select-none"
+                    className="select-none font-display"
                   >
                     Privat
                   </text>
@@ -155,7 +155,7 @@ export default function VennBridgeSection() {
                     fill="#78aacb"
                     fontSize="11"
                     textAnchor="middle"
-                    className="select-none"
+                    className="select-none font-mono font-medium"
                   >
                     Tentor 1-on-1
                   </text>
@@ -166,18 +166,18 @@ export default function VennBridgeSection() {
                   <text
                     x="200"
                     y="118"
-                    fill="#ffffff"
+                    fill="#f2c14e"
                     fontSize="12"
                     fontWeight="bold"
                     textAnchor="middle"
-                    className="select-none"
+                    className="select-none font-mono"
                   >
                     Satu Akun
                   </text>
                   <text
                     x="200"
                     y="136"
-                    fill="#acbcbf"
+                    fill="#d9d2c2"
                     fontSize="11"
                     textAnchor="middle"
                     className="select-none"
@@ -187,7 +187,7 @@ export default function VennBridgeSection() {
                   <text
                     x="200"
                     y="152"
-                    fill="#acbcbf"
+                    fill="#d9d2c2"
                     fontSize="11"
                     textAnchor="middle"
                     className="select-none"

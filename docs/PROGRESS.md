@@ -1,3 +1,72 @@
+### 2026-10-19 — Peta Interaktif Jangkauan Layanan Les Privat (/jangkauan & /peta)
+
+**Request:** 
+Membuat halaman map interaktif untuk menampilkan peta geografis jangkauan les privat Nurman Course (area layanan, radius tentor datang ke rumah, dan cek lokasi wali murid).
+
+**Keputusan:**
+- Membuat route dedicated `/jangkauan` dan alias redirect `/peta`.
+- Menggunakan Leaflet dengan OpenStreetMap / CartoDB Voyager tiles, dikemas dalam Next.js Client Component dengan dynamic import (`ssr: false`) dan fallback skeleton radar agar 100% bebas dari kendala SSR `window is not defined`.
+- Menyusun data jangkauan di `frontend/data/coverage.ts`:
+  - Hub Pusat: Jl. Kolonel Sugiono No. 24, Cilacap Kota.
+  - Posko Tentor: Area Gumilir / Tritih Kulon, Cilacap Utara.
+  - Zona 1 (Bebas Biaya Transport): Cilacap Tengah, Cilacap Selatan, Cilacap Utara (radius 3.5 - 4.2 km).
+  - Zona 2 (Jangkauan Reguler): Kesugihan, Jeruklegi, Maos, Adipala, Kroya, Sampang (transport Rp 10.000 - Rp 15.000).
+  - Zona 3 (Online): Sesi 1-on-1 interaktif via Google Meet / Zoom untuk seluruh Indonesia.
+  - Marker Tentor: Kak Kiki, Kak Aisyah, Kak Nadine dengan spesialisasi program dan status aktif.
+- Menyediakan "Cek Jangkauan Mandiri" (`CoverageLocationChecker.tsx`):
+  - Pencarian dropdown kecamatan & kelurahan.
+  - Tombol deteksi GPS otomatis (`navigator.geolocation`) dengan kalkulasi jarak otomatis ke Hub Pusat via rumus Haversine.
+  - Penghitungan instan: status zona, jarak (km), estimasi waktu tiba tentor, biaya transport, serta daftar tentor yang standby.
+  - Tombol aksi WhatsApp dengan pesan pendaftaran terisi otomatis sesuai titik lokasi yang dipilih.
+- Marker & Interaktivitas Peta:
+  - Custom DOM markers (`L.divIcon`): pin Hub Pusat (navy & emas), pin avatar tentor, pin area, dan pin "Rumah Anda".
+  - Area coverage circles (`L.circle`) translusen dengan styling border putus-putus.
+  - Interaksi klik: klik area/marker memusatkan kamera dan menyorot detail; klik sembarang titik pada peta meletakkan pin "Rumah Anda" dan langsung menghitung jarak.
+- Integrasi Navigasi:
+  - Header khusus `CoverageNav.tsx`.
+  - Link "Peta Jangkauan" ditambahkan ke `Landing2Nav.tsx`, `LandingNav.tsx`, dan `PrivateTutoringSection.tsx`.
+
+**Verifikasi:**
+- Next.js Production Build (`npm run build --workspace=frontend`): sukses 40/40 static pages termasuk `/jangkauan` dan `/peta`.
+- ESLint (`npm run lint --workspace=frontend`): lolos 0 error, 0 warning.
+- TypeScript check (`npx tsc --project frontend/tsconfig.json --noEmit`): lolos 0 error.
+- HTTP Check lokal:
+  - `http://localhost:3000/jangkauan`: HTTP 200 OK.
+  - `http://localhost:3000/peta`: HTTP 307 Redirect ke `/jangkauan`.
+
+### 2026-10-19 — Landing2: Implementasi Opsi 2 (Auto-Teaser Motion & Staggered Hero Entrance)
+
+**Request:** 
+Implementasi "Opsi 2" untuk animasi awal kemunculan halaman `http://localhost:3000/landing2`.
+
+**Keputusan:**
+- Mengadopsi **Opsi 2: Auto-Teaser Motion**:
+  1. Bagian kiri hero (badge, headline H1, sub-lead, CTA buttons, trust badges, mode switcher) muncul bertahap dengan staggered entrance (`animate-hero-fade-up` dengan delay terukur 0ms–500ms).
+  2. Frame video panggung 9:16 di sisi kanan masuk halus (`animate-hero-scale-in` delay 150ms) dan langsung berputar otomatis saat halaman terbuka dalam mode muted (tanpa dead/static cover poster).
+  3. Floating badge berdenyut (`🔊 Nyalakan suara`) disematkan di pojok panggung. Sekali klik pada badge atau panggung, audio synthesizer Web Audio API langsung aktif dan tersinkronisasi tepat dengan detik berjalan.
+  4. Video berputar terus menerus (auto-looping teaser) setiap siklus 32s selesai, menjaga hero selalu dinamis.
+
+**Dikerjakan:**
+- `frontend/app/globals.css`: Penambahan `@keyframes heroFadeUp`, `@keyframes heroScaleIn`, serta utility `.animate-hero-fade-up` dan `.animate-hero-scale-in`.
+- `frontend/components/landing2/Landing2Hero.tsx`: Penerapan animasi staggered fade-up pada seluruh hierarchy hero kiri dan scale-in pada visual kanan.
+- `frontend/components/landing2/PromoStage.tsx`:
+  - Lifecycle autoplay on mount dengan `mute = true`.
+  - Looping otomatis kembali ke Scene 0 pada detik ke-32.
+  - Floating badge pill `.fl-mute` dengan efek glowing pulse indicator (amber ketika muted, emerald ketika aktif).
+  - Sinkronisasi instan Web Audio API synth (`audio(elapsed)`) saat pengguna mengklik panggung atau tombol audio.
+- Sinkronisasi tema hangat paper palette (`#f7f5ef`, `#14233a`, `#4a70a9`, `#f2c14e`, `#d9d2c2`) dan komponen `FourStepsInteractive.tsx` pada alur 4 langkah pendaftaran les.
+- Perbaikan Hydration Mismatch (`styled-jsx` vs Turbopack SSR):
+  - Komponen `FourStepsInteractive.tsx` dan `PromoStage.tsx` sebelumnya memuat tag `<style jsx global>`. Pada Next.js Turbopack, tag tersebut menyisipkan class acak scoped (`jsx-a6224bafe2c98563`) pada server HTML sedangkan client merender class murni, memicu *hydration mismatch*.
+- Penyelarasan Logo Shell Materi (`/materi`, `/materi/[slug]`, `/app/materi`):
+  - Mengganti icon generic `<Grid3X3 />` di `ContentShell.tsx` dengan SVG logo resmi Nurman Course (badge biru `#2e4b7a`, toga emas `#f2c14e`, inisial N putih `#fffdf9`).
+  - Mempertahankan nama sub-brand `ncourse Learning desk` dengan aksen warna brand `text-[#4a70a9]`.
+
+**Verifikasi:**
+- TypeScript typecheck (`npx tsc --project frontend/tsconfig.json --noEmit`): lolos 0 error.
+- HTTP check `http://localhost:3000/landing2`: HTTP 200 OK.
+- Verifikasi HTML output server: tidak ada lagi class `jsx-*` (`-match 'jsx-'` -> False). Hydration mismatch teratasi sempurna.
+- Autoplay teaser berputar otomatis dan audio synthesizer Web Audio API sinkron saat unmuted.
+
 ### 2026-10-18 — Landing Page Opsi 2 Hybrid & Exploratory Landing2 (Interactive Video & 2.5D Hero)
 
 **Request:** 

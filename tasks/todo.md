@@ -9,7 +9,8 @@
 - Tidak ada migration deploy, backfill live, seed, mutasi DB remote, commit, push, atau deploy tanpa izin eksplisit.
 - Verifikasi wajib dicatat bersama batas buktinya.
 
-- [x] Eksplorasi Landing Opsi 2 Hybrid (`/landing`) dan halaman eksperimen interaktif `/landing2` (Web Audio API synth stage 9:16 + 2.5D stack hero + catalog filter + Venn parallax).
+- [x] Halaman Peta Interaktif Jangkauan Les Privat (`/jangkauan` & `/peta`): Leaflet OpenStreetMap canvas, auto GPS/manual kecamatan checker, kalkulator jarak & estimasi biaya transport, pin tentor standby, kartu 3 zona layanan, FAQ, dan WhatsApp direct booking.
+- [x] Eksplorasi Landing Opsi 2 Hybrid (`/landing`) dan halaman eksperimen interaktif `/landing2` (Web Audio API synth stage 9:16 + 2.5D stack hero + catalog filter + Venn parallax + Opsi 2 Auto-Teaser Motion).
 - [x] Sembunyikan scrollbar vertikal shell wali hanya pada mobile tanpa menonaktifkan scrolling; lint dan TypeScript check lulus, test tidak dijalankan sesuai instruksi.
 - [x] Sederhanakan bottom bar wali menjadi Beranda, Jadwal, Laporan, Tagihan; Profil tetap via avatar; Program/Materi tersedia sebagai CTA di Beranda.
 - [x] Verifikasi contract dashboard 5/5, frontend lint, dan TypeScript check; tanpa Playwright.

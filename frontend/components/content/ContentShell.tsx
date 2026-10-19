@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Bricolage_Grotesque, JetBrains_Mono, Public_Sans } from "next/font/google";
-import { ArrowRight, BookOpen, Check, Grid3X3, Route, UserRound } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Route, UserRound } from "lucide-react";
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-learn-display" });
 const body = Public_Sans({ subsets: ["latin"], variable: "--font-learn-body" });
@@ -11,9 +11,15 @@ export default function ContentShell({ children }: { children: React.ReactNode }
     <div className={`learn-shell ${display.variable} ${body.variable} ${mono.variable} min-h-screen text-[#102d2b] selection:bg-[#f58a3d]/30`}>
       <header className="sticky top-0 z-50 border-b border-[#c7d4e2] bg-[#f1f5f8]/95 backdrop-blur-md">
         <div className="mx-auto flex min-h-16 max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
-          <Link href="/materi" className="group flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0752d] focus-visible:ring-offset-2">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#14233a] text-white transition-transform group-hover:-translate-y-0.5"><Grid3X3 size={17} aria-hidden="true" /></span>
-            <span className="font-display text-base font-black tracking-[-0.04em] text-[#14233a]">n<span className="text-[#d8662e]">course</span><span className="ml-2 hidden text-[10px] font-bold uppercase tracking-[0.15em] text-[#71849a] sm:inline">Learning desk</span></span>
+          <Link href="/materi" className="group flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9] focus-visible:ring-offset-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2e4b7a] p-1.5 shadow-sm transition-transform group-hover:-translate-y-0.5">
+              <svg viewBox="0 0 32 32" className="h-full w-full" aria-hidden="true">
+                <polygon points="16,4.5 28,9.5 16,14.5 4,9.5" fill="#f2c14e" />
+                <path d="M25 11.5v5" stroke="#f2c14e" strokeWidth="1.6" strokeLinecap="round" />
+                <path d="M9.5 27V17l13 10V17" fill="none" stroke="#fffdf9" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span className="font-display text-base font-black tracking-[-0.04em] text-[#14233a]">n<span className="text-[#4a70a9]">course</span><span className="ml-2 hidden text-[10px] font-bold uppercase tracking-[0.15em] text-[#71849a] sm:inline">Learning desk</span></span>
           </Link>
           <nav aria-label="Navigasi materi" className="flex items-center gap-1 sm:gap-2">
             <Link href="/materi" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#284970] transition-colors hover:bg-[#dbe7f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"><BookOpen size={16} aria-hidden="true" /><span className="hidden sm:inline">Katalog</span></Link>

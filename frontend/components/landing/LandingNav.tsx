@@ -8,6 +8,7 @@ import { ArrowUpRight, Menu, X } from "lucide-react";
 const navLinks = [
   { label: "Cara kerja", href: "#tentang" },
   { label: "Program", href: "#program" },
+  { label: "Peta jangkauan", href: "/jangkauan" },
   { label: "Tutor", href: "#tutor" },
   { label: "Cerita keluarga", href: "#testimoni" },
 ];

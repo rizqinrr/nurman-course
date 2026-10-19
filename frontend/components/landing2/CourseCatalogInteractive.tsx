@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   BookOpen,
   Clock,
-  Sparkles,
   Code2,
   Monitor,
   Calculator,
   Compass,
   Layout,
-  Terminal,
 } from "lucide-react";
 
 interface CourseItem {
@@ -36,7 +35,7 @@ const COURSES: CourseItem[] = [
     lessons: "16 materi",
     duration: "95 menit",
     isFree: true,
-    color: "#3f7499",
+    color: "#4a70a9",
   },
   {
     id: "2",
@@ -47,7 +46,7 @@ const COURSES: CourseItem[] = [
     lessons: "14 materi",
     duration: "88 menit",
     isFree: true,
-    color: "#243c4c",
+    color: "#2e4b7a",
   },
   {
     id: "3",
@@ -58,7 +57,7 @@ const COURSES: CourseItem[] = [
     lessons: "18 materi",
     duration: "120 menit",
     isFree: false,
-    color: "#5289ad",
+    color: "#3d6094",
   },
   {
     id: "4",
@@ -69,7 +68,7 @@ const COURSES: CourseItem[] = [
     lessons: "12 materi",
     duration: "75 menit",
     isFree: true,
-    color: "#2b404e",
+    color: "#1e3a5f",
   },
   {
     id: "5",
@@ -113,28 +112,28 @@ export default function CourseCatalogInteractive() {
       : COURSES.filter((c) => c.category === activeFilter);
 
   return (
-    <section id="kelas" className="py-20 bg-[#f4f7f6] border-y border-[#d3dddf]">
+    <section id="kelas" className="py-20 bg-[#f2efe7]/50 border-y-2 border-[#d9d2c2]">
       <div className="max-w-[1140px] mx-auto px-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#5289ad]/15 text-xs font-semibold text-[#243c4c] mb-2">
-              <BookOpen className="w-3.5 h-3.5 text-[#3f7499]" /> Modul Belajar Mandiri
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#4a70a9]/10 border-2 border-[#4a70a9]/20 font-mono text-xs font-bold text-[#2e4b7a] mb-2 shadow-xs">
+              <BookOpen className="w-3.5 h-3.5 text-[#4a70a9]" /> Modul Belajar Mandiri
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#243c4c]">
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-[#14233a]">
               Kelas Mandiri & Praktik Langsung
             </h2>
-            <p className="text-[#5c7787] text-sm sm:text-base mt-1 max-w-xl">
+            <p className="text-[#50647a] text-sm sm:text-base mt-1 max-w-xl">
               Pilih materi bacaan terstruktur dengan progres otomatis. Mulai gratis kapan saja.
             </p>
           </div>
 
-          <a
+          <Link
             href="/materi"
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-[#3f7499] hover:text-[#243c4c] transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-[#4a70a9] hover:text-[#14233a] transition-colors"
           >
             Lihat semua materi <ArrowRight className="w-4 h-4" />
-          </a>
+          </Link>
         </div>
 
         {/* Filter Chips with Icons */}
@@ -152,13 +151,13 @@ export default function CourseCatalogInteractive() {
               <button
                 key={chip.id}
                 onClick={() => setActiveFilter(chip.id as CourseItem["category"])}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? "bg-[#243c4c] text-white shadow-sm"
-                    : "bg-white text-[#5c7787] border border-[#d3dddf] hover:border-[#3f7499] hover:text-[#243c4c]"
+                    ? "bg-[#4a70a9] text-white shadow-xs"
+                    : "bg-[#fffdf9] text-[#50647a] border-2 border-[#d9d2c2] hover:border-[#4a70a9] hover:text-[#14233a]"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-[#5289ad]"}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-[#4a70a9]"}`} />
                 <span>{chip.label}</span>
               </button>
             );
@@ -170,41 +169,41 @@ export default function CourseCatalogInteractive() {
           {filteredCourses.map((c) => (
             <div
               key={c.id}
-              className="group bg-white border border-[#d3dddf] hover:border-[#3f7499] rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-md cursor-pointer"
+              className="group bg-[#fffdf9] border-2 border-[#d9d2c2] hover:border-[#4a70a9] rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-[0_16px_32px_-18px_rgba(27,48,77,0.18)] hover:-translate-y-1 cursor-pointer"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <span
-                    className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-xs text-white shadow-sm transition-transform group-hover:scale-105"
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-xs text-white shadow-xs transition-transform group-hover:scale-105"
                     style={{ backgroundColor: c.color }}
                   >
                     {c.tag}
                   </span>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                    className={`px-3 py-1 rounded-full text-[11px] font-bold ${
                       c.isFree
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-amber-50 text-amber-700 border border-amber-200"
+                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        : "bg-amber-50 text-amber-800 border border-amber-200"
                     }`}
                   >
                     {c.isFree ? "Gratis Dibaca" : "Akses Khusus"}
                   </span>
                 </div>
 
-                <h3 className="text-base font-bold text-[#243c4c] group-hover:text-[#3f7499] transition-colors mb-2">
+                <h3 className="font-display text-lg font-bold text-[#14233a] group-hover:text-[#4a70a9] transition-colors mb-2">
                   {c.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-[#5c7787] leading-relaxed mb-6">
+                <p className="text-xs sm:text-sm text-[#50647a] leading-relaxed mb-6">
                   {c.desc}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-[#f0f4f5] text-xs text-[#5c7787]">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <BookOpen className="w-3.5 h-3.5 text-[#5289ad]" /> {c.lessons}
+              <div className="flex items-center justify-between pt-4 border-t-2 border-[#e6dfd1] text-xs text-[#627894] font-medium">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <BookOpen className="w-3.5 h-3.5 text-[#4a70a9]" /> {c.lessons}
                 </span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Clock className="w-3.5 h-3.5 text-[#5289ad]" /> {c.duration}
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <Clock className="w-3.5 h-3.5 text-[#4a70a9]" /> {c.duration}
                 </span>
               </div>
             </div>
@@ -212,18 +211,18 @@ export default function CourseCatalogInteractive() {
         </div>
 
         {/* Interactive Path Timeline (.path from nCourse.html) */}
-        <div className="mt-12 bg-white border border-[#d3dddf] rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div className="mt-12 bg-[#fffdf9] border-2 border-[#d9d2c2] rounded-3xl p-6 sm:p-8 shadow-[0_16px_32px_-20px_rgba(27,48,77,0.18)]">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <span className="text-xs uppercase font-bold text-[#3f7499] tracking-wider">
+              <span className="font-mono text-xs uppercase font-bold text-[#4a70a9] tracking-wider">
                 Roadmap Pembelajaran
               </span>
-              <h3 className="text-lg font-bold text-[#243c4c] mt-0.5">
+              <h3 className="font-display text-xl font-bold text-[#14233a] mt-0.5">
                 Contoh Jalur Belajar: Dari Nol Sampai Punya Website Online
               </h3>
             </div>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f4f7f6] text-xs font-medium text-[#5c7787]">
-              <Compass className="w-3.5 h-3.5 text-[#5289ad]" /> Klik langkah untuk melihat
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f7f5ef] border border-[#d9d2c2] text-xs font-semibold text-[#50647a]">
+              <Compass className="w-3.5 h-3.5 text-[#4a70a9]" /> Klik langkah untuk melihat
             </span>
           </div>
 
@@ -238,12 +237,12 @@ export default function CourseCatalogInteractive() {
                   {/* Step Button */}
                   <button
                     onClick={() => setActiveStepIndex(idx)}
-                    className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 cursor-pointer ${
+                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                       isCurrent
-                        ? "bg-[#243c4c] text-white shadow-md scale-105"
+                        ? "bg-[#14233a] text-white shadow-md scale-105"
                         : isPastOrCurrent
-                        ? "bg-[#3f7499] text-white"
-                        : "bg-[#f4f7f6] text-[#5c7787] border border-[#d3dddf] hover:border-[#3f7499]"
+                        ? "bg-[#4a70a9] text-white"
+                        : "bg-[#f7f5ef] text-[#50647a] border-2 border-[#d9d2c2] hover:border-[#4a70a9]"
                     }`}
                   >
                     {idx + 1}. {step.title}
@@ -251,9 +250,9 @@ export default function CourseCatalogInteractive() {
 
                   {/* Connector line (if not last) */}
                   {idx < PATH_STEPS.length - 1 && (
-                    <div className="w-8 sm:w-12 h-0.5 bg-[#d3dddf] relative mx-1">
+                    <div className="w-8 sm:w-12 h-1 bg-[#e6dfd1] relative mx-1 rounded-full overflow-hidden">
                       <div
-                        className="absolute inset-0 bg-[#3f7499] transition-all duration-500 origin-left"
+                        className="absolute inset-0 bg-[#4a70a9] transition-all duration-500 origin-left"
                         style={{
                           transform: idx < activeStepIndex ? "scaleX(1)" : "scaleX(0)",
                         }}
@@ -265,7 +264,7 @@ export default function CourseCatalogInteractive() {
             })}
           </div>
 
-          <p className="text-xs text-[#5c7787] mt-3">
+          <p className="text-xs text-[#627894] mt-3 font-medium">
             Jalur belajar memastikan kamu tidak bingung harus mulai dari mana. Setiap materi selesai, sistem akan mengarahkanmu ke langkah berikutnya.
           </p>
         </div>

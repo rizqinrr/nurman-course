@@ -2,28 +2,28 @@ import { ArrowRight, MessageCircle } from "lucide-react";
 
 export default function Landing2Cta() {
   return (
-    <section className="py-20 bg-[#f4f7f6] border-t border-[#d3dddf] text-center">
+    <section className="py-20 bg-[#f2efe7]/50 border-t-2 border-[#d9d2c2] text-center">
       <div className="max-w-[720px] mx-auto px-6">
-        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[#243c4c]">
+        <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[#14233a]">
           Mulai dari yang paling pas untukmu atau anakmu.
         </h2>
-        <p className="text-sm sm:text-base text-[#5c7787] mt-3 mb-8 leading-relaxed">
+        <p className="text-base sm:text-lg text-[#50647a] mt-3 mb-8 leading-relaxed">
           Mau mulai baca materi gratis sekarang, atau konsultasikan kebutuhan les privat anak secara santai lewat WhatsApp?
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4">
           <a
             href="#kelas"
-            className="px-7 py-3.5 rounded-full bg-[#3f7499] hover:bg-[#243c4c] text-white text-sm font-bold shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
+            className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#4a70a9] px-7 text-sm font-bold text-white shadow-[0_4px_0_#2b4875] transition-transform hover:-translate-y-0.5 hover:bg-[#3d6094]"
           >
-            Jelajahi Kelas Mandiri <ArrowRight className="w-4 h-4" />
+            Jelajahi Kelas Mandiri <ArrowRight size={18} className="transition group-hover:translate-x-1" />
           </a>
 
           <a
             href="https://wa.me/6281234567890?text=Halo%20Nurman%20Course,%20saya%20ingin%20tanya%20seputar%20les%20privat"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-7 py-3.5 rounded-full border border-[#d3dddf] bg-white hover:border-[#3f7499] text-[#243c4c] text-sm font-semibold shadow-sm transition-all cursor-pointer inline-flex items-center gap-2"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-[#d9d2c2] bg-[#fffdf9] px-7 text-sm font-bold text-[#2e4b7a] transition hover:border-[#4a70a9] shadow-xs"
           >
             <MessageCircle className="w-4 h-4 text-emerald-600" />
             <span>Chat Tanya-Tanya di WhatsApp</span>
