@@ -67,6 +67,12 @@ export default function CoverageNav() {
             <Compass className="h-4 w-4 text-[#4a70a9]" />
             Peta Jangkauan
           </span>
+          <Link
+            href="/cek-rute"
+            className="rounded-lg px-3.5 py-2 text-sm font-bold text-[#50647a] transition-colors hover:bg-[#eae4d3] hover:text-[#14233a]"
+          >
+            Cek Rute & Biaya
+          </Link>
         </nav>
 
         {/* CTA Actions */}

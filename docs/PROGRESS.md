@@ -1,3 +1,63 @@
+### 2026-10-20 — Integrasi Halaman "Cek Rute & Biaya Transport" (/cek-rute & /cekrute) ke Monorepo
+
+**Request:** 
+Integrasi fitur cek rute jalan & estimasi biaya transport dari proyek mandiri ke dalam Next.js monorepo Nurman Course (`/cek-rute` dan alias `/cekrute`) dengan penyesuaian gaya visual (warm paper `#f7f5ef`, navy `#2e4b7a`, gold `#f2c14e`), proxy backend aman untuk API key ORS, dan integrasi CTA WhatsApp resmi.
+
+**Keputusan & Implementasi:**
+- **Secure Route Handlers (Proxy Next.js):**
+  - `frontend/app/api/ors/directions/route.ts`: Server-side POST proxy ke ORS `v2/directions/driving-car`, membaca API Key via `process.env.ORS_API_KEY` (rahasia di server), mengonversi urutan koordinat `[lng, lat]` $\leftrightarrow$ `[lat, lng]` Leaflet, dan mengembalikan `jarakMeter`, `jarakKm`, `durasiDetik`, serta `koordinatRute`.
+  - `frontend/app/api/ors/geocode/route.ts`: Server-side GET proxy ke ORS `geocode/search` dengan pembatasan negara Indonesia (`boundary.country=IDN`) dan maksimal 5 hasil terfilter.
+- **Konfigurasi & Helper Domain (`frontend/lib/rute-biaya.ts`):**
+  - Hub Utama: Titik les Nurman Course (Jl. Kolonel Sugiono No. 24, Cilacap: `[-7.728283, 109.014261]`).
+  - Tarif: Rp 3.000 / km, Biaya minimum: Rp 10.000, Batas jangkauan: 15.0 km.
+  - Formula: `max(BIAYA_MINIMUM, jarak_km * TARIF_PER_KM)` dibulatkan ke kelipatan Rp 1.000 terdekat.
+  - Ditambahkan transparansi rincian kalkulasi (`getRincianBiaya`) agar wali murid memahami perhitungan riil dan logika minimum/kelipatan.
+- **Klien API Fetcher (`frontend/lib/ors-client.ts`):**
+  - Wrapper aman memanggil endpoint proxy internal `/api/ors/*` dari browser.
+- **Komponen UI Berdesain Warm Paper (`frontend/components/cek-rute/`):**
+  - `CekRuteNav.tsx`: Navbar responsif bergaya warm paper dengan logo ncourse, badge akurasi ORS, link navigasi, dan CTA konsultasi WhatsApp.
+  - `CekRuteMap.tsx` & `CekRuteMapInner.tsx`: Leaflet canvas SSR-safe (`next/dynamic` dengan `ssr: false`), custom DOM marker (Hub navy-emas berdenyut dan pin rumah draggable dengan bayangan 2.5D), polyline rute indigo, dan auto `fitBounds` dinamis.
+  - `CekRutePanelLokasi.tsx`: Bottom sheet mobile / side panel desktop dengan tombol GPS lazy-request, auto-search alamat debounced 500ms, dan mode klik di peta.
+  - `CekRuteKartuHasil.tsx`: Kartu ringkasan jarak (km), estimasi durasi, breakdown tarif per kunjungan transparan, status jangkauan (peringatan jika >15 km), tombol "Ubah Lokasi", tombol "Reset", serta direct CTA WhatsApp pendaftaran les dengan template teks otomatis.
+- **Halaman & Routing:**
+  - `frontend/app/cek-rute/page.tsx`: Halaman utama full-screen responsive 4 tahap alur.
+  - `frontend/app/cekrute/page.tsx`: Alias redirect 307 ke `/cek-rute`.
+  - Tautan "Cek Rute" ditambahkan pada `Landing2Nav.tsx` dan `CoverageNav.tsx`.
+  - Tile provider peta beralih dari CartoDB ke server resmi OpenStreetMap (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`) pada `CekRuteMapInner.tsx` dan `CoverageMapInner.tsx` agar 100% bebas dari batasan watermark/API key CartoDB.
+
+**Verifikasi:**
+- Next.js Production Build (`npm run build --workspace=frontend`): sukses 44/44 static pages, termasuk `/cek-rute`, `/cekrute`, dan kedua route handler `api/ors/*`.
+- ESLint (`npm run lint --workspace=frontend`): lolos 0 error, 0 warning.
+- TypeScript check (`npx tsc --project frontend/tsconfig.json --noEmit`): lolos 0 error.
+- HTTP Endpoint Testing:
+  - `GET http://localhost:3000/cek-rute`: HTTP 200 OK.
+  - `GET http://localhost:3000/cekrute`: HTTP 307 Redirect ke `/cek-rute`.
+  - `POST http://localhost:3000/api/ors/directions`: Berhasil mengembalikan koordinat rute, jarak (2.1 km), dan durasi (177.3s).
+  - `GET http://localhost:3000/api/ors/geocode?q=Alun-alun+Cilacap`: Berhasil mengembalikan 5 saran geocoding akurat di Cilacap & sekitarnya.
+
+### 2026-10-20 — Pembuatan Website "Cek Jarak & Biaya" (React + Vite + Leaflet + OpenRouteService)
+
+**Request:** 
+Membuat proyek website standalone "Cek Jarak & Biaya" menggunakan React (Vite), Leaflet (react-leaflet), dan OpenRouteService API, dengan bahasa Indonesia untuk seluruh UI dan komentar kode.
+
+**Keputusan & Implementasi:**
+- Dibuat pada direktori mandiri `cek-jarak-biaya/` dengan Vite + React 18 + Tailwind CSS.
+- Konfigurasi terpusat di `src/config.js` (`NAMA_TEMPAT`, `TITIK_UTAMA`, `TARIF_PER_KM`, `BIAYA_MINIMUM`, `JARAK_MAKSIMAL_KM`, `ORS_API_KEY`).
+- Perhitungan tarif dan format Rupiah di `src/utils/biaya.js` sesuai rumus `max(BIAYA_MINIMUM, jarak_km * TARIF_PER_KM)` dibulatkan ke kelipatan Rp 1.000 terdekat.
+- Layanan OpenRouteService di `src/services/ors.js`:
+  - Directions endpoint (`driving-car`) dengan konversi koordinat ORS `[lng, lat]` ke Leaflet `[lat, lng]`.
+  - Geocoding search endpoint (`geocode/search`) dibatasi `boundary.country=IDN`, maksimal 5 saran, dengan debounce 500ms.
+- Komponen terpisah:
+  - `src/components/Map/MapComponent.jsx`: Leaflet Map full screen dengan perbaikan asset icon Vite di `leafletFix.js`, marker titik utama, marker user draggable, polyline rute, serta auto-fitBounds.
+  - `src/components/PanelLokasi/PanelLokasi.jsx`: Bottom sheet mobile / side panel desktop dengan auto-request GPS, input ketik alamat, dan mode pilih di peta.
+  - `src/components/KartuHasil/KartuHasil.jsx`: Menampilkan jarak jalan, durasi tempuh, estimasi biaya, penanganan batas >15 km (sembunyikan biaya dan beri peringatan), tombol ubah lokasi, dan tombol reset.
+- Dokumentasi lengkap di `cek-jarak-biaya/README.md` dan `.env.example`.
+
+**Verifikasi:**
+- `npm install` di `cek-jarak-biaya`: sukses 134 packages.
+- `npm run build`: sukses dalam 11.05s (0 error).
+- Server dev berjalan di `http://localhost:5173`: HTTP 200 OK.
+
 ### 2026-10-19 — Peta Interaktif Jangkauan Layanan Les Privat (/jangkauan & /peta)
 
 **Request:** 

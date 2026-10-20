@@ -62,16 +62,15 @@ export default function CoverageMapInner({
       // Add zoom control at bottom-right
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
-      // Clean CartoDB Voyager / OpenStreetMap tiles
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      // Tile Layer OpenStreetMap (bebas API key)
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
-        subdomains: "abcd",
       }).addTo(map);
 
       // Add Attribution
       L.control
         .attribution({ position: "bottomleft", prefix: false })
-        .addAttribution('&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+        .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> kontributor')
         .addTo(map);
 
       // 1. Draw Coverage Circles

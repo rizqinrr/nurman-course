@@ -9,6 +9,8 @@
 - Tidak ada migration deploy, backfill live, seed, mutasi DB remote, commit, push, atau deploy tanpa izin eksplisit.
 - Verifikasi wajib dicatat bersama batas buktinya.
 
+- [x] Integrasi Halaman "Cek Rute & Biaya Transport" (`/cek-rute` & `/cekrute`) ke Monorepo: server-side proxy ORS directions & geocode (`frontend/app/api/ors/*`), Leaflet map responsif bergaya warm paper dengan pin draggable, bottom-sheet/side-panel lokasi, kartu estimasi rute/biaya dengan formula transparan, tombol reset & ubah titik, direct WhatsApp pendaftaran les, build Next.js lulus 44/44 static pages.
+- [x] Aplikasi Standalone "Cek Jarak & Biaya" (`cek-jarak-biaya`): React (Vite) + Leaflet (react-leaflet) + OpenRouteService (directions driving-car & geocoding search), draggable user marker, bottom-sheet/side-panel, rumus biaya pembulatan Rp 1.000, batas jarak 15 km, README dan .env.example.
 - [x] Halaman Peta Interaktif Jangkauan Les Privat (`/jangkauan` & `/peta`): Leaflet OpenStreetMap canvas, auto GPS/manual kecamatan checker, kalkulator jarak & estimasi biaya transport, pin tentor standby, kartu 3 zona layanan, FAQ, dan WhatsApp direct booking.
 - [x] Eksplorasi Landing Opsi 2 Hybrid (`/landing`) dan halaman eksperimen interaktif `/landing2` (Web Audio API synth stage 9:16 + 2.5D stack hero + catalog filter + Venn parallax + Opsi 2 Auto-Teaser Motion).
 - [x] Sembunyikan scrollbar vertikal shell wali hanya pada mobile tanpa menonaktifkan scrolling; lint dan TypeScript check lulus, test tidak dijalankan sesuai instruksi.

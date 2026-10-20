@@ -32,6 +32,9 @@ export default function Landing2Nav() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Peta Jangkauan
           </Link>
+          <Link href="/cek-rute" className="hover:text-[#4a70a9] transition-colors text-[#2e4b7a] font-bold">
+            Cek Rute & Biaya
+          </Link>
           <a href="#jalur" className="hover:text-[#4a70a9] transition-colors">
             Jalur Belajar
           </a>
