@@ -1,3 +1,99 @@
+### 2026-10-24 — Penyeragaman Menyeluruh Style Navbar Semua Halaman Luar (Patokan: /materi)
+
+**Request:**
+1. Menyeragamkan ukuran kontainer navbar di semua halaman luar (`/`, `/materi`, `/cek-rute`, `/jangkauan`) dengan patokan ukuran landing page utama (`max-w-[1140px]`).
+2. Menghapus teks badge "Belajar Mandiri" di samping logo nCourse pada halaman materi.
+3. Menghapus tombol teks "Beranda" terpisah; klik logo nCourse menjadi akses utama kembali ke beranda.
+4. Menyeragamkan style tombol kanan navbar (`Masuk` & `Mulai Belajar`) agar 100% identik dengan tombol `Koleksi saya` (border card) dan `Portal Siswa` (navy pill solid).
+
+**Keputusan & Perubahan:**
+1. **[`ContentShell.tsx`](file:///d:/01_Coding\www\nurman-course\frontend\components\content\ContentShell.tsx):**
+   - Menghapus teks badge `"Belajar Mandiri"`.
+   - Menghapus tombol teks `"Beranda"` terpisah (klik logo nCourse langsung kembali ke `/`).
+   - Ukuran kontainer navbar diatur ke `max-w-[1140px] mx-auto px-4 sm:px-6 h-16`.
+2. **[`Landing2Nav.tsx`](file:///d:/01_Coding\www\nurman-course\frontend\components\landing2\Landing2Nav.tsx) (dipakai di `/`, `/cek-rute`, `/jangkauan`):**
+   - Mengubah tombol **Masuk** menjadi gaya border button:
+     `inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[#d9d2c2] bg-[#fffdf9] px-2.5 sm:px-3 text-xs sm:text-sm font-bold text-[#14233a] shadow-xs hover:border-[#4a70a9] hover:bg-[#f7f5ef]`.
+   - Mengubah tombol **Mulai Belajar** menjadi gaya solid navy button:
+     `inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-[#2e4b7a] px-3 sm:px-3.5 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-[#22395e]`.
+   - Ukuran kontainer konsisten `max-w-[1140px] mx-auto px-4 sm:px-6 h-16`.
+
+**Verifikasi:**
+- `npm run lint --workspace=frontend`: Lolos (0 error, 0 warning).
+- `npx tsc --project frontend/tsconfig.json --noEmit`: Lolos (0 error).
+- `node --test frontend/tests/dashboard-surface.test.mjs frontend/tests/auth-surface.test.mjs frontend/tests/course-funnel.test.mjs`: Lolos (14/14 tests pass).
+
+### 2026-10-24 — Penyelarasan Style Navbar /materi (Belajar Mandiri) dengan Halaman Utama
+
+**Request:**
+Memberikan akses ke halaman utama (`/`) dari halaman `http://localhost:3000/materi`, menyamakan style navigasi dengan navbar halaman utama (Warm Paper `#fffdf9` dengan border `#d9d2c2`), namun tetap mempertahankan tautan `Katalog`, `Jalur belajar`, `Koleksi saya`, dan `Portal Siswa`.
+
+**Keputusan & Perubahan:**
+1. **Shell Materi (`frontend/components/content/ContentShell.tsx`):**
+   - Mengubah background dan border header dari style abu-abu lama (`#f1f5f8` / `#c7d4e2`) menjadi style Warm Paper yang seragam dengan halaman utama (`bg-[#fffdf9] border-b border-[#d9d2c2]`).
+   - Logo nCourse kini mengarah ke Halaman Utama (`/`).
+   - Menambahkan navigasi penghubung ke halaman utama:
+     - Tautan langsung **Beranda** (`/`).
+     - Dropdown **Program Lain** (Kelas Bimbingan & Les Privat guru ke rumah).
+     - Dropdown **Layanan & Area** (Peta Jangkauan & Cek Rute).
+   - Mempertahankan tautan inti materi:
+     - **Katalog** (`/materi`)
+     - **Jalur belajar** (`/jalur-belajar`)
+     - **Koleksi saya** (`/app/materi`)
+     - **Portal Siswa** (`/app/dashboard`)
+   - Drawer mobile responsif untuk layar HP yang memuat seluruh menu materi dan navigasi program nCourse.
+   - Menambahkan tautan "Halaman Utama" di bagian footer `ContentShell`.
+
+**Verifikasi:**
+- `npm run lint --workspace=frontend`: Lolos (0 error, 0 warning).
+- `npx tsc --project frontend/tsconfig.json --noEmit`: Lolos (0 error).
+- `node --test frontend/tests/dashboard-surface.test.mjs frontend/tests/auth-surface.test.mjs frontend/tests/course-funnel.test.mjs`: Lolos (14/14 tests pass).
+
+### 2026-10-24 — Penyeragaman Navbar di /cek-rute dan /jangkauan dengan Halaman Utama
+
+**Request:**
+Menyeragamkan navbar pada halaman `http://localhost:3000/cek-rute` dan `http://localhost:3000/jangkauan` agar menggunakan navbar yang sama persis seperti halaman utama (`/`).
+
+**Keputusan & Perubahan:**
+1. **Halaman Cek Rute (`frontend/app/cek-rute/page.tsx`):**
+   - Mengganti komponen `CekRuteNav` dengan `Landing2Nav`.
+   - Navbar di halaman peta interaktif rute kini konsisten menampilkan logo nCourse, dropdown "Program Belajar", dropdown "Layanan & Area", link FAQ, tombol Masuk, serta tombol Mulai Belajar.
+2. **Halaman Peta Jangkauan (`frontend/app/jangkauan/page.tsx`):**
+   - Mengganti komponen `CoverageNav` dengan `Landing2Nav`.
+   - Navigasi atas seragam dengan halaman utama baik di desktop maupun mobile drawer akordeon.
+
+**Verifikasi:**
+- `npm run lint --workspace=frontend`: Lolos (0 error, 0 warning).
+- `npx tsc --project frontend/tsconfig.json --noEmit`: Lolos (0 error).
+- `node --test frontend/tests/dashboard-surface.test.mjs frontend/tests/auth-surface.test.mjs frontend/tests/course-funnel.test.mjs`: Lolos (14/14 tests pass).
+
+### 2026-10-24 — Perampingan Navbar Landing Page Utama dengan 2 Menu Dropdown
+
+**Request:**
+Menggabungkan deretan link navbar di `http://localhost:3000/` agar lebih ramping dan bersih dengan interaksi klik/hover memunculkan dropdown.
+
+**Keputusan & Perubahan:**
+1. **Pemisahan 2 Menu Dropdown ([`Landing2Nav.tsx`](file:///d:/01_Coding/www/nurman-course/frontend/components/landing2/Landing2Nav.tsx)):**
+   - **Dropdown "Program Belajar"**: Menampung 3 Jalur Belajar nCourse lengkap dengan ikon dan deskripsi singkat:
+     - *Belajar Mandiri* (`/materi`)
+     - *Kelas Bimbingan* (`/course/materi`)
+     - *Les Privat Guru ke Rumah* (`/course/program`)
+   - **Dropdown "Layanan & Area"**: Menampung fitur navigasi dan estimasi:
+     - *Peta Jangkauan Les* (`/jangkauan`)
+     - *Cek Rute & Biaya Transport* (`/cek-rute`)
+   - Link langsung **Tanya Jawab (FAQ)** (`#faq`).
+2. **Interaktivitas & UX Desktop:**
+   - Mendukung **Hover** sekaligus **Klik** tombol dropdown.
+   - Dilengkapi *click outside listener* (`navRef`) untuk menutup dropdown saat user mengklik di luar area menu.
+   - Desain kartu dropdown mengikuti tema Warm Paper (`#fffdf9`, border `#d9d2c2`, shadow halus).
+3. **Mobile Drawer Akordeon:**
+   - Di layar mobile/HP, dropdown disajikan sebagai menu lipat (akordeon) yang rapi dan mudah dijangkau dengan jempol.
+
+**Verifikasi:**
+- `npm run lint --workspace=frontend`: Lolos (0 error, 0 warning).
+- `npx tsc --project frontend/tsconfig.json --noEmit`: Lolos (0 error).
+- `node --test frontend/tests/dashboard-surface.test.mjs frontend/tests/auth-surface.test.mjs frontend/tests/course-funnel.test.mjs`: Lolos (14/14 tests pass).
+
 ### 2026-10-24 — Landing Page Opsi 2 (3 Jalur Belajar) Menjadi Landing Utama (/)
 
 **Request:**

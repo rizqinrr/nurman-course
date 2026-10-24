@@ -9,6 +9,31 @@
 - Tidak ada migration deploy, backfill live, seed, mutasi DB remote, commit, push, atau deploy tanpa izin eksplisit.
 - Verifikasi wajib dicatat bersama batas buktinya.
 
+- [x] Seragamkan ukuran navbar dan style tombol di semua halaman luar (patokan: `/materi`):
+  - Ukuran kontainer navbar disamakan menjadi `max-w-[1140px]` di semua halaman (`/`, `/materi`, `/cek-rute`, `/jangkauan`).
+  - Menghapus tulisan badge "Belajar Mandiri" di samping logo nCourse pada halaman materi.
+  - Menghapus tombol "Beranda" teks terpisah; logo nCourse di kiri kini menjadi satu-satunya pintu utama kembali ke beranda (`/`).
+  - Menyeragamkan style tombol aksi navbar:
+    - Tombol sekunder (`Masuk` & `Koleksi saya`): `rounded-xl border border-[#d9d2c2] bg-[#fffdf9] px-2.5 sm:px-3 text-xs sm:text-sm font-bold text-[#14233a] shadow-xs`.
+    - Tombol primer (`Mulai Belajar` & `Portal Siswa`): `rounded-xl bg-[#2e4b7a] px-3 sm:px-3.5 text-xs sm:text-sm font-bold text-white shadow-xs`.
+  - Verifikasi: ESLint 0 error, TypeScript 0 error, 14/14 tests pass.
+- [x] Samakan style navbar `/materi` (`ContentShell`) dengan halaman utama tanpa menghapus link existing:
+  - Logo nCourse kini mengarah ke Halaman Utama (`/`).
+  - Style navbar mengikuti Warm Paper (`#fffdf9` dengan border `#d9d2c2`).
+  - Ditambahkan link **Beranda** (`/`), dropdown **Program Lain** (Kelas Bimbingan & Les Privat), dan dropdown **Layanan & Area** (Peta Jangkauan & Cek Rute).
+  - Tautan inti **Katalog** (`/materi`), **Jalur belajar** (`/jalur-belajar`), **Koleksi saya** (`/app/materi`), dan **Portal Siswa** (`/app/dashboard`) tetap dipertahankan.
+  - Footer juga dilengkapi tautan langsung ke Halaman Utama (`/`).
+  - Verifikasi: ESLint 0 error, TypeScript 0 error, 14/14 tests pass.
+- [x] Samakan navbar di `/cek-rute` dan `/jangkauan` dengan navbar halaman utama (`Landing2Nav`):
+  - Halaman `http://localhost:3000/cek-rute` dan `http://localhost:3000/jangkauan` kini menggunakan navbar terpadu yang sama (lengkap dengan dropdown Program Belajar, Layanan & Area, FAQ, tombol Masuk, dan Mulai Belajar).
+  - Tampilan konsisten di desktop maupun mobile.
+  - Verifikasi: ESLint 0 error, TypeScript 0 error, 14/14 tests pass.
+- [x] Rampingkan navbar landing utama (`/`) dengan 2 menu dropdown terorganisir:
+  - **Program Belajar** (Hover & Klik): Memuat 3 Jalur Belajar (Belajar Mandiri, Kelas Bimbingan, Les Privat).
+  - **Layanan & Area** (Hover & Klik): Memuat Peta Jangkauan Les & Cek Rute/Biaya Transport.
+  - Link langsung **Tanya Jawab (FAQ)**, tombol **Masuk**, dan tombol **Mulai Belajar**.
+  - Dilengkapi mobile drawer akordeon responsif untuk layar HP.
+  - Verifikasi: ESLint 0 error, TypeScript 0 error, 14/14 tests pass.
 - [x] Jadikan Landing Page Opsi 2 (interaktif 3 jalur belajar) sebagai Landing Page Utama (`/`):
   - Halaman `http://localhost:3000/` kini langsung memuat landing page utama nCourse yang lengkap (Hero, Fakta, Pilihan 3 Jalur Belajar, Katalog Belajar Mandiri, Les Privat, Venn diagram, FAQ, dan Footer).
   - Tautan `/landing2` dan `/landing` dialihkan secara mulus (`redirect("/")`) ke root `/`.

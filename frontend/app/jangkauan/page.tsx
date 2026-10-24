@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Compass, MessageCircle, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
 import { Bricolage_Grotesque, JetBrains_Mono, Public_Sans } from "next/font/google";
-import CoverageNav from "@/components/coverage/CoverageNav";
+import Landing2Nav from "@/components/landing2/Landing2Nav";
 import CoverageLocationChecker from "@/components/coverage/CoverageLocationChecker";
 import CoverageMap from "@/components/coverage/CoverageMap";
 import CoverageAreaCards from "@/components/coverage/CoverageAreaCards";
@@ -53,7 +53,7 @@ export default function CoveragePage() {
     <main
       className={`landing-hybrid ${display.variable} ${body.variable} ${mono.variable} min-h-screen text-[#2b3a4a] antialiased`}
     >
-      <CoverageNav />
+      <Landing2Nav />
 
       {/* HERO SECTION */}
       <section className="relative overflow-hidden pt-10 pb-8 sm:pt-14 sm:pb-12">

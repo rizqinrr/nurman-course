@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Loader2, Navigation } from "lucide-react";
 import { Bricolage_Grotesque, JetBrains_Mono, Public_Sans } from "next/font/google";
-import CekRuteNav from "@/components/cek-rute/CekRuteNav";
+import Landing2Nav from "@/components/landing2/Landing2Nav";
 import CekRuteMap from "@/components/cek-rute/CekRuteMap";
 import CekRutePanelLokasi from "@/components/cek-rute/CekRutePanelLokasi";
 import CekRuteKartuHasil from "@/components/cek-rute/CekRuteKartuHasil";
@@ -100,7 +100,7 @@ export default function CekRutePage() {
     <main
       className={`landing-hybrid ${display.variable} ${body.variable} ${mono.variable} relative h-screen w-screen overflow-hidden text-[#2b3a4a] antialiased flex flex-col`}
     >
-      <CekRuteNav />
+      <Landing2Nav />
 
       {/* Kontainer Peta Full Screen */}
       <div className="relative flex-1 w-full h-full overflow-hidden">
