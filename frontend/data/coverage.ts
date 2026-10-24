@@ -27,7 +27,7 @@ export interface HubLocation {
 export const MAIN_HUBS: HubLocation[] = [
   {
     id: "hub-pusat",
-    name: "Nurman Course Hub (Pusat)",
+    name: "nCourse Hub (Pusat)",
     address: "Jl. Kolonel Sugiono No. 24, Cilacap Kota, Jawa Tengah",
     lat: -7.7285,
     lng: 109.0145,

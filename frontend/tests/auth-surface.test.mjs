@@ -12,9 +12,9 @@ test("auth surface switches login and register without linking away", () => {
   assert.match(signupSource, /redirect\("\/login\?mode=register"\)/);
 });
 
-test("development quick-fill is hidden from production and covers every role", () => {
+test("development quick-fill is hidden from production and covers unified roles", () => {
   assert.match(loginSource, /process\.env\.NODE_ENV === "development"/);
-  for (const role of ["Admin", "Tentor", "Wali", "Member"]) {
+  for (const role of ["Siswa", "Tentor", "Admin"]) {
     assert.match(loginSource, new RegExp(`role: "${role}"`));
   }
 });
@@ -25,9 +25,10 @@ test("register mode remains available for an already authenticated browser", () 
 });
 
 test("login clears a session when the DB profile cannot be resolved", () => {
-  assert.match(loginSource, /supabase\.auth\.signOut\(\)/);
+  assert.match(loginSource, /removeAccessToken\(\)/);
 });
-test("member quick-fill matches a development seed fixture", () => {
-  assert.match(seedSource, /role: 'member'/);
+
+test("student quick-fill matches development seed fixtures", () => {
+  assert.match(seedSource, /email: `wali\$\{index \+ 1\}@nurmancourse\.com`/);
   assert.match(seedSource, /email: 'member@nurmancourse\.com'/);
 });

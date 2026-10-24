@@ -20,7 +20,7 @@ export default function Landing2Cta() {
           </a>
 
           <a
-            href="https://wa.me/6281234567890?text=Halo%20Nurman%20Course,%20saya%20ingin%20tanya%20seputar%20les%20privat"
+            href="https://wa.me/6281234567890?text=Halo%20nCourse,%20saya%20ingin%20tanya%20seputar%20les%20privat"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-[#d9d2c2] bg-[#fffdf9] px-7 text-sm font-bold text-[#2e4b7a] transition hover:border-[#4a70a9] shadow-xs"

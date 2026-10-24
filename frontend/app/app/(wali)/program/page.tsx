@@ -108,10 +108,10 @@ export default function ProgramKatalogPage() {
       {/* Page Header */}
       <header className="flex flex-col gap-1 bg-app-white border border-app-border shadow-sm rounded-2xl p-6">
         <h1 className="text-xl sm:text-2xl font-normal text-app-text tracking-tight font-playfair">
-          Program Belajar Anak
+          Katalog Kelas Bimbingan &amp; Les Privat
         </h1>
         <p className="text-sm text-app-text-muted">
-          Pilih program, lihat detail, lalu daftarkan buah hati Anda.
+          Pilih Kelas Bimbingan (Materi &amp; Proyek) atau Les Privat (Tatap Muka ke Rumah).
         </p>
       </header>
 

@@ -138,7 +138,7 @@ export default function CoverageLocationChecker({
     const areaName = activeArea?.name || customAddressName || "Cilacap";
     const distText = distanceKm ? ` (jarak perkiraan: ~${distanceKm} km dari Hub Pusat)` : "";
     const text = [
-      "Halo *Nurman Course* 👋",
+      "Halo *nCourse* 👋",
       "Saya ingin tanya ketersediaan tentor les privat untuk lokasi saya:",
       `📍 *Area/Alamat:* ${areaName}${distText}`,
       "",

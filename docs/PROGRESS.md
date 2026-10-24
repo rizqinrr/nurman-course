@@ -1,3 +1,102 @@
+### 2026-10-24 — Landing Page Opsi 2 (3 Jalur Belajar) Menjadi Landing Utama (/)
+
+**Request:**
+Menjadikan halaman landing yang sebelumnya berada di `/landing2` sebagai halaman landing page utama aplikasi di root (`/`), sehingga pengguna langsung melihat landing page interaktif lengkap tanpa perlu mengakses `/landing2`.
+
+**Keputusan & Perubahan:**
+1. **Root Page (`frontend/app/page.tsx`):**
+   - Menghapus redirect lama ke `/landing`.
+   - Mengubah `frontend/app/page.tsx` menjadi halaman landing utama yang menyajikan komponen interaktif lengkap: `Landing2Nav`, `Landing2Hero`, `Landing2Facts`, `Landing2PathChoice`, `CourseCatalogInteractive`, `PrivateTutoringSection`, `VennBridgeSection`, `FaqInteractiveSection`, `Landing2Cta`, dan `Landing2Footer`.
+   - Menyalin file style interaktif ke `frontend/app/landing-interactive.css`.
+2. **Backward Compatibility & Redirects:**
+   - `frontend/app/landing2/page.tsx`: Dikonversi menjadi redirect instan ke `/`.
+   - `frontend/app/landing/page.tsx`: Dikonversi menjadi redirect instan ke `/`.
+3. **Penyelarasan Tautan Navigasi & Footer:**
+   - Mengubah href logo brand dan link "Beranda" dari `/landing2` / `/landing` menjadi `/` di `Landing2Nav.tsx`, `Landing2Footer.tsx`, `CekRuteNav.tsx`, `CoverageNav.tsx`, dan `frontend/app/login/page.tsx`.
+   - Di `Landing2Footer.tsx`, menghapus switcher lama ("Versi Landing 1" vs "Landing 2 Eksperimen") dan menggantinya dengan tautan standar yang rapi ("Beranda", "Belajar Mandiri", "Les Privat").
+
+**Verifikasi & Batas Bukti:**
+- `npm run lint --workspace=frontend`: Lolos (0 error, 0 warning).
+- `npx tsc --project frontend/tsconfig.json --noEmit`: Lolos (0 error).
+- `node --test frontend/tests/dashboard-surface.test.mjs frontend/tests/auth-surface.test.mjs frontend/tests/course-funnel.test.mjs`: Lolos (14/14 tests pass).
+- *Batas bukti*: Verifikasi dijalankan di workspace frontend lokal.
+
+### 2026-10-24 — Restrukturisasi Alur Siswa, 3 Jalur Belajar, & Portal Tentor Mobile-First + Direct Chat WA
+
+**Request:**
+Merestrukturisasi alur aplikasi **nCourse** menjadi 3 peran terpadu (`Admin`, `Tentor`, `Siswa` dengan konsep `1 Akun = 1 Siswa`), menampilkan 3 jalur belajar jelas di Landing Page (`Belajar Mandiri`, `Kelas Bimbingan`, `Les Privat`), menyatukan Ruang Materi Mandiri dan Portal Wali menjadi **Portal Siswa** (termasuk memperbaiki tombol Logout yang sebelumnya tersembunyi di `/app/materi`), serta merombak **Portal Tentor** menjadi *Warm Paper Mobile-First* dengan fitur **Direct Chat WA / Kabari via WA** untuk komunikasi laporan ke siswa/orang tua.
+
+**Keputusan & Perubahan:**
+- **Fase 1 — Mockup A: Portal Siswa Mobile-First (`SWA-1.1` s/d `SWA-1.5`):**
+  - `frontend/lib/navigation.ts` & `frontend/middleware.ts`: Mendukung role `siswa`, `wali`, dan `member` menuju `/app/dashboard` (Portal Siswa) dan `/app/materi`.
+  - `frontend/app/app/(wali)/layout.tsx`: Header identitas **Portal Siswa**, pintasan **"Baca Materi"**, link Profil, dan tombol **Keluar (Logout)** merah yang jelas di mobile top bar.
+  - `frontend/app/app/(wali)/dashboard/page.tsx`: Beranda Siswa terpadu yang menggabungkan kartu **Belajar Mandiri** (`getLibrary({ limit: 5 })` + pintasan `/app/materi` & `/app/program`), **Kelas Bimbingan / Les Privat Aktif**, **Sesi Belajar Berikutnya**, **Laporan Sesi Terakhir**, dan **Tagihan Menunggu Pembayaran**.
+  - `frontend/app/app/materi/page.tsx` & `frontend/components/content/ContentShell.tsx`: Menambahkan tombol **"Beranda Siswa"** dan tombol merah **"Keluar"** langsung di header atas `/app/materi` sehingga user tidak lagi kesulitan mencari tombol logout.
+  - `frontend/app/app/(wali)/jadwal/page.tsx`, `laporan/page.tsx`, `program/page.tsx`, `profile/page.tsx`, dan `frontend/app/app/page.tsx`: Penyesuaian sudut pandang **Siswa** (termasuk informasi Kontak Orang Tua/Wali pada profil siswa).
+- **Fase 2 — Mockup B: Portal Tentor Mobile-First & Direct Chat WA (`SWA-2.1` s/d `SWA-2.5`):**
+  - `frontend/app/app/tentor/layout.tsx`: Redesign dari tema biru glassmorphism `#6d8fc4` menjadi tema kontras tinggi **Warm Paper (`#F7F4EF`)** dengan border `#E5DDD0`, mobile top bar + tombol Logout, dan bottom bar 5 menu.
+  - `frontend/app/app/tentor/dashboard/page.tsx` & `jadwal/page.tsx`: Kartu sesi dengan tombol **Direct Chat WA** (`bg-[#15803d]`) ke nomor WhatsApp siswa/orang tua dan tombol **Maps** untuk alamat rumah.
+  - `frontend/app/app/tentor/laporan-harian/LaporanHarianClient.tsx` & `laporan-perkembangan/LaporanPerkembanganClient.tsx`: Tema Warm Paper Mobile-First serta tombol **"Kabari WA" / "Kabari via WA"** dengan pesan otomatis sekali klik setelah laporan disimpan di aplikasi.
+  - `frontend/app/app/tentor/profil/page.tsx`: Tema Warm Paper dan daftar **Siswa Ditugaskan**.
+- **Fase 3 — Mockup C: Landing Page 3 Jalur, Funnel Kelas Bimbingan, & Login 3 Peran (`SWA-3.1` s/d `SWA-3.4`):**
+  - `frontend/components/landing2/Landing2PathChoice.tsx`, `Landing2Nav.tsx`, `Landing2Hero.tsx`: Menampilkan 3 kartu jalur belajar utama (**Belajar Mandiri**, **Kelas Bimbingan** Privat/Grup Kecil, **Les Privat** tentor ke rumah).
+  - `frontend/app/course/program/page.tsx` & `frontend/app/course/config/CourseConfigClient.tsx`: Penyesuaian istilah **Kelas Bimbingan Materi & Proyek**, **Les Privat**, serta opsi peserta `1 orang (Privat)`, `2 orang (Grup Kecil)` (`Hemat 20% / siswa`), dan `3 orang (Grup Kecil)` (`Hemat 35% / siswa`) dengan tetap menjaga otoritas rumus harga tunggal di `CourseConfigClient.tsx`.
+  - `frontend/app/login/page.tsx`: Quick-fill development disederhanakan untuk **Siswa**, **Tentor**, dan **Admin**.
+- **Fase 4 — Backend & Shared Schema Role `siswa` (`SWA-4.1` s/d `SWA-4.5`):**
+  - `packages/shared/src/index.ts` & `backend/src/middleware/auth.ts`: Menambahkan role `"siswa"` pada `UserRole`, `userRoleSchema`, `manageableRoleSchema`, dan `requireOperational`.
+  - `backend/prisma/schema.prisma`: Menambahkan field opsional `parentName` dan `parentPhone` pada model `Murid`.
+  - `backend/src/index.ts`: Seluruh endpoint `/api/me/*` (`sessions`, `daily-reports`, `progress-reports`, `enrollments`, `invoices`, `prepayments`, `notifications`, `progresses`) melayani role `siswa` setara `wali`.
+
+**Verifikasi & Batas Bukti:**
+- `npm run lint --workspace=frontend`: lolos 0 error, 0 warning.
+- `npx tsc --project frontend/tsconfig.json --noEmit`: lolos 0 error.
+- `node --test frontend/tests/dashboard-surface.test.mjs frontend/tests/auth-surface.test.mjs frontend/tests/course-funnel.test.mjs`: lolos 14/14 test.
+- `npm run typecheck --workspace=backend` & `npm run lint --workspace=backend`: lolos 0 error.
+- `impeccable detect`: 0 error, 0 warning (seluruh temuan `side-tab` dan `backdrop-blur` telah dibersihkan).
+- *Batas bukti*: Perubahan schema Prisma (`parentName`, `parentPhone`) bersifat additive dan belum dijalankan `prisma migrate` maupun backfill mutasi data pada DB lokal `nurmancourse` tanpa instruksi eksplisit.
+
+### 2026-10-24 — Rebrand Menyeluruh Menjadi "nCourse"
+
+**Request:** 
+Mengubah branding dari "Nurman Course" menjadi "nCourse" (format camelCase dengan penekanan huruf C pada Course) secara menyeluruh di seluruh antarmuka web, metadata, navigasi, footer, halaman peta/jangkauan, portal operasional, dan template chat WhatsApp.
+
+**Keputusan & Perubahan:**
+- **Format Brand**: `nCourse` (dengan wordmark logo `n`<span className="text-[#4a70a9]">Course</span> pada navbar utama dan aksen gold `n`<span className="text-[#f2c14e]">Course</span> pada dashboard admin/footer gelap).
+- **Metadata Root & Halaman**:
+  - `frontend/app/layout.tsx`: `title.default: "nCourse - Les Privat & Belajar Web"`, `title.template: "%s | nCourse"`.
+  - `frontend/app/landing2/page.tsx`: `title: "nCourse — Belajar Mandiri Bikin Web & Les Privat"`.
+  - `frontend/app/landing/page.tsx`: `title: "nCourse | Les Privat SD–SMP"`.
+- **Navigasi & Header/Footer**:
+  - `Landing2Nav.tsx`, `Landing2Footer.tsx`, `LandingNav.tsx`, `LandingFooter.tsx`, `CoverageNav.tsx`, `CekRuteNav.tsx`, `ContentShell.tsx` diubah seragam menampilkan `nCourse`.
+- **Komponen Publik & Landing**:
+  - `Landing2Cta.tsx`, `FaqInteractiveSection.tsx`, `FourStepsInteractive.tsx`, `PromoStage.tsx`.
+  - `LandingAbout.tsx`, `LandingHero.tsx`, `LandingStats.tsx`, `LandingTestimonials.tsx`, `LandingTutors.tsx`.
+  - `FeaturedPrograms.tsx`, `SocialProof.tsx`, `Testimonials.tsx`, `TutorCarousel.tsx`.
+  - `CourseCornerLogo.tsx` dan `DebugBar.tsx`.
+- **Data & Kalkulator Rute / Jangkauan**:
+  - `frontend/data/coverage.ts`: `nCourse Hub (Pusat)`.
+  - `frontend/lib/rute-biaya.ts`: `NAMA_TEMPAT: "nCourse"`.
+  - `CoverageLocationChecker.tsx`, `CoverageFaq.tsx`, `CekRuteKartuHasil.tsx`: template pesan WhatsApp "Halo *nCourse* 👋" dan Hub nCourse.
+  - `frontend/app/jangkauan/page.tsx`: link WA resmi nCourse.
+- **Funnel & Portal Operasional**:
+  - `CourseConfigClient.tsx` & `frontend/app/course/page.tsx`: template WA pendaftaran "Halo *nCourse* 👋", alt logo, dan title hero.
+  - `frontend/app/app/page.tsx`: `nCourse / Portal`.
+  - `(wali)/layout.tsx`: `nCourse`, `(wali)/dashboard/page.tsx`, `jadwal`, `laporan`, `program/[slug]`.
+  - `admin/layout.tsx`: `nCourse`, `admin/rekening/page.tsx`: placeholder akun `nCourse`.
+  - `tentor/layout.tsx`: `nCourse`, rapor cetak `LaporanHarianClient.tsx` & `LaporanPerkembanganClient.tsx`.
+  - `login/page.tsx`: brand logo dan copy `nCourse`.
+  - `useLogout.tsx`: pesan dialog portal `nCourse`.
+  - `backend/src/index.ts`: pesan error resolver nomor WhatsApp `nCourse`.
+  - `cek-jarak-biaya/`: update `NAMA_TEMPAT`, `index.html`, dan README.
+  - `frontend/PRODUCT.md` & `DESIGN.md`: dokumentasi brand nCourse.
+
+**Verifikasi:**
+- `npm run lint --workspace=frontend`: lolos 0 error, 0 warning.
+- `npx tsc --project frontend/tsconfig.json --noEmit`: lolos 0 error.
+- `npm run typecheck --workspace=backend`: lolos 0 error.
+- `npm run lint --workspace=backend`: lolos 0 error (14 pre-existing warnings).
+- `npm run build --workspace=frontend`: lolos 44/44 static pages & dynamic routes.
+
 ### 2026-10-20 — Integrasi Halaman "Cek Rute & Biaya Transport" (/cek-rute & /cekrute) ke Monorepo
 
 **Request:** 

@@ -187,7 +187,7 @@ export default function CourseConfigClient() {
     ];
 
     const message = [
-      "Halo *Nurman Course* 👋",
+      "Halo *nCourse* 👋",
       "Saya ingin lanjut pendaftaran les.",
       "",
       "*Data Pendaftar*",
@@ -312,29 +312,29 @@ export default function CourseConfigClient() {
           <h2 className="text-base font-bold text-gray-900 sm:text-lg">
             <span className="inline-flex items-center gap-2">
               <Users size={18} strokeWidth={2.25} aria-hidden="true" />
-              Jumlah Peserta
+              Format Kelas &amp; Jumlah Peserta
             </span>
           </h2>
           <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#4a70a9] sm:text-xs">
             {participants === 1
-              ? "Harga penuh"
+              ? "Privat (1-on-1)"
               : participants === 2
-                ? "Diskon 20% / anak"
-                : "Diskon 35% / anak"}
+                ? "Grup Kecil · Hemat 20% / siswa"
+                : "Grup Kecil · Hemat 35% / siswa"}
           </span>
         </div>
         <p className="mb-1 text-sm text-gray-500">
-          Berapa orang dalam 1 kelas.
+          Pilih Privat (1 orang) atau Grup Kecil bersama teman (2–3 orang).
         </p>
         <p className="mb-3 text-sm text-gray-500">
           Estimasi harga dihitung{" "}
-          <span className="font-medium text-gray-700">per anak .</span>
+          <span className="font-medium text-gray-700">per siswa.</span>
         </p>
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3].map((item) => (
             <Chip
               key={item}
-              label={`${item} orang`}
+              label={item === 1 ? "1 orang (Privat)" : `${item} orang (Grup Kecil)`}
               active={participants === item}
               activeTone={item === DEFAULT_PARTICIPANTS ? "green" : "blue"}
               onClick={() => handleParticipantsChange(item as 1 | 2 | 3)}
@@ -472,7 +472,7 @@ export default function CourseConfigClient() {
         </div>
       </GlassCard>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#c4d3e3] bg-[#f8fbff]/95 px-4 pb-5 pt-4 shadow-[0_-12px_34px_rgba(46,75,122,0.12)] backdrop-blur-xl">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#c4d3e3] bg-[#f8fbff] px-4 pb-5 pt-4 shadow-[0_-12px_34px_rgba(46,75,122,0.12)]">
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 sm:text-base">

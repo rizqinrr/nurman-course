@@ -7,7 +7,7 @@ export default function Landing2Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Col 1 */}
           <div className="md:col-span-1">
-            <Link href="/landing2" className="flex items-center gap-2.5 font-bold text-base text-white tracking-tight mb-3">
+            <Link href="/" className="flex items-center gap-2.5 font-bold text-base text-white tracking-tight mb-3">
               <div className="w-8 h-8 rounded-lg bg-[#2e4b7a] flex items-center justify-center p-1.5 shadow-sm">
                 <svg viewBox="0 0 32 32" className="w-full h-full">
                   <rect width="32" height="32" rx="7" fill="#2e4b7a" />
@@ -16,7 +16,7 @@ export default function Landing2Footer() {
                   <path d="M9.5 27V17l13 10V17" fill="none" stroke="#fffdf9" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
                 </svg>
               </div>
-              <span className="font-display font-bold text-lg text-white">Nurman Course</span>
+              <span className="font-display font-bold text-lg text-white">n<span className="text-[#f2c14e]">Course</span></span>
             </Link>
             <p className="text-xs text-[#8ea2be] leading-relaxed">
               Platform belajar mandiri bikin website & les privat terpercaya dari Cilacap, Jawa Tengah.
@@ -63,10 +63,11 @@ export default function Landing2Footer() {
         </div>
 
         <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#627894]">
-          <p>© 2026 Nurman Course. Semua hak dilindungi.</p>
+          <p>© 2026 nCourse. Semua hak dilindungi.</p>
           <div className="flex gap-4">
-            <Link href="/landing" className="hover:text-white transition-colors">Versi Landing 1</Link>
-            <Link href="/landing2" className="text-white font-medium">Landing 2 (Eksperimen)</Link>
+            <Link href="/" className="text-white font-medium hover:underline">Beranda</Link>
+            <Link href="/materi" className="hover:text-white transition-colors">Belajar Mandiri</Link>
+            <Link href="/course/program" className="hover:text-white transition-colors">Les Privat</Link>
           </div>
         </div>
       </div>

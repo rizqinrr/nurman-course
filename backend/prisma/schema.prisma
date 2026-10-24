@@ -79,6 +79,8 @@ model Murid {
   address         String?
   registeredAt    DateTime         @default(now()) @map("registered_at") @db.Timestamptz(6)
   photoPath       String?          @map("photo_path")
+  parentName      String?          @map("parent_name")
+  parentPhone     String?          @map("parent_phone")
   dailyReports    DailyReport[]
   enrollments     Enrollment[]
   prepayments     Prepayment[]

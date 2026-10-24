@@ -117,7 +117,7 @@ export default function JadwalSesiPage() {
     if (!selectedMurid) return;
     const tName = tentorName || "Kak Tentor";
     const text = encodeURIComponent(
-      `Halo ${tName}, saya wali murid dari *${selectedMurid.name}*. Mengenai jadwal sesi *${startsAtStr}*, apakah bisa mengajukan reschedule? Terima kasih.`
+      `Halo ${tName}, saya dari akun siswa *${selectedMurid.name}*. Mengenai jadwal sesi *${startsAtStr}*, apakah bisa mengajukan reschedule? Terima kasih.`
     );
     const phone = tentorPhone || WHATSAPP_NUMBER;
     window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
@@ -126,7 +126,7 @@ export default function JadwalSesiPage() {
   const handleRescheduleAdminWA = () => {
     if (!selectedMurid) return;
     const text = encodeURIComponent(
-      `Halo Admin Nurman Course, saya wali murid dari *${selectedMurid.name}*. Ingin mengajukan penyesuaian jadwal sesi belajar rutin. Mohon info ketersediaan slot. Terima kasih.`
+      `Halo Admin nCourse, saya dari akun siswa *${selectedMurid.name}*. Ingin mengajukan penyesuaian jadwal sesi belajar rutin. Mohon info ketersediaan slot. Terima kasih.`
     );
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
   };
@@ -147,7 +147,7 @@ export default function JadwalSesiPage() {
             <h1 className="text-xl font-bold font-playfair text-[#1a1a2e] tracking-tight leading-tight">
               Jadwal Belajar
             </h1>
-            <p className="text-[11px] text-[#737781] leading-none mt-0.5">Portal Wali Murid</p>
+            <p className="text-[11px] text-[#535761] leading-none mt-0.5">Portal Siswa · Kelas Bimbingan &amp; Les Privat</p>
           </div>
         </div>
 
@@ -421,7 +421,7 @@ export default function JadwalSesiPage() {
         </>
       ) : (
         <div className="text-center py-12 bg-white border border-[#e5ddd0] rounded-xl text-xs text-[#737781]">
-          Tidak ada data anak ditemukan. Hubungi admin untuk mendaftarkan anak Anda.
+          Belum ada profil siswa yang terhubung. Hubungi admin nCourse untuk mengaktifkan jadwal.
         </div>
       )}
     </div>

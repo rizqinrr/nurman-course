@@ -11,7 +11,7 @@ export default function SocialProof() {
 
   return (
     <Reveal className="mt-10 sm:mt-12">
-      <section aria-label="Bukti sosial Nurman Course">
+      <section aria-label="Bukti sosial nCourse">
         <div className="mb-4 px-1 text-center sm:text-left">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4a70a9]/80">
             Dipercaya keluarga

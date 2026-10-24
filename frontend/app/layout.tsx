@@ -25,8 +25,8 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Nurman Course - Les Privat Cilacap",
-    template: "%s | Nurman Course",
+    default: "nCourse - Les Privat & Belajar Web",
+    template: "%s | nCourse",
   },
   description:
     "Pendaftaran Les Privat Komputer, Calistung, dan Vibe Coding di Cilacap. Jadwal fleksibel, tentor berpengalaman, dan laporan progres belajar.",

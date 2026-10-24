@@ -42,7 +42,7 @@ export default function DebugBar() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          title={`Nurman Course Debugger (${logs.length} Requests)`}
+          title={`nCourse Debugger (${logs.length} Requests)`}
           aria-label={`Buka Debugger (${logs.length} Requests)`}
           className="fixed bottom-20 right-3 bg-gray-900/90 hover:bg-gray-900 text-white border border-gray-700/60 shadow-xl rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-md cursor-pointer transition-all hover:scale-110 active:scale-95 z-[9999]"
         >
@@ -63,7 +63,7 @@ export default function DebugBar() {
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 font-bold text-white">
                 <Terminal size={13} className="text-emerald-400" />
-                <span>Nurman Course Debugger</span>
+                <span>nCourse Debugger</span>
               </span>
               <span className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded-md">
                 {logs.length} Requests

@@ -19,11 +19,11 @@ export default function LandingNav() {
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b-2 border-[#d9d2c2] bg-[#f7f5ef]/95 backdrop-blur-md">
       <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-10">
-        <Link href="#beranda" aria-label="Nurman Course, beranda" className="flex items-center gap-3">
+        <Link href="#beranda" aria-label="nCourse, beranda" className="flex items-center gap-3">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2e4b7a] p-1 shadow-[0_8px_20px_rgba(46,75,122,0.18)]">
-            <Image src="/Nlogo.png" alt="Logo Nurman Course" width={44} height={44} className="rounded-xl" priority />
+            <Image src="/Nlogo.png" alt="Logo nCourse" width={44} height={44} className="rounded-xl" priority />
           </span>
-          <span className="font-display text-xl font-black tracking-[-0.03em] text-[#14233a]">Nurman <span className="text-[#4a70a9]">Course</span></span>
+          <span className="font-display text-xl font-black tracking-[-0.03em] text-[#14233a]">n<span className="text-[#4a70a9]">Course</span></span>
         </Link>
 
         <div className="hidden items-center gap-7 lg:flex">

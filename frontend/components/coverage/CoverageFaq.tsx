@@ -23,7 +23,7 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Apakah anak bisa belajar di rumah tentor?",
-    a: "Bisa! Selain opsi tentor datang ke rumah siswa, Anda juga bisa memilih lokasi belajar di rumah tentor (Hub Nurman Course) saat konfigurasi jadwal. Opsi ini bebas biaya transport.",
+    a: "Bisa! Selain opsi tentor datang ke rumah siswa, Anda juga bisa memilih lokasi belajar di rumah tentor (Hub nCourse) saat konfigurasi jadwal. Opsi ini bebas biaya transport.",
   },
   {
     q: "Bagaimana orang tua memantau hasil belajar saat tentor datang ke rumah?",

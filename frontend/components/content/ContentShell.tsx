@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Bricolage_Grotesque, JetBrains_Mono, Public_Sans } from "next/font/google";
-import { ArrowRight, BookOpen, Check, Route, UserRound } from "lucide-react";
+import { ArrowRight, BookOpen, Check, LayoutDashboard, Route, UserRound } from "lucide-react";
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-learn-display" });
 const body = Public_Sans({ subsets: ["latin"], variable: "--font-learn-body" });
@@ -9,7 +9,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-learn-mono" 
 export default function ContentShell({ children }: { children: React.ReactNode }) {
   return (
     <div className={`learn-shell ${display.variable} ${body.variable} ${mono.variable} min-h-screen text-[#102d2b] selection:bg-[#f58a3d]/30`}>
-      <header className="sticky top-0 z-50 border-b border-[#c7d4e2] bg-[#f1f5f8]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-[#c7d4e2] bg-[#f1f5f8]">
         <div className="mx-auto flex min-h-16 max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
           <Link href="/materi" className="group flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9] focus-visible:ring-offset-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2e4b7a] p-1.5 shadow-sm transition-transform group-hover:-translate-y-0.5">
@@ -19,21 +19,67 @@ export default function ContentShell({ children }: { children: React.ReactNode }
                 <path d="M9.5 27V17l13 10V17" fill="none" stroke="#fffdf9" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
               </svg>
             </span>
-            <span className="font-display text-base font-black tracking-[-0.04em] text-[#14233a]">n<span className="text-[#4a70a9]">course</span><span className="ml-2 hidden text-[10px] font-bold uppercase tracking-[0.15em] text-[#71849a] sm:inline">Learning desk</span></span>
+            <span className="font-display text-base font-black tracking-[-0.04em] text-[#14233a]">
+              n<span className="text-[#4a70a9]">Course</span>
+              <span className="ml-2 hidden text-[10px] font-bold uppercase tracking-[0.15em] text-[#536781] sm:inline">
+                Belajar Mandiri
+              </span>
+            </span>
           </Link>
           <nav aria-label="Navigasi materi" className="flex items-center gap-1 sm:gap-2">
-            <Link href="/materi" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#284970] transition-colors hover:bg-[#dbe7f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"><BookOpen size={16} aria-hidden="true" /><span className="hidden sm:inline">Katalog</span></Link>
-            <Link href="/jalur-belajar" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#657991] transition-colors hover:bg-[#dbe7f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"><Route size={16} aria-hidden="true" /><span className="hidden sm:inline">Jalur belajar</span></Link>
-            <Link href="/app/materi" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#c7d4e2] bg-white px-3 text-sm font-bold text-[#284970] transition-colors hover:border-[#4a70a9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"><UserRound size={16} aria-hidden="true" /><span className="hidden sm:inline">Koleksi saya</span></Link>
+            <Link
+              href="/materi"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#284970] transition-colors hover:bg-[#dbe7f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"
+            >
+              <BookOpen size={16} aria-hidden="true" />
+              <span className="hidden sm:inline">Katalog</span>
+            </Link>
+            <Link
+              href="/jalur-belajar"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#536781] transition-colors hover:bg-[#dbe7f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"
+            >
+              <Route size={16} aria-hidden="true" />
+              <span className="hidden sm:inline">Jalur belajar</span>
+            </Link>
+            <Link
+              href="/app/materi"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#c7d4e2] bg-white px-3 text-sm font-bold text-[#284970] transition-colors hover:border-[#4a70a9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"
+            >
+              <UserRound size={16} aria-hidden="true" />
+              <span className="hidden sm:inline">Koleksi saya</span>
+            </Link>
+            <Link
+              href="/app/dashboard"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#2e4b7a] px-3 text-sm font-bold text-white transition-colors hover:bg-[#22395e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a70a9]"
+            >
+              <LayoutDashboard size={15} aria-hidden="true" />
+              <span className="hidden md:inline">Portal Siswa</span>
+            </Link>
           </nav>
         </div>
       </header>
       {children}
-      <footer className="border-t border-[#c7d4e2] bg-[#14233a] px-4 py-8 text-[#dbe7f3] sm:px-6 lg:px-10"><div className="mx-auto flex max-w-[90rem] flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between"><p className="font-bold">Belajar pelan-pelan. Bikin sesuatu.</p><Link href="/materi" className="inline-flex items-center gap-2 font-bold text-[#f2c14e]">Lihat semua materi <ArrowRight size={15} aria-hidden="true" /></Link></div></footer>
+      <footer className="border-t border-[#c7d4e2] bg-[#14233a] px-4 py-8 text-[#dbe7f3] sm:px-6 lg:px-10">
+        <div className="mx-auto flex max-w-[90rem] flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-bold">Belajar pelan-pelan. Bikin sesuatu.</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link href="/app/dashboard" className="inline-flex items-center gap-1.5 font-bold text-[#dbe7f3] hover:text-white">
+              Portal Siswa
+            </Link>
+            <Link href="/materi" className="inline-flex items-center gap-2 font-bold text-[#f2c14e]">
+              Lihat semua materi <ArrowRight size={15} aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
 
 export function CompletionMark({ done }: { done: boolean }) {
-  return <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 ${done ? "border-[#d8662e] bg-[#d8662e] text-white" : "border-[#9abaae] text-transparent"}`}><Check size={15} strokeWidth={3} aria-hidden="true" /></span>;
+  return (
+    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 ${done ? "border-[#d8662e] bg-[#d8662e] text-white" : "border-[#9abaae] text-transparent"}`}>
+      <Check size={15} strokeWidth={3} aria-hidden="true" />
+    </span>
+  );
 }

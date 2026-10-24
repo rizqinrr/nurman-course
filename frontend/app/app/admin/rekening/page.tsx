@@ -260,7 +260,7 @@ export default function AdminRekeningPage() {
               <input required value={form.accountNumber} onChange={(event) => setForm({ ...form, accountNumber: event.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9]" placeholder="contoh: 1390022345678" />
             </label>
             <label className="block text-xs font-bold text-gray-700">Atas Nama
-              <input required value={form.accountName} onChange={(event) => setForm({ ...form, accountName: event.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9]" placeholder="contoh: Nurman Course" />
+              <input required value={form.accountName} onChange={(event) => setForm({ ...form, accountName: event.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9]" placeholder="contoh: nCourse" />
             </label>
             <label className="block text-xs font-bold text-gray-700">Catatan
               <input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white/80 px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-[#4a70a9]" placeholder="Opsional" />

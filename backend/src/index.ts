@@ -178,7 +178,7 @@ app.post('/api/auth/resolve-phone', async (req, res) => {
     });
 
     if (!dbUser || !dbUser.email) {
-      res.status(404).json({ error: 'Nomor WhatsApp tidak terdaftar di Nurman Course' });
+      res.status(404).json({ error: 'Nomor WhatsApp tidak terdaftar di nCourse' });
       return;
     }
 
@@ -261,7 +261,7 @@ app.get('/api/me/sessions', requireAuth, requireOperational, async (req: Authent
         },
         orderBy: { startsAt: 'asc' },
       });
-    } else if (user.role === 'wali') {
+    } else if (user.role === 'wali' || user.role === 'siswa') {
       sessions = await prisma.session.findMany({
         where: { murid: { waliId: user.id } },
         include: {
@@ -315,7 +315,7 @@ app.get('/api/me/daily-reports', requireAuth, requireOperational, async (req: Au
         },
         orderBy: { date: 'desc' }
       });
-    } else if (user.role === 'wali') {
+    } else if (user.role === 'wali' || user.role === 'siswa') {
       reports = await prisma.dailyReport.findMany({
         where: { murid: { waliId: user.id } },
         include: {
@@ -451,7 +451,7 @@ app.get('/api/me/progress-reports', requireAuth, requireOperational, async (req:
         },
         orderBy: { createdAt: 'desc' }
       });
-    } else if (user.role === 'wali') {
+    } else if (user.role === 'wali' || user.role === 'siswa') {
       reports = await prisma.progressReport.findMany({
         where: {
           murid: { waliId: user.id }
@@ -473,7 +473,7 @@ app.get('/api/me/progress-reports', requireAuth, requireOperational, async (req:
       });
     }
 
-    if (user.role === 'wali' && Array.isArray(reports)) {
+    if ((user.role === 'wali' || user.role === 'siswa') && Array.isArray(reports)) {
       const enrollments = await prisma.enrollment.findMany({
         where: { murid: { waliId: user.id } },
         select: {
@@ -566,7 +566,7 @@ app.get('/api/me/enrollments', requireAuth, requireOperational, async (req: Auth
     }
 
     let enrollments: any[];
-    if (user.role === 'wali') {
+    if (user.role === 'wali' || user.role === 'siswa') {
       enrollments = await prisma.enrollment.findMany({
         where: {
           murid: { waliId: user.id }
@@ -620,7 +620,7 @@ app.get('/api/me/invoices', requireAuth, requireOperational, async (req: Authent
     }
 
     let invoices: any[];
-    if (user.role === 'wali') {
+    if (user.role === 'wali' || user.role === 'siswa') {
       invoices = await prisma.invoice.findMany({
         where: {
           enrollment: {
@@ -679,7 +679,7 @@ app.post('/api/me/invoices/:id/payment', requireAuth, requireOperational, async 
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    if (user.role !== 'wali') {
+    if (user.role !== 'wali' && user.role !== 'siswa') {
       res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Hanya wali yang dapat mengirim pembayaran' } });
       return;
     }
@@ -728,7 +728,7 @@ app.get('/api/me/prepayments', requireAuth, requireOperational, async (req: Auth
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    if (user.role !== 'wali') {
+    if (user.role !== 'wali' && user.role !== 'siswa') {
       res.json({ data: [] });
       return;
     }
@@ -759,7 +759,7 @@ app.post('/api/me/prepayments', requireAuth, requireOperational, async (req: Aut
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    if (user.role !== 'wali') {
+    if (user.role !== 'wali' && user.role !== 'siswa') {
       res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Hanya wali yang dapat mengirim pembayaran' } });
       return;
     }
@@ -870,7 +870,7 @@ app.get('/api/me/notifications', requireAuth, requireOperational, async (req: Au
       return;
     }
     let unpaidInvoices = 0;
-    if (user.role === 'wali') {
+    if (user.role === 'wali' || user.role === 'siswa') {
       unpaidInvoices = await prisma.invoice.count({
         where: {
           status: 'unpaid',
@@ -953,7 +953,7 @@ app.get('/api/me/progresses', requireAuth, requireOperational, async (req: Authe
     }
 
     let progresses: any[];
-    if (user.role === 'wali') {
+    if (user.role === 'wali' || user.role === 'siswa') {
       progresses = await prisma.progress.findMany({
         where: {
           murid: { waliId: user.id }

@@ -9,14 +9,14 @@ export default function CekRuteNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    "Halo Nurman Course, saya ingin tanya informasi rute dan biaya kunjungan les privat."
+    "Halo nCourse, saya ingin tanya informasi rute dan biaya kunjungan les privat."
   )}`;
 
   return (
     <header className="sticky top-0 z-50 border-b-2 border-[#d9d2c2] bg-[#f7f5ef]/95 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-10">
         {/* Brand Logo */}
-        <Link href="/landing2" className="flex items-center gap-3 group">
+        <Link href="/" className="flex items-center gap-3 group">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#2e4b7a] bg-[#2e4b7a] shadow-[0_4px_0_#14233a] transition-transform group-hover:scale-105">
             <svg
               className="h-6 w-6 text-[#fffdf9]"
@@ -34,7 +34,7 @@ export default function CekRuteNav() {
           </div>
           <div>
             <span className="font-display text-xl font-extrabold tracking-tight text-[#14233a]">
-              Nurman<span className="text-[#4a70a9]">Course</span>
+              n<span className="text-[#4a70a9]">Course</span>
             </span>
             <span className="flex items-center gap-1.5 font-mono text-[0.68rem] font-bold uppercase tracking-wider text-[#50647a]">
               <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -46,7 +46,7 @@ export default function CekRuteNav() {
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-1 md:flex">
           <Link
-            href="/landing2"
+            href="/"
             className="rounded-lg px-3.5 py-2 text-sm font-bold text-[#50647a] transition-colors hover:bg-[#eae4d3] hover:text-[#14233a]"
           >
             Beranda
@@ -104,7 +104,7 @@ export default function CekRuteNav() {
         <div className="border-b-2 border-[#d9d2c2] bg-[#f7f5ef] px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-2">
             <Link
-              href="/landing2"
+              href="/"
               className="rounded-lg px-3 py-2 text-sm font-bold text-[#14233a] hover:bg-[#eae4d3]"
               onClick={() => setMobileMenuOpen(false)}
             >

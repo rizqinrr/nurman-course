@@ -5,7 +5,7 @@ import { landingStats } from "@/data/landing";
 
 export default function LandingStats() {
   return (
-    <section className="border-y-2 border-[#1c304f] bg-[#223d68] text-white shadow-inner" aria-label="Nurman Course dalam angka">
+    <section className="border-y-2 border-[#1c304f] bg-[#223d68] text-white shadow-inner" aria-label="nCourse dalam angka">
       <div className="mx-auto grid max-w-7xl grid-cols-2 px-4 sm:px-6 lg:grid-cols-4 lg:px-10">
         {landingStats.map((stat, index) => (
           <div

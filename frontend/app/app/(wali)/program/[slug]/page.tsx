@@ -142,7 +142,7 @@ export default function ProgramDetailPage({ params }: ProgramDetailPageProps) {
   const handleRegisterWA = () => {
     if (!selectedMurid) return;
     const text = encodeURIComponent(
-      `Halo Admin Nurman Course, saya ingin mendaftarkan anak saya *${selectedMurid.name}* (${selectedMurid.schoolLevel || ""}) ke program *${program.name}*. Mohon informasi jadwal dan ketersediaan tutor. Terima kasih.`,
+      `Halo Admin nCourse, saya ingin mendaftarkan anak saya *${selectedMurid.name}* (${selectedMurid.schoolLevel || ""}) ke program *${program.name}*. Mohon informasi jadwal dan ketersediaan tutor. Terima kasih.`,
     );
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
   };

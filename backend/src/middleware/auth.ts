@@ -140,4 +140,4 @@ export function requireRole(...roles: UserRole[]) {
 
 export const requireAdmin = requireRole("admin");
 
-export const requireOperational = requireRole("admin", "tentor", "wali");
+export const requireOperational = requireRole("admin", "tentor", "siswa", "wali");

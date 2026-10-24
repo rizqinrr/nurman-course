@@ -61,7 +61,7 @@ Semua parameter utama disimpan di dalam satu file `src/config.js` agar mudah dis
 
 | Parameter | Deskripsi | Nilai Bawaan |
 |---|---|---|
-| `NAMA_TEMPAT` | Nama tempat les pada judul dan popup marker | `"Nurman Course"` |
+| `NAMA_TEMPAT` | Nama tempat les pada judul dan popup marker | `"nCourse"` |
 | `TITIK_UTAMA` | Koordinat titik awal (kantor/studio les) | `{ lat: -7.7285, lng: 109.0145 }` |
 | `TARIF_PER_KM` | Tarif transport per kilometer | `3000` (Rp 3.000 / km) |
 | `BIAYA_MINIMUM` | Biaya minimum per kunjungan | `10000` (Rp 10.000) |

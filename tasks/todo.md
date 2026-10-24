@@ -9,6 +9,17 @@
 - Tidak ada migration deploy, backfill live, seed, mutasi DB remote, commit, push, atau deploy tanpa izin eksplisit.
 - Verifikasi wajib dicatat bersama batas buktinya.
 
+- [x] Jadikan Landing Page Opsi 2 (interaktif 3 jalur belajar) sebagai Landing Page Utama (`/`):
+  - Halaman `http://localhost:3000/` kini langsung memuat landing page utama nCourse yang lengkap (Hero, Fakta, Pilihan 3 Jalur Belajar, Katalog Belajar Mandiri, Les Privat, Venn diagram, FAQ, dan Footer).
+  - Tautan `/landing2` dan `/landing` dialihkan secara mulus (`redirect("/")`) ke root `/`.
+  - Semua logo/navigasi di `Landing2Nav`, `Landing2Footer`, `CekRuteNav`, `CoverageNav`, dan `login` diarahkan ke root `/`.
+  - Verifikasi: ESLint 0 error, TypeScript 0 error, dan 14/14 regression tests lulus.
+- [x] Restrukturisasi Alur Siswa & 3 Peran Terpadu (`Admin`, `Tentor`, `Siswa`):
+  - **Fase 1 (Mockup A — Portal Siswa Mobile-First):** Penyatuan Portal Wali & Ruang Materi (`/app/dashboard`, `/app/materi`, `/app/jadwal`, `/app/laporan`, `/app/program`, `/app/profile`) menjadi **Portal Siswa** (`1 Akun = 1 Siswa`), penambahan tombol **Keluar (Logout)** merah di top bar & header materi, serta kartu **Belajar Mandiri** terintegrasi di Beranda Siswa.
+  - **Fase 2 (Mockup B — Portal Tentor Mobile-First & Direct Chat WA):** Redesign `/app/tentor/*` ke tema kontras tinggi **Warm Paper (`#F7F4EF`)** dan penambahan tombol **Direct Chat WA / Kabari via WA** pada kartu sesi, jadwal, laporan harian, dan rapor perkembangan.
+  - **Fase 3 (Mockup C — Landing Page 3 Jalur, Funnel Kelas Bimbingan, & Login 3 Peran):** Seksi **3 Jalur Belajar** (`Belajar Mandiri`, `Kelas Bimbingan`, `Les Privat`) di `Landing2PathChoice.tsx`, opsi `1 orang (Privat)` vs `Grup Kecil (2-3 orang)` dengan badge hemat 20%/35% di `/course/config`, dan penyederhanaan `/login` ke 3 peran (`Siswa`, `Tentor`, `Admin`).
+  - **Fase 4 (Backend & Shared Schema Role `siswa`):** Dukungan role `siswa` di `packages/shared`, `requireOperational`, endpoint `/api/me/*`, serta penyertaan kontak WA siswa/orang tua pada query tentor.
+- [x] Rebrand menyeluruh menjadi "nCourse" (camelCase): update metadata root & page titles, wordmark navbar & footer di semua landing/halaman/portal, template pesan pendaftaran WhatsApp ("Halo *nCourse* 👋"), kalkulator jangkauan & rute, portal wali/admin/tentor, dialog logout, serta dokumentasi product/design. Verifikasi lint, tsc, dan build lolos 100%.
 - [x] Integrasi Halaman "Cek Rute & Biaya Transport" (`/cek-rute` & `/cekrute`) ke Monorepo: server-side proxy ORS directions & geocode (`frontend/app/api/ors/*`), Leaflet map responsif bergaya warm paper dengan pin draggable, bottom-sheet/side-panel lokasi, kartu estimasi rute/biaya dengan formula transparan, tombol reset & ubah titik, direct WhatsApp pendaftaran les, build Next.js lulus 44/44 static pages.
 - [x] Aplikasi Standalone "Cek Jarak & Biaya" (`cek-jarak-biaya`): React (Vite) + Leaflet (react-leaflet) + OpenRouteService (directions driving-car & geocoding search), draggable user marker, bottom-sheet/side-panel, rumus biaya pembulatan Rp 1.000, batas jarak 15 km, README dan .env.example.
 - [x] Halaman Peta Interaktif Jangkauan Les Privat (`/jangkauan` & `/peta`): Leaflet OpenStreetMap canvas, auto GPS/manual kecamatan checker, kalkulator jarak & estimasi biaya transport, pin tentor standby, kartu 3 zona layanan, FAQ, dan WhatsApp direct booking.

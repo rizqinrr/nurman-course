@@ -46,7 +46,7 @@ export default function CoveragePage() {
   };
 
   const generalWaUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    "Halo Nurman Course, saya ingin konsultasi pendaftaran les privat untuk anak saya."
+    "Halo nCourse, saya ingin konsultasi pendaftaran les privat untuk anak saya."
   )}`;
 
   return (

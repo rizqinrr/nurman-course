@@ -17,7 +17,7 @@ export default function CourseCornerLogo() {
     >
       <Image
         src="/Nlogo.png"
-        alt="Logo Nurman Course"
+        alt="Logo nCourse"
         width={150}
         height={150}
         priority

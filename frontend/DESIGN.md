@@ -1,5 +1,5 @@
 ---
-name: Nurman Course Funnel
+name: nCourse Funnel
 description: Peta belajar mobile-first untuk memilih program les dan lanjut ke WhatsApp.
 colors:
   primary: "#4a70a9"
@@ -37,7 +37,7 @@ components:
     padding: "0.75rem 1.25rem"
 ---
 
-# Design System: Nurman Course Funnel
+# Design System: nCourse Funnel
 
 ## Overview
 

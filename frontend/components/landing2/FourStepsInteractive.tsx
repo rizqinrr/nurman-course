@@ -353,7 +353,7 @@ export default function FourStepsInteractive() {
                   <div className="wh">
                     <span className="av">N</span>
                     <div>
-                      <b>Nurman Course</b>
+                      <b>nCourse</b>
                       <small>online</small>
                     </div>
                   </div>
@@ -363,7 +363,7 @@ export default function FourStepsInteractive() {
                     {/* Sent message from parent */}
                     <div className="me rx" id="bb">
                       <div className="rx" id="p1">
-                        Halo <b>Nurman Course</b> 👋<br />
+                        Halo <b>nCourse</b> 👋<br />
                         Saya ingin lanjut pendaftaran les.
                       </div>
                       <div className="rx" id="p2">
@@ -444,7 +444,7 @@ export default function FourStepsInteractive() {
                     <div className="ot rx" id="a2">
                       <div>Jadwal tersedia. Ini link konfirmasi portal wali.</div>
                       <span className="lk">
-                        <b>Portal Wali Nurman Course</b>
+                        <b>Portal Wali nCourse</b>
                         <small>Konfirmasi pendaftaran</small>
                       </span>
                       <div className="mt">

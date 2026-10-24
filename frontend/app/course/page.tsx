@@ -97,7 +97,7 @@ export default function CoursePage() {
         <div className="rounded-full border border-white/60 bg-[#4a70a9]/45 p-0 shadow-[0_10px_30px_rgba(0,0,0,0.14)] backdrop-blur-xl">
           <Image
             src="/Nlogo.png"
-            alt="Logo Nurman Course"
+            alt="Logo nCourse"
             width={42}
             height={42}
             className="h-16 w-16 rounded-full object-cover"
@@ -111,7 +111,7 @@ export default function CoursePage() {
           <div className="mb-2 flex justify-center sm:mb-1">
             <Image
               src="/Nlogo.png"
-              alt="Logo Nurman Course"
+              alt="Logo nCourse"
               width={150}
               height={150}
               priority
@@ -123,7 +123,7 @@ export default function CoursePage() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-[#4a70a9] to-indigo-600 bg-clip-text text-transparent mb-4">
-                  Nurman Course
+                  nCourse
                 </h1>
                 <p className="text-lg sm:text-xl text-gray-700 font-medium leading-relaxed">
                   Belajar dengan nyaman melalui les privat yang disesuaikan
@@ -144,7 +144,7 @@ export default function CoursePage() {
 
           <section
             className="relative left-1/2 mt-8 w-screen -translate-x-1/2 sm:mt-12"
-            aria-label="Keunggulan Nurman Course"
+            aria-label="Keunggulan nCourse"
           >
             <div className="marquee">
               <div className="marquee-content">
@@ -193,7 +193,7 @@ export default function CoursePage() {
           <Reveal>
           <section
             className="mt-12 sm:mt-14"
-            aria-label="Pertanyaan umum Nurman Course"
+            aria-label="Pertanyaan umum nCourse"
           >
             <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
               Pertanyaan Umum

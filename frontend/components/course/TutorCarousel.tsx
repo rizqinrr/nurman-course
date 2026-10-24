@@ -163,7 +163,7 @@ export default function TutorCarousel({ tutors }: TutorCarouselProps) {
   return (
     <section
       className="mt-12 sm:mt-14"
-      aria-label="Tutor unggulan Nurman Course"
+      aria-label="Tutor unggulan nCourse"
     >
       <div className="mb-4 flex items-end justify-between px-1">
         <div>

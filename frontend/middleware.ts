@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url);
       }
     } else if (role !== 'admin') {
-      if (role === 'wali') {
+      if (role === 'wali' || role === 'siswa') {
         if (path === '/app' || path.startsWith('/app/admin') || path.startsWith('/app/tentor')) {
           const url = request.nextUrl.clone();
           url.pathname = '/app/dashboard';

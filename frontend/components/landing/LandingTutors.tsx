@@ -5,7 +5,7 @@ import { tutors } from "@/data/landing";
 
 export default function LandingTutors() {
   return (
-    <section id="tutor" className="border-y-2 border-[#d9d2c2] bg-[#ede8d8]/40 py-20 sm:py-28" aria-label="Tutor Nurman Course">
+    <section id="tutor" className="border-y-2 border-[#d9d2c2] bg-[#ede8d8]/40 py-20 sm:py-28" aria-label="Tutor nCourse">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

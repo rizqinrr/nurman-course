@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // --- User & Role Types ---
-export type UserRole = "admin" | "tentor" | "wali" | "member";
+export type UserRole = "admin" | "tentor" | "siswa" | "wali" | "member";
 
 export interface User {
   id: string;
@@ -43,9 +43,9 @@ export interface ApiErrorPayload {
   };
 }
 
-export const userRoleSchema = z.enum(["admin", "tentor", "wali", "member"]);
+export const userRoleSchema = z.enum(["admin", "tentor", "siswa", "wali", "member"]);
 
-const manageableRoleSchema = z.enum(["tentor", "wali"]);
+const manageableRoleSchema = z.enum(["tentor", "siswa", "wali"]);
 
 export function normalizePhone(value: string): string {
   const digits = value.replace(/\D/g, "");

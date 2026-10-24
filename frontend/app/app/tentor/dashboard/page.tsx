@@ -1,37 +1,40 @@
-/* Hallmark · genre: playful-glassmorphism · design-system: design.md · designed-as-app */
+/* Hallmark · genre: warm-editorial · design-system: design.md · designed-as-mobile-app */
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
+import {
   Session,
   DailyReport,
   Murid,
   DbMurid,
   Program,
-  ProgressReport
+  ProgressReport,
 } from "@/data/lms";
 import { apiFetch } from "@/lib/api";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
 import useClock from "@/hooks/useClock";
-import GlassCard from "@/components/ui/GlassCard";
 import Button from "@/components/ui/Button";
-import { 
-  CalendarDays, 
-  Users, 
-  FileWarning, 
-  Clock, 
-  MapPin, 
+import {
+  CalendarDays,
+  Users,
+  FileWarning,
+  Clock,
+  MapPin,
   AlertCircle,
   Plus,
-  TrendingUp
+  TrendingUp,
+  MessageCircle,
+  ExternalLink,
+  Video,
 } from "lucide-react";
 
 function RealtimeClock({ nowMs }: { nowMs: number | null }) {
   if (nowMs === null) {
     return (
       <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0 animate-pulse">
-        <div className="h-6 w-44 bg-white/20 rounded-full"></div>
-        <div className="h-6 w-32 bg-[#4a70a9]/10 rounded-full"></div>
+        <div className="h-6 w-44 bg-[#E5DDD0] rounded-full"></div>
+        <div className="h-6 w-32 bg-[#EAF0F8] rounded-full"></div>
       </div>
     );
   }
@@ -53,14 +56,14 @@ function RealtimeClock({ nowMs }: { nowMs: number | null }) {
   }).format(nowMs);
 
   return (
-    <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0">
-      <div className="flex items-center gap-1.5 px-3.5 py-1 bg-white/50 border border-white/70 rounded-full shadow-sm">
-        <CalendarDays size={13} className="text-[#4a70a9]" />
-        <span className="text-[11px] font-semibold text-gray-700">{dateStr}</span>
+    <div className="flex flex-wrap items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F7F4EF] border border-[#E5DDD0] rounded-full">
+        <CalendarDays size={13} className="text-[#2e4b7a]" />
+        <span className="text-[11px] font-semibold text-[#14233a]">{dateStr}</span>
       </div>
-      <div className="flex items-center gap-1.5 px-3.5 py-1 bg-[#4a70a9]/10 border border-[#4a70a9]/25 rounded-full shadow-sm">
-        <Clock size={13} className="text-[#4a70a9]" />
-        <span className="text-[11px] font-extrabold text-[#4a70a9] tabular-nums tracking-wide">{timeStr} WIB</span>
+      <div className="flex items-center gap-1.5 px-3 py-1 bg-[#EAF0F8] border border-[#B8CDE4] rounded-full">
+        <Clock size={13} className="text-[#224477]" />
+        <span className="text-[11px] font-extrabold text-[#224477] tabular-nums tracking-wide">{timeStr} WIB</span>
       </div>
     </div>
   );
@@ -94,6 +97,26 @@ interface SessionWithRelations extends Session {
   murid?: DbMurid | null;
   program?: Program;
   rawEndsAt?: string;
+}
+
+function resolveStudentPhone(
+  murid?: {
+    id?: string;
+    name?: string;
+    phone?: string | null;
+    parentPhone?: string | null;
+    wali?: { phone?: string | null } | null;
+  } | null,
+): string {
+  if (!murid) return WHATSAPP_NUMBER;
+  const raw =
+    murid.parentPhone ||
+    murid.phone ||
+    murid.wali?.phone ||
+    WHATSAPP_NUMBER;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
+  return digits || WHATSAPP_NUMBER;
 }
 
 function detectCompletedBlocksPending(
@@ -148,7 +171,6 @@ export default function TentorDashboardPage() {
     let active = true;
     async function loadData() {
       try {
-        // Live mode — enrollments is primary source for assigned students
         interface EnrollmentBundle {
           id: string;
           muridId: string;
@@ -169,7 +191,10 @@ export default function TentorDashboardPage() {
             waliId: dbMurid.waliId,
             name: dbMurid.name,
             age,
-            schoolLevel: dbMurid.schoolLevel || "TK B",
+            schoolLevel: dbMurid.schoolLevel || "SD",
+            phone: dbMurid.phone || dbMurid.wali?.phone || null,
+            parentPhone: dbMurid.parentPhone || dbMurid.wali?.phone || null,
+            parentName: dbMurid.parentName || dbMurid.wali?.name || null,
             avatarUrl:
               dbMurid.avatarUrl ||
               "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&q=80&w=150&h=150",
@@ -226,7 +251,6 @@ export default function TentorDashboardPage() {
     return () => { active = false; };
   }, []);
 
-  // Dapatkan string tanggal hari ini di WIB
   const todayDateStr = new Intl.DateTimeFormat("id-ID", {
     timeZone: "Asia/Jakarta",
     weekday: "long",
@@ -235,11 +259,10 @@ export default function TentorDashboardPage() {
     year: "numeric",
   }).format(nowMs ?? 0);
 
-  // Filter sesi hari ini
   const todaySessions = sessionsData.filter(
     (s) => s.startsAt.split(" • ")[0] === todayDateStr
   );
-  
+
   const sessions = todaySessions;
   const reportedSessionIds = new Set(dailyReports.map((rep) => rep.sessionId));
   const pendingCount = sessionsData.filter((s) =>
@@ -248,208 +271,288 @@ export default function TentorDashboardPage() {
     nowMs !== null &&
     s.rawEndsAt && new Date(s.rawEndsAt).getTime() <= nowMs
   ).length;
-  
+
   const getSessionStatusInfo = (sessionId: string, status: string, rawEndsAt?: string) => {
-    const hasReport = dailyReports.some(rep => rep.sessionId === sessionId);
-    // Sesi dianggap "lewat" jika status completed ATAU waktunya sudah berlalu,
-    // karena status completed baru ter-set setelah laporan ditulis.
+    const hasReport = dailyReports.some((rep) => rep.sessionId === sessionId);
     const isPast = rawEndsAt && nowMs !== null ? new Date(rawEndsAt).getTime() <= nowMs : false;
 
     if (status === "completed" || isPast) {
       if (hasReport) {
         return {
           label: "Selesai",
-          colorClass: "bg-emerald-100 text-emerald-800 border-emerald-200",
+          colorClass: "bg-[#DCFCE7] text-[#15803D] border-[#BBF7D0]",
           actionLabel: "Edit Laporan Harian",
           variant: "ghost" as const,
-          isPending: false
+          isPending: false,
         };
       } else {
         return {
           label: "Butuh Laporan",
-          colorClass: "bg-amber-100 text-amber-800 border-amber-200 animate-pulse",
+          colorClass: "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]",
           actionLabel: "Tulis Laporan Harian",
           variant: "primary" as const,
-          isPending: true
+          isPending: true,
         };
       }
     }
     return {
       label: "Terjadwal",
-      colorClass: "bg-indigo-50 border-indigo-100 text-[#4a70a9]",
+      colorClass: "bg-[#EAF0F8] border-[#B8CDE4] text-[#224477]",
       actionLabel: "Sesi Belum Dimulai",
       variant: "ghost" as const,
-      isPending: false
+      isPending: false,
     };
   };
 
   if (loading || nowMs === null) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col justify-center items-center gap-4">
-        <div className="text-gray-500 font-semibold animate-pulse">Memuat data dashboard...</div>
+      <div className="p-6 max-w-5xl mx-auto w-full flex-grow flex flex-col justify-center items-center gap-3 min-h-[50vh]">
+        <div className="w-10 h-10 rounded-full border-3 border-[#4a70a9]/20 border-t-[#4a70a9] animate-spin" />
+        <div className="text-xs font-semibold text-[#535761]">Memuat beranda tentor...</div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col gap-5 sm:gap-6 animate-[fadeIn_0.5s_ease-out]">
-      <header className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center bg-white/45 backdrop-blur-xl border border-white/60 shadow-sm rounded-[20px] p-4 sm:p-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex-grow flex flex-col gap-5 sm:gap-6 animate-[fadeIn_0.3s_ease-out]">
+      {/* Header */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center bg-white border border-[#E5DDD0] shadow-xs rounded-2xl p-4 sm:p-6">
         <div className="min-w-0">
-          <h2 className="text-[22px] sm:text-2xl font-extrabold text-gray-800 tracking-tight leading-tight">Halo, {profileName}!</h2>
-          <p className="text-[12px] sm:text-sm text-gray-600 mt-1 leading-relaxed">Portal Tentor • Agenda mengajar privat & laporan hari ini</p>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#14233a] tracking-tight leading-tight">
+            Halo, {profileName}!
+          </h1>
+          <p className="text-xs sm:text-sm text-[#535761] mt-1 leading-relaxed">
+            Agenda mengajar Kelas Bimbingan &amp; Les Privat serta akses cepat Direct Chat WA siswa.
+          </p>
         </div>
         <RealtimeClock nowMs={nowMs} />
       </header>
 
       {/* Statistics Row */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <GlassCard className="p-5 flex items-center gap-4 border border-white/80 shadow-sm">
-          <div className="w-12 h-12 rounded-2xl bg-[#4a70a9]/15 text-[#4a70a9] flex items-center justify-center border border-white/50">
-            <CalendarDays size={24} />
+      <section className="grid grid-cols-3 gap-3 sm:gap-5">
+        <div className="bg-white border border-[#E5DDD0] rounded-2xl p-3.5 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#EAF0F8] text-[#224477] flex items-center justify-center shrink-0">
+            <CalendarDays size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sesi Hari Ini</p>
-            <h4 className="font-extrabold text-gray-800 text-lg sm:text-xl">{todaySessions.length} Sesi</h4>
-            <p className="text-[10px] text-gray-500 mt-0.5">Terjadwal & selesai</p>
+            <span className="text-[11px] font-bold text-[#535761] block">Sesi Hari Ini</span>
+            <strong className="font-extrabold text-[#14233a] text-base sm:text-xl block">{todaySessions.length} Sesi</strong>
           </div>
-        </GlassCard>
+        </div>
 
-        <GlassCard className="p-5 flex items-center gap-4 border border-white/80 shadow-sm">
-          <div className="w-12 h-12 rounded-2xl bg-[#4a70a9]/15 text-[#4a70a9] flex items-center justify-center border border-white/50">
-            <Users size={24} />
+        <div className="bg-white border border-[#E5DDD0] rounded-2xl p-3.5 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#EAF0F8] text-[#224477] flex items-center justify-center shrink-0">
+            <Users size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Murid</p>
-            <h4 className="font-extrabold text-gray-800 text-lg sm:text-xl">{muridsList.length} Siswa</h4>
-            <p className="text-[10px] text-gray-500 mt-0.5">Aktif dalam bimbingan</p>
+            <span className="text-[11px] font-bold text-[#535761] block">Total Siswa</span>
+            <strong className="font-extrabold text-[#14233a] text-base sm:text-xl block">{muridsList.length} Siswa</strong>
           </div>
-        </GlassCard>
+        </div>
 
-        <GlassCard className={`p-5 flex items-center gap-4 border border-white/80 shadow-sm transition-all duration-300 ${pendingCount > 0 ? "bg-amber-50/40 border-amber-200/50" : ""}`}>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border border-white/50 ${pendingCount > 0 ? "bg-amber-100 text-amber-700" : "bg-[#4a70a9]/15 text-[#4a70a9]"}`}>
-            <FileWarning size={24} />
+        <div
+          className={`rounded-2xl p-3.5 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-xs border ${
+            pendingCount > 0 ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-white border-[#E5DDD0]"
+          }`}
+        >
+          <div
+            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${
+              pendingCount > 0 ? "bg-[#FEF3C7] text-[#92400E]" : "bg-[#EAF0F8] text-[#224477]"
+            }`}
+          >
+            <FileWarning size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Laporan Pending</p>
-            <h4 className={`font-extrabold text-lg sm:text-xl ${pendingCount > 0 ? "text-amber-700 font-bold" : "text-gray-800"}`}>
-              {pendingCount} Laporan
-            </h4>
-            <p className="text-[10px] text-gray-500 mt-0.5">Butuh segera dilengkapi</p>
+            <span className="text-[11px] font-bold text-[#535761] block">Laporan Pending</span>
+            <strong className={`font-extrabold text-base sm:text-xl block ${pendingCount > 0 ? "text-[#92400E]" : "text-[#14233a]"}`}>
+              {pendingCount} Sesi
+            </strong>
           </div>
-        </GlassCard>
+        </div>
       </section>
 
-        {/* Jadwal Mengajar / Sesi Terkini */}
-      <section className="flex flex-col gap-4">
-        <div className="border-b border-white/40 pb-2">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <Clock className="text-[#4a70a9]" size={22} />
-            <span>Agenda Mengajar Privat</span>
-          </h3>
+      {/* Agenda Mengajar Hari Ini */}
+      <section className="flex flex-col gap-3.5">
+        <div className="flex items-center justify-between border-b border-[#E5DDD0] pb-2.5">
+          <h2 className="text-base sm:text-lg font-bold text-[#14233a] flex items-center gap-2">
+            <Clock className="text-[#2e4b7a]" size={20} />
+            <span>Agenda Mengajar Hari Ini</span>
+          </h2>
+          <Link href="/app/tentor/jadwal" className="text-xs font-bold text-[#2e4b7a] hover:underline">
+            Semua Jadwal →
+          </Link>
         </div>
 
         {sessions.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {sessions.map((session) => {
-              const murid = muridsList.find((m) => m.id === session.muridId) || session.murid || { name: "Siswa", schoolLevel: "SD" };
-              const program = session.program || { id: session.programId, name: "Program Bimbingan" };
+              const murid =
+                muridsList.find((m) => m.id === session.muridId) ||
+                session.murid || { id: session.muridId, name: "Siswa", schoolLevel: "SD" };
+              const program = session.program || { id: session.programId, name: "Program Bimbingan", category: "jenjang" as const };
               const statusInfo = getSessionStatusInfo(session.id, session.status, session.rawEndsAt);
-              
+              const timePart = session.startsAt.split(" • ")[1] || "16:00 WIB";
+              const loc = session.location || "Les Privat - Tatap Muka";
+              const isOnline = /online|zoom|meet|discord|daring/i.test(loc);
+              const waPhone = resolveStudentPhone(session.murid || murid);
+              const waMessage = encodeURIComponent(
+                `Halo *${murid.name}* (atau Bapak/Ibu Orang Tua), saya *${profileName}* (Tentor nCourse) mengingatkan jadwal sesi *${program.name}* hari ini pukul *${timePart}*. Sampai jumpa di sesi belajar!`
+              );
+
               return (
-                <GlassCard key={session.id} className="p-5 flex flex-col justify-between gap-4 border border-white/80 shadow-sm">
+                <article
+                  key={session.id}
+                  className="bg-white rounded-2xl border border-[#E5DDD0] p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-xs"
+                >
                   <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-xs font-bold text-gray-500 flex items-center gap-1.5">
-                        <Clock size={12} />
-                        {session.startsAt.split(" • ")[0]}
+                    <div className="flex justify-between items-center mb-2.5">
+                      <span className="text-xs font-bold text-[#535761] flex items-center gap-1.5">
+                        <Clock size={13} className="text-[#2e4b7a]" />
+                        {timePart}
                       </span>
-                      <span className={`px-2.5 py-0.5 border rounded-full text-[10px] font-bold uppercase tracking-wider ${statusInfo.colorClass}`}>
+                      <span className={`px-2.5 py-0.5 border rounded-full text-[10px] font-bold uppercase ${statusInfo.colorClass}`}>
                         {statusInfo.label}
                       </span>
                     </div>
 
-                    <h4 className="font-bold text-gray-800 text-base sm:text-lg">
+                    <h3 className="font-bold text-[#14233a] text-base sm:text-lg">
                       {murid.name}
-                    </h4>
-                    <p className="text-xs text-gray-500 font-medium mt-0.5">
-                      {program?.name} • {murid.schoolLevel}
+                    </h3>
+                    <p className="text-xs text-[#535761] font-medium mt-0.5">
+                      {program.name} • {murid.schoolLevel || "Siswa"}
                     </p>
 
-                    <div className="flex items-start gap-1.5 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-200/30">
-                      <MapPin size={14} className="text-[#4a70a9] shrink-0 mt-0.5" />
-                      <span>{session.location}</span>
+                    <div className="flex items-start justify-between gap-2 text-xs text-[#535761] mt-3 pt-3 border-t border-[#E5DDD0]/60">
+                      <div className="flex items-start gap-1.5 min-w-0">
+                        {isOnline ? (
+                          <Video size={14} className="text-[#2e4b7a] shrink-0 mt-0.5" />
+                        ) : (
+                          <MapPin size={14} className="text-[#2e4b7a] shrink-0 mt-0.5" />
+                        )}
+                        <span className="truncate">{loc}</span>
+                      </div>
+                      {!isOnline && loc && (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-[#2e4b7a] hover:underline"
+                        >
+                          <span>Maps</span>
+                          <ExternalLink size={11} />
+                        </a>
+                      )}
                     </div>
                   </div>
 
-                  <div className="mt-2">
+                  <div className="pt-1 flex flex-col sm:flex-row gap-2">
+                    <a
+                      href={`https://wa.me/${waPhone}?text=${waMessage}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#15803d] hover:bg-[#166534] px-3.5 py-2 text-xs font-bold text-white transition-colors"
+                    >
+                      <MessageCircle size={14} />
+                      <span>Direct Chat WA</span>
+                    </a>
+
                     {statusInfo.label !== "Terjadwal" ? (
-                      <Link href={`/app/tentor/laporan-harian?${statusInfo.isPending ? "sessionId" : "editSessionId"}=${session.id}`} className="w-full block">
+                      <Link
+                        href={`/app/tentor/laporan-harian?${statusInfo.isPending ? "sessionId" : "editSessionId"}=${session.id}`}
+                        className="flex-1 block"
+                      >
                         <Button variant={statusInfo.variant} className="w-full justify-center text-xs py-2">
                           {statusInfo.actionLabel}
                         </Button>
                       </Link>
                     ) : (
-                      <Button variant="ghost" disabled className="w-full justify-center text-xs py-2 opacity-50 cursor-not-allowed">
-                        Sesi Belum Dimulai ({session.startsAt.split(" • ")[1]?.replace(" WIB", "") || "Scheduled"})
-                      </Button>
+                      <Link href="/app/tentor/jadwal" className="flex-1 block">
+                        <Button variant="ghost" className="w-full justify-center text-xs py-2">
+                          Detail Jadwal
+                        </Button>
+                      </Link>
                     )}
                   </div>
-                </GlassCard>
+                </article>
               );
             })}
           </div>
         ) : (
-          <GlassCard className="p-6 border border-white/80 shadow-sm flex flex-col items-start gap-3">
-            <CalendarDays className="text-[#4a70a9]" size={32} />
-            <div>
-              <h4 className="font-bold text-gray-800 text-sm sm:text-base">Tidak Ada Jadwal Hari Ini</h4>
-              <p className="text-xs text-gray-500 mt-1 max-w-sm">
-                Anda tidak memiliki agenda mengajar privat yang dijadwalkan untuk hari ini.
-              </p>
+          <div className="bg-white rounded-2xl p-6 border border-[#E5DDD0] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-[#EAF0F8] text-[#224477] flex items-center justify-center shrink-0">
+                <CalendarDays size={22} />
+              </div>
+              <div>
+                <h3 className="font-bold text-[#14233a] text-sm sm:text-base">Tidak Ada Sesi Mengajar Hari Ini</h3>
+                <p className="text-xs text-[#535761] mt-1 max-w-md">
+                  Kamu bisa mengecek jadwal mendatang, membuat jadwal baru bersama siswa, atau melengkapi laporan harian.
+                </p>
+              </div>
             </div>
-            <Link href="/app/tentor/jadwal" className="mt-1">
-              <Button variant="ghost" className="text-xs py-2 px-4 border border-[#4a70a9]/30 text-[#4a70a9] hover:bg-[#4a70a9]/5">
-                Lihat Semua Jadwal
+            <Link href="/app/tentor/jadwal" className="shrink-0">
+              <Button variant="ghost" className="text-xs py-2 px-4">
+                Buka Jadwal Mengajar
               </Button>
             </Link>
-          </GlassCard>
+          </div>
         )}
       </section>
 
       {/* Evaluasi Perkembangan Belajar */}
       {completedBlocksPending.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 border-b border-white/40 pb-2">
-            <TrendingUp className="text-[#4a70a9]" size={22} />
-            <span>Evaluasi Perkembangan Belajar</span>
-          </h3>
+        <section className="flex flex-col gap-3.5">
+          <h2 className="text-base sm:text-lg font-bold text-[#14233a] flex items-center gap-2 border-b border-[#E5DDD0] pb-2.5">
+            <TrendingUp className="text-[#2e4b7a]" size={20} />
+            <span>Rapor Perkembangan Blok Siap Diterbitkan</span>
+          </h2>
 
-          <div className="flex flex-col gap-4">
-            {completedBlocksPending.map(({ murid, program, blockNumber }) => (
-              <GlassCard key={`${murid.id}-${program.id}-${blockNumber}`} className="p-6 border border-white/80 shadow-sm relative overflow-hidden flex flex-col gap-4">
-                <div className="flex gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-amber-900">
-                  <AlertCircle size={20} className="shrink-0 mt-0.5 text-amber-700" />
-                  <div>
-                    <p className="text-sm font-semibold">Rapor Blok Selesai Terdeteksi</p>
-                    <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                      Siswa <strong>{murid.name}</strong> telah menyelesaikan {blockNumber * (program.sessionsPerBlock || 12)} sesi (Blok {blockNumber}) pada program <strong>{program.name}</strong>. Harap segera terbitkan Laporan Perkembangan berkala untuk wali murid.
-                    </p>
+          <div className="flex flex-col gap-3.5">
+            {completedBlocksPending.map(({ murid, program, blockNumber }) => {
+              const waPhone = resolveStudentPhone(murid);
+              const waText = encodeURIComponent(
+                `Halo *${murid.name}* (atau Bapak/Ibu Orang Tua), selamat! Pembelajaran *${program.name}* untuk *Blok ${blockNumber}* telah selesai. Saya sedang menyiapkan Rapor Perkembangan di aplikasi nCourse.`
+              );
+
+              return (
+                <article
+                  key={`${murid.id}-${program.id}-${blockNumber}`}
+                  className="bg-white rounded-2xl p-5 border border-[#E5DDD0] shadow-xs flex flex-col gap-4"
+                >
+                  <div className="flex gap-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-3.5 text-[#78350F]">
+                    <AlertCircle size={18} className="shrink-0 mt-0.5 text-[#92400E]" />
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold">Blok {blockNumber} Selesai Terdeteksi</p>
+                      <p className="text-xs text-[#78350F] mt-1 leading-relaxed">
+                        Siswa <strong>{murid.name}</strong> telah menyelesaikan{" "}
+                        {blockNumber * (program.sessionsPerBlock || 12)} sesi pada program{" "}
+                        <strong>{program.name}</strong>. Terbitkan Rapor Perkembangan di aplikasi dan kabari via WhatsApp.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-end mt-2">
-                  <Link href={`/app/tentor/laporan-perkembangan?muridId=${murid.id}&programId=${program.id}&block=${blockNumber}`}>
-                    <Button variant="primary" className="text-xs py-2 px-5 flex items-center gap-2">
-                      <Plus size={14} />
-                      Buat Laporan Perkembangan
-                    </Button>
-                  </Link>
-                </div>
-              </GlassCard>
-            ))}
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <a
+                      href={`https://wa.me/${waPhone}?text=${waText}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#15803d] hover:bg-[#166534] px-3.5 py-2 text-xs font-bold text-white transition-colors"
+                    >
+                      <MessageCircle size={14} />
+                      <span>Direct Chat WA</span>
+                    </a>
+                    <Link href={`/app/tentor/laporan-perkembangan?muridId=${murid.id}&programId=${program.id}&block=${blockNumber}`}>
+                      <Button variant="primary" className="text-xs py-2 px-4 flex items-center gap-1.5">
+                        <Plus size={14} />
+                        <span>Buat Rapor Perkembangan</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       )}
-
     </div>
   );
 }

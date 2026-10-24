@@ -47,7 +47,7 @@ export default function CekRuteKartuHasil({
   const waUrl = useMemo(() => {
     const alamatText = lokasiUser.alamat || `${lokasiUser.lat.toFixed(5)}, ${lokasiUser.lng.toFixed(5)}`;
     const textLines = [
-      "Halo *Nurman Course* 👋",
+      "Halo *nCourse* 👋",
       "Saya ingin daftar les privat dengan rincian titik lokasi saya:",
       "",
       `📍 *Titik Lokasi:* ${alamatText}`,

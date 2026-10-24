@@ -11,10 +11,10 @@ interface FaqItem {
 const FAQS: FaqItem[] = [
   {
     q: "Apakah anak bisa belajar bikin web & aplikasi dari 0 tanpa pengalaman koding?",
-    a: "Sangat bisa! Di Nurman Course, materi diajarkan mulai dari yang paling visual dan mudah dipahami: menyusun teks, gambar, tata letak warna, hingga membuat website toko sederhana. Tidak langsung dijejali rumus rumit.",
+    a: "Sangat bisa! Di nCourse, materi diajarkan mulai dari yang paling visual dan mudah dipahami: menyusun teks, gambar, tata letak warna, hingga membuat website toko sederhana. Tidak langsung dijejali rumus rumit.",
   },
   {
-    q: "Apa saja program les privat yang tersedia di Nurman Course?",
+    q: "Apa saja program les privat yang tersedia di nCourse?",
     a: "Kami menyediakan: 1) Calistung (Membaca, menulis, berhitung untuk TK & SD awal), 2) Belajar Ngaji, Iqro & Tahsin Al-Qur'an, 3) Bimbel Mapel Sekolah (SD & SMP), dan 4) Bikin Web & Komputer Dasar. Semua didampingi tentor sabar secara 1-on-1.",
   },
   {

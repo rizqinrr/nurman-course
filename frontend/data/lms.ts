@@ -1,11 +1,14 @@
 export interface User {
   id: string;
-  role: "admin" | "tentor" | "wali" | "member";
+  role: "admin" | "tentor" | "siswa" | "wali" | "member";
   name: string;
   phone: string | null;
   email?: string;
   active?: boolean;
   address?: string | null;
+  parentPhone?: string | null;
+  parentName?: string | null;
+  wali?: { id?: string; name?: string | null; phone?: string | null } | null;
   photoPath?: string | null;
 }
 
@@ -16,6 +19,9 @@ export interface Murid {
   age: number;
   schoolLevel: string;
   avatarUrl?: string;
+  phone?: string | null;
+  parentPhone?: string | null;
+  parentName?: string | null;
   active?: boolean;
 }
 
@@ -27,6 +33,10 @@ export interface DbMurid {
   schoolLevel?: string | null;
   avatarUrl?: string | null;
   address?: string | null;
+  phone?: string | null;
+  parentPhone?: string | null;
+  parentName?: string | null;
+  wali?: { id?: string; name?: string | null; phone?: string | null } | null;
 }
 
 export interface Program {

@@ -1,5 +1,5 @@
 export const RUTE_CONFIG = {
-  NAMA_TEMPAT: "Nurman Course",
+  NAMA_TEMPAT: "nCourse",
   TITIK_UTAMA: {
     lat: -7.7285,
     lng: 109.0145,

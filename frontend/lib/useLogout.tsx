@@ -24,7 +24,7 @@ export function useLogout(options?: { message?: string }) {
       title="Keluar dari Akun?"
       message={
         options?.message ??
-        "Kamu akan keluar dari portal Nurman Course. Pastikan semua pekerjaan sudah tersimpan."
+        "Kamu akan keluar dari portal nCourse. Pastikan semua pekerjaan sudah tersimpan."
       }
       confirmLabel="Ya, Keluar"
       cancelLabel="Batal"

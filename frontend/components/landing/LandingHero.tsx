@@ -22,7 +22,7 @@ export default function LandingHero() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section id="beranda" className="relative overflow-hidden pb-16 pt-32 sm:pb-24 sm:pt-40" aria-label="Nurman Course">
+    <section id="beranda" className="relative overflow-hidden pb-16 pt-32 sm:pb-24 sm:pt-40" aria-label="nCourse">
       <div className="mx-auto grid w-full max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-10">
         <motion.div initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={reduceMotion ? undefined : { opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}>
           <div className="inline-flex items-center gap-2 rounded-full border-2 border-[#d9d2c2] bg-[#fffdf9] px-4 py-2 font-mono text-xs font-bold text-[#2e4b7a]">

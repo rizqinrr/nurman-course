@@ -12,11 +12,11 @@ Pengguna utama adalah orang tua siswa yang sedang mencari les privat untuk anak 
 
 ## Product Purpose
 
-Nurman Course membantu orang tua menemukan dan mendaftarkan les privat untuk anak melalui pilihan materi, jenjang sekolah, atau calistung dan ngaji. Kesuksesan utama adalah orang tua memahami pilihan yang tersedia, memilih konfigurasi yang sesuai, dan dapat menghubungi Nurman Course melalui WhatsApp untuk konsultasi atau pendaftaran.
+nCourse membantu orang tua menemukan dan mendaftarkan les privat untuk anak melalui pilihan materi, jenjang sekolah, atau calistung dan ngaji. Kesuksesan utama adalah orang tua memahami pilihan yang tersedia, memilih konfigurasi yang sesuai, dan dapat menghubungi nCourse melalui WhatsApp untuk konsultasi atau pendaftaran.
 
 ## Positioning
 
-Nurman Course adalah layanan les privat fleksibel yang memungkinkan keluarga memilih kebutuhan belajar berdasarkan materi atau jenjang, menyesuaikan jadwal, dan memulai melalui konsultasi gratis serta trial session.
+nCourse adalah layanan les privat fleksibel yang memungkinkan keluarga memilih kebutuhan belajar berdasarkan materi atau jenjang, menyesuaikan jadwal, dan memulai melalui konsultasi gratis serta trial session.
 
 ## Operating Context
 
@@ -37,7 +37,7 @@ Nurman Course adalah layanan les privat fleksibel yang memungkinkan keluarga mem
 
 ## Brand Commitments
 
-- Nama produk: Nurman Course.
+- Nama produk: nCourse.
 - Bahasa utama: Bahasa Indonesia.
 - Voice yang sudah digunakan: ramah, jelas, praktis, dan dekat dengan keluarga.
 - Brand, logo, copy berbahasa Indonesia, serta funnel pendaftaran WhatsApp harus dipertahankan.

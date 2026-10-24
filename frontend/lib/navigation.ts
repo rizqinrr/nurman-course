@@ -19,6 +19,6 @@ export function isContentReturnPath(value: string): boolean {
 export function roleHomePath(role: string | null | undefined): string {
   if (role === "admin") return "/app/admin";
   if (role === "tentor") return "/app/tentor/dashboard";
-  if (role === "wali") return "/app/dashboard";
+  if (role === "wali" || role === "siswa") return "/app/dashboard";
   return "/app/materi";
 }

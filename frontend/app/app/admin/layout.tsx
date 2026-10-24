@@ -98,7 +98,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[17.5rem] flex-col bg-[#101f36] text-white lg:flex print:hidden">
         <div className="border-b border-white/10 px-6 py-6">
           <Link href="/app/admin" className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c14e] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101f36]">
-            <span className="text-lg font-black tracking-[-0.04em]">nurman<span className="text-[#f2c14e]">course</span></span>
+            <span className="text-lg font-black tracking-[-0.04em]">n<span className="text-[#f2c14e]">Course</span></span>
             <span className="mt-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-[#aebdd1]">Admin command center</span>
           </Link>
         </div>
@@ -166,7 +166,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <aside role="dialog" aria-modal="true" aria-label="Menu navigasi admin" className={`absolute inset-y-0 left-0 flex w-[min(21rem,88vw)] flex-col bg-[#101f36] text-white shadow-2xl transition-transform ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div className="flex items-start justify-between border-b border-white/10 px-5 py-5">
             <div>
-              <span className="text-lg font-black tracking-[-0.04em]">nurman<span className="text-[#f2c14e]">course</span></span>
+              <span className="text-lg font-black tracking-[-0.04em]">n<span className="text-[#f2c14e]">Course</span></span>
               <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-[#aebdd1]">Admin command center</span>
             </div>
             <button type="button" aria-label="Tutup menu navigasi" onClick={() => setMobileNavOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg text-[#b8c5d6] hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c14e]"><X size={20} aria-hidden="true" /></button>

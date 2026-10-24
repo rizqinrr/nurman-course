@@ -5,14 +5,14 @@ import { testimonials } from "@/data/landing";
 
 export default function LandingTestimonials() {
   return (
-    <section id="testimoni" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-10" aria-label="Testimoni Nurman Course">
+    <section id="testimoni" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-10" aria-label="Testimoni nCourse">
       <div className="grid gap-12 lg:grid-cols-[0.7fr_1.3fr] lg:gap-16">
         <div>
           <h2 className="font-display text-4xl font-extrabold leading-[1.02] tracking-[-0.04em] text-[#14233a] sm:text-5xl">
             Cerita keluarga yang sudah berjalan bersama.
           </h2>
           <p className="mt-5 max-w-md text-base leading-7 text-[#50647a]">
-            Cuplikan pengalaman orang tua dan siswa selama belajar di Nurman Course.
+            Cuplikan pengalaman orang tua dan siswa selama belajar di nCourse.
           </p>
         </div>
         <div className="space-y-5">

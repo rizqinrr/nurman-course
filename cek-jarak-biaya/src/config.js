@@ -5,7 +5,7 @@
 
 export const CONFIG = {
   // Nama tempat les yang ditampilkan pada popup marker dan judul
-  NAMA_TEMPAT: "Nurman Course",
+  NAMA_TEMPAT: "nCourse",
 
   // Koordinat lokasi tempat les (titik awal keberangkatan tentor)
   TITIK_UTAMA: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import PromoStage from "./PromoStage";
 import FloatingHeroStack from "./FloatingHeroStack";
 import { PlayCircle, Layers, ArrowRight, ShieldCheck } from "lucide-react";
@@ -20,21 +21,21 @@ export default function Landing2Hero() {
               style={{ animationDelay: "0ms" }}
             >
               <span className="h-2 w-2 rounded-full bg-[#f2c14e]" />
-              <span>Bukan Sekadar Teori • Bikin Web & Aplikasi dari Nol</span>
+              <span>Belajar Mandiri • Kelas Bimbingan • Les Privat</span>
             </div>
 
             <h1
               className="animate-hero-fade-up font-display text-4xl sm:text-5xl lg:text-[50px] font-extrabold tracking-tight text-[#14233a] leading-[1.08]"
               style={{ animationDelay: "100ms" }}
             >
-              Bikin websitemu sendiri dari nol, atau dampingi anak belajar.
+              Belajar mandiri, bimbingan proyek bareng mentor, atau les privat di rumah.
             </h1>
 
             <p
               className="animate-hero-fade-up text-base sm:text-lg text-[#50647a] mt-5 leading-relaxed"
               style={{ animationDelay: "200ms" }}
             >
-              Belajar sambil praktik: buat website toko, portofolio, dan aplikasi nyata. Dilengkapi juga dengan les privat <b>Calistung anak</b>, <b>Belajar Ngaji</b>, serta <b>Komputer Dasar</b> dengan laporan harian untuk orang tua.
+              Satu akun <b>Siswa</b> untuk semua kebutuhan belajar: baca modul online mandiri, ikut <b>Kelas Bimbingan</b> (1-on-1 atau grup kecil 2–3 orang), hingga <b>Les Privat</b> Calistung, Ngaji, dan mapel sekolah ke rumah dengan laporan berkala di aplikasi.
             </p>
 
             {/* CTAs */}
@@ -43,29 +44,29 @@ export default function Landing2Hero() {
               style={{ animationDelay: "300ms" }}
             >
               <a
-                href="#kelas"
-                className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#4a70a9] px-6 text-sm font-bold text-white shadow-[0_4px_0_#2b4875] transition-transform hover:-translate-y-0.5 hover:bg-[#3d6094]"
+                href="#pilihan-belajar"
+                className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#2e4b7a] px-6 text-sm font-bold text-white transition hover:bg-[#22395e]"
               >
-                Jelajahi Kelas Mandiri <ArrowRight size={18} className="transition group-hover:translate-x-1" />
+                Pilih Jalur Belajar <ArrowRight size={18} className="transition group-hover:translate-x-1" />
               </a>
 
-              <a
-                href="#les"
+              <Link
+                href="/materi"
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-[#d9d2c2] bg-[#fffdf9] px-6 text-sm font-bold text-[#2e4b7a] transition hover:border-[#4a70a9] hover:text-[#14233a]"
               >
-                Susun Les Privat
-              </a>
+                Baca Materi Gratis
+              </Link>
             </div>
 
             <div
-              className="animate-hero-fade-up flex items-center gap-3 mt-5 text-xs text-[#627894] font-medium"
+              className="animate-hero-fade-up flex items-center gap-3 mt-5 text-xs text-[#50647a] font-medium"
               style={{ animationDelay: "400ms" }}
             >
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Gratis untuk mulai
+                <ShieldCheck className="w-4 h-4 text-[#15803d]" /> 1 Akun = 1 Siswa
               </span>
               <span>•</span>
-              <span>Tatap muka di Cilacap & Online</span>
+              <span>Tatap muka di Cilacap &amp; Kelas Bimbingan</span>
             </div>
 
             {/* Visual Mode Switcher (Clean Paper Pill) */}
@@ -80,7 +81,7 @@ export default function Landing2Hero() {
                   onClick={() => setActiveTab("video")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                     activeTab === "video"
-                      ? "bg-[#4a70a9] text-white shadow-xs"
+                      ? "bg-[#2e4b7a] text-white shadow-xs"
                       : "text-[#50647a] hover:text-[#14233a]"
                   }`}
                 >
@@ -93,7 +94,7 @@ export default function Landing2Hero() {
                   onClick={() => setActiveTab("stack")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                     activeTab === "stack"
-                      ? "bg-[#4a70a9] text-white shadow-xs"
+                      ? "bg-[#2e4b7a] text-white shadow-xs"
                       : "text-[#50647a] hover:text-[#14233a]"
                   }`}
                 >

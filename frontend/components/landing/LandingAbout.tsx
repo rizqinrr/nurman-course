@@ -7,7 +7,7 @@ const icons: Record<string, LucideIcon> = { chart: BarChart3, user: UserCheck, c
 
 export default function LandingAbout() {
   return (
-    <section id="tentang" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-10" aria-label="Tentang Nurman Course">
+    <section id="tentang" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 sm:py-28 lg:px-10" aria-label="Tentang nCourse">
       <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
         <div>
           <h2 className="font-display text-4xl font-extrabold leading-[1.02] tracking-[-0.04em] text-[#14233a] sm:text-5xl">

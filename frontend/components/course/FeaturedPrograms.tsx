@@ -13,7 +13,7 @@ export default function FeaturedPrograms() {
 
   return (
     <Reveal className="mt-12 sm:mt-14">
-      <section aria-label="Program favorit Nurman Course">
+      <section aria-label="Program favorit nCourse">
         <div className="mb-4 px-1">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4a70a9]/80">
             Program favorit

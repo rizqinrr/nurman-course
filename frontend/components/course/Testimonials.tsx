@@ -11,7 +11,7 @@ export default function Testimonials() {
 
   return (
     <Reveal className="mt-12 sm:mt-14">
-      <section aria-label="Testimoni singkat Nurman Course">
+      <section aria-label="Testimoni singkat nCourse">
         <div className="mb-4 px-1">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4a70a9]/80">
             Kata mereka

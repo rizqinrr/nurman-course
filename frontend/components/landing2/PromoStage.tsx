@@ -35,7 +35,7 @@ export default function PromoStage() {
       "Di sini kamu belajar sambil praktik. Tulis, lihat hasilnya langsung, lalu perbaiki.",
       "Materinya berupa artikel pendek, dan progresmu tersimpan. Bisa lanjut kapan saja.",
       "Ikuti jalurnya, sampai websitemu benar-benar jadi.",
-      "Nurman Course. Mulai belajar bikin website, gratis."
+      "nCourse. Mulai belajar bikin website, gratis."
     ];
     const T = [0, 3, 8, 16, 21, 25];
 
@@ -373,7 +373,7 @@ export default function PromoStage() {
             <polygon points="16,4.5 28,9.5 16,14.5 4,9.5" fill="#698696" />
             <path d="M9.5 27V17l13 10V17" fill="none" stroke="#243C4C" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
           </svg>
-          <b>Nurman Course</b>
+          <b>nCourse</b>
           <p>Belajar bikin website</p>
           <span className="go">Mulai gratis</span>
         </div>
@@ -388,7 +388,7 @@ export default function PromoStage() {
             <polygon points="16,4.5 28,9.5 16,14.5 4,9.5" fill="#698696" />
             <path d="M9.5 27V17l13 10V17" fill="none" stroke="#243C4C" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
           </svg>
-          <b>Nurman Course</b>
+          <b>nCourse</b>
           <button id="go" aria-label="Putar video">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M8 5.5v13l11-6.5z" fill="currentColor" />
